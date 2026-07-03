@@ -1,0 +1,93 @@
+import {defineField, defineType} from 'sanity'
+
+export const project = defineType({
+  name: 'project',
+  title: 'Project',
+  type: 'document',
+
+  fields: [
+    defineField({
+      name: 'title',
+      title: 'Project Title',
+      type: 'string',
+    }),
+    defineField({
+      name: 'description',
+      title: 'Project Description',
+      type: 'portableText',
+    }),
+
+    defineField({
+      name: 'scheduling',
+      type: 'object',
+      options: {columns: 2},
+      fields: [
+        {name: 'year', type: 'string'},
+        {name: 'location', type: 'string'},
+      ],
+    }),
+
+    defineField({
+      name: 'client',
+      type: 'string',
+    }),
+    defineField({
+      name: 'categories',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'category'}]}],
+      options: {
+        sortable: true,
+      },
+      validation: (Rule) => Rule.unique(),
+    }),
+    defineField({
+      name: 'coverMedia',
+      title: 'Cover Media',
+      type: 'mediaAsset',
+    }),
+    defineField({
+      name: 'gallery',
+      type: 'gallery',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'credits',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({name: 'role', title: 'Role', type: 'string'}),
+            defineField({
+              name: 'entries',
+              title: 'Entries',
+              type: 'array',
+              of: [{type: 'string', name: 'entry'}],
+            }),
+          ],
+        },
+      ],
+    }),
+    defineField({name: 'link', type: 'link'}),
+    defineField({
+      name: 'slug',
+      title: 'url',
+      type: 'slug',
+      options: {
+        source: 'title',
+        maxLength: 96,
+      },
+      validation: (Rule) => Rule.required(),
+    }),
+  ],
+  preview: {
+    select: {
+      title: 'title',
+    },
+    prepare({title}) {
+      return {
+        title,
+      }
+    },
+  },
+})

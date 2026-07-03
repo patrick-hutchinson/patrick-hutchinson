@@ -1,0 +1,15 @@
+.page {
+  --foreground: #fff;
+
+  --text-primary: #000;
+  --text-secondary: #666;
+
+  height: 100vh;
+  width: 100vw;
+
+  margin: var(--margin);
+
+  overflow: hidden;
+
+  background-color: var(--background);
+}

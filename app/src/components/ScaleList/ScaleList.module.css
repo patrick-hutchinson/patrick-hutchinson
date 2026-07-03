@@ -1,0 +1,27 @@
+ul.scaleList {
+  width: calc(100vw - (var(--margin) * 2));
+  height: calc(100vh - (var(--margin) * 2));
+  overflow: hidden;
+}
+
+li.scaleListItem {
+  --base-height: 64px;
+
+  display: flex;
+  align-items: center;
+
+  height: var(--base-height);
+  overflow: visible;
+
+  list-style: none;
+}
+
+.scaleListItemContent {
+  font-size: 80px;
+  font-family: NeueHaasGroteskDisplay;
+  font-weight: bold;
+  line-height: 0.8;
+
+  transform-origin: left center;
+  white-space: nowrap;
+}
