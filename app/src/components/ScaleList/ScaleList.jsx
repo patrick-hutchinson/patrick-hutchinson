@@ -6,10 +6,14 @@ import { motion } from "motion/react";
 import styles from "./ScaleList.module.css";
 
 const BASE_HEIGHT = 64;
-const MAX_VISUAL_SCALE = 2;
+const MAX_VISUAL_SCALE = 2.2;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 100;
 const SOLVE_PASSES = 8;
+const POINTER_SMOOTHING = 1;
+const POINTER_SETTLE_THRESHOLD = 0.25;
+const SCALE_SMOOTHING = 0.2;
+const SCALE_SETTLE_THRESHOLD = 0.002;
 
 function getScaleFromDistance(distance) {
   const minScaleDistance = -Math.log(MIN_SCALE / MAX_VISUAL_SCALE) * DISTANCE_FALLOFF;
@@ -45,18 +49,79 @@ function getScales(cursorY, listTop, itemCount) {
 
 const ScaleList = ({ array }) => {
   const containerRef = useRef(null);
+  const animationFrame = useRef(null);
   const updateFrame = useRef(null);
-  const pointerY = useRef(-1000);
+  const renderedPointerY = useRef(-1000);
+  const renderedScales = useRef([]);
+  const targetScales = useRef([]);
+  const targetPointerY = useRef(-1000);
   const [scales, setScales] = useState([]);
 
   const mappedArray = useMemo(() => [...array, ...array, ...array, ...array, ...array], [array]);
+
+  const animateScales = useCallback(() => {
+    if (!containerRef.current) {
+      animationFrame.current = null;
+      return;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const pointerDifference = targetPointerY.current - renderedPointerY.current;
+    let nextPointerY = targetPointerY.current;
+
+    if (Math.abs(pointerDifference) > POINTER_SETTLE_THRESHOLD) {
+      nextPointerY = renderedPointerY.current + pointerDifference * POINTER_SMOOTHING;
+    }
+
+    renderedPointerY.current = nextPointerY;
+    targetScales.current = getScales(nextPointerY, rect.top, mappedArray.length);
+
+    const targets = targetScales.current;
+    const current = renderedScales.current.length === targets.length ? renderedScales.current : targets;
+    let areScalesSettled = true;
+
+    const nextScales = targets.map((target, index) => {
+      const currentScale = current[index] ?? target;
+      const difference = target - currentScale;
+
+      if (Math.abs(difference) <= SCALE_SETTLE_THRESHOLD) return target;
+
+      areScalesSettled = false;
+      return currentScale + difference * SCALE_SMOOTHING;
+    });
+
+    renderedScales.current = nextScales;
+    setScales(nextScales);
+
+    animationFrame.current =
+      areScalesSettled && Math.abs(pointerDifference) <= POINTER_SETTLE_THRESHOLD
+        ? null
+        : requestAnimationFrame(animateScales);
+  }, [mappedArray.length]);
+
+  const startScaleAnimation = useCallback(() => {
+    if (animationFrame.current) return;
+
+    animationFrame.current = requestAnimationFrame(animateScales);
+  }, [animateScales]);
 
   const updateScales = useCallback(() => {
     if (!containerRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    setScales(getScales(pointerY.current, rect.top, mappedArray.length));
-  }, [mappedArray.length]);
+    const nextTargetScales = getScales(targetPointerY.current, rect.top, mappedArray.length);
+
+    targetScales.current = nextTargetScales;
+
+    if (renderedScales.current.length !== nextTargetScales.length) {
+      renderedPointerY.current = targetPointerY.current;
+      renderedScales.current = nextTargetScales;
+      setScales(nextTargetScales);
+      return;
+    }
+
+    startScaleAnimation();
+  }, [mappedArray.length, startScaleAnimation]);
 
   const scheduleScaleUpdate = useCallback(() => {
     if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
@@ -69,7 +134,7 @@ const ScaleList = ({ array }) => {
 
   useEffect(() => {
     const handlePointerMove = (event) => {
-      pointerY.current = event.clientY;
+      targetPointerY.current = event.clientY;
       scheduleScaleUpdate();
     };
 
@@ -78,6 +143,7 @@ const ScaleList = ({ array }) => {
     window.addEventListener("resize", scheduleScaleUpdate);
 
     return () => {
+      if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
       if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", scheduleScaleUpdate);
@@ -85,7 +151,7 @@ const ScaleList = ({ array }) => {
   }, [scheduleScaleUpdate, updateScales]);
 
   const handlePointerLeave = () => {
-    pointerY.current = -1000;
+    targetPointerY.current = -1000;
     scheduleScaleUpdate();
   };
 

@@ -20,8 +20,9 @@ export const project = defineType({
     defineField({
       name: 'scheduling',
       type: 'object',
-      options: {columns: 2},
+      options: {columns: 3},
       fields: [
+        {name: 'month', type: 'string'},
         {name: 'year', type: 'string'},
         {name: 'location', type: 'string'},
       ],

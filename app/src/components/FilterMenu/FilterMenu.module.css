@@ -1,0 +1,8 @@
+.filterMenu {
+  display: flex;
+  gap: var(--margin);
+  background: #fff;
+  color: #000;
+  border-radius: 50px;
+  padding: 6px;
+}
