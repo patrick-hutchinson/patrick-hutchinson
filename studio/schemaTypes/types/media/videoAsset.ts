@@ -8,7 +8,32 @@ export const videoAsset = defineType({
     defineField({
       name: 'file',
       title: 'File',
-      type: 'file',
+      type: 'mux.video',
+      options: {
+        collapsible: false,
+        collapsed: false,
+      },
+    }),
+    defineField({
+      name: 'caption',
+      type: 'string',
+    }),
+    defineField({
+      name: 'altText',
+      title: 'Alt Text (Wichtig für SEO and Barrierefreiheit)',
+      type: 'string',
     }),
   ],
+  preview: {
+    select: {
+      video: 'video',
+      subtitle: 'copyright',
+    },
+    prepare({video, subtitle}) {
+      return {
+        media: video,
+        subtitle: subtitle,
+      }
+    },
+  },
 })

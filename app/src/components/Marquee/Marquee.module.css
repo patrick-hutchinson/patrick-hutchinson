@@ -1,0 +1,31 @@
+.viewport {
+  overflow: hidden;
+  overflow-y: visible !important;
+}
+
+.container {
+  display: flex;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  cursor: grab;
+}
+
+.slide {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.slide:first-child {
+  min-width: max-content;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    transform: none !important;
+  }
+
+  .slide:not(:first-child) {
+    display: none;
+  }
+}

@@ -1,24 +1,25 @@
+import { useMemo } from "react";
+
 import { getHomeStaticProps } from "@/lib/sanity/fetch";
+
+import ScaleList from "@/components/ScaleList/ScaleList";
 
 import styles from "@/styles/Index.module.css";
 
-import ScaleList from "@/components/ScaleList/ScaleList";
-import FilterMenu from "@/components/FilterMenu/FilterMenu";
-import Copyright from "@/components/Copyright/Copyright";
-
-export default function Home({ home }) {
+export default function Home({ activeFilter, home }) {
   const selection = home?.selection || [];
 
   if (!home || home.length === 0) return null;
 
-  const filterArray = [...new Set(selection.map((entry) => entry._type))];
+  const filteredSelection = useMemo(
+    () => (activeFilter ? selection.filter((entry) => entry._type === activeFilter) : selection),
+    [activeFilter, selection],
+  );
 
   return (
-    <div className={`${styles.page}`}>
-      <main className={styles.main}>
-        {/* <FilterMenu className={styles.filterMenu} array={filterArray} /> */}
-        <ScaleList array={selection} />
-        <Copyright className={styles.copyright} />
+    <div className={`page ${styles.page}`}>
+      <main className="main">
+        <ScaleList array={filteredSelection} />
       </main>
     </div>
   );

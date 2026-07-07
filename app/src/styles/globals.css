@@ -1,14 +1,13 @@
-@font-face {
-  font-family: NeueHaasGroteskDisplay;
-  src: url("../../public/fonts/NeueHaasGrotDisp-75Bold-Trial.otf");
-  font-weight: bold;
-}
-
 :root {
   --background: #ffffff;
   --foreground: #000000;
 
   --margin: 12px;
+
+  --opacity: 0.4;
+
+  --section-spacing: 100px;
+  --section-small-spacing: 20px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +22,10 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   overscroll-behavior: none;
+  font-size: 10px;
+  line-height: 1;
+  overscroll-behavior: none;
+  overflow-anchor: none;
 }
 
 body {
@@ -39,6 +42,38 @@ body {
   margin: 0;
 }
 
+.page {
+  /* margin: var(--margin); */
+  overflow: hidden;
+  background-color: var(--background);
+  position: relative;
+}
+
+.main,
+.page {
+  /* height: calc(100vh - 2 * var(--margin)); */
+  /* width: calc(100vw - 2 * var(--margin)); */
+}
+
+.controls {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: var(--margin);
+  position: fixed;
+  top: var(--margin);
+  right: var(--margin);
+  z-index: 2;
+}
+
+.copyright {
+  position: fixed;
+  bottom: var(--margin);
+  right: var(--margin);
+  opacity: var(--opacity);
+  z-index: 2;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -46,7 +81,13 @@ a {
 }
 
 a:hover {
-  opacity: 0.2;
+  opacity: var(--opacity);
+}
+
+ul,
+li {
+  text-decoration: none;
+  list-style: none;
 }
 
 @media (prefers-color-scheme: dark) {

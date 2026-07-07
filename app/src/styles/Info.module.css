@@ -1,0 +1,27 @@
+.page {
+  padding: var(--margin);
+}
+
+.thumbnail {
+  height: auto !important;
+  width: 20px !important;
+}
+
+.listEntry {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lastUpdated {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  opacity: var(--opacity);
+}
+
+.infoContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--margin);
+}

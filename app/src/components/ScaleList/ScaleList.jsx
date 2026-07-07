@@ -57,7 +57,10 @@ const ScaleList = ({ array }) => {
   const targetPointerY = useRef(-1000);
   const [scales, setScales] = useState([]);
 
-  const mappedArray = useMemo(() => [...array, ...array, ...array, ...array, ...array], [array]);
+  const mappedArray = useMemo(
+    () => [...array, ...array, ...array, ...array, ...array, ...array, ...array, ...array, ...array, ...array],
+    [array],
+  );
 
   const animateScales = useCallback(() => {
     if (!containerRef.current) {
@@ -154,6 +157,8 @@ const ScaleList = ({ array }) => {
     targetPointerY.current = -1000;
     scheduleScaleUpdate();
   };
+
+  if (!array.length) return null;
 
   return (
     <motion.ul className={styles.scaleList} ref={containerRef} onPointerLeave={handlePointerLeave}>

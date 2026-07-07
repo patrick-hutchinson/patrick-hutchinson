@@ -1,0 +1,75 @@
+.menu {
+  display: block;
+  position: relative;
+  width: calc(var(--closed-width, 0px) + 16px);
+  overflow: hidden;
+  background: var(--foreground);
+  color: var(--background) !important;
+  border-radius: 25px;
+  padding: 4px 8px;
+  opacity: var(--opacity);
+  transition:
+    width 0.35s ease-in-out,
+    opacity 0.4s ease-in-out;
+}
+
+.menu:hover,
+.menu:focus-within {
+  width: calc(var(--open-width, 0px) + 16px);
+  opacity: 1;
+}
+
+.menuLabel {
+  display: block;
+  width: var(--closed-width, auto);
+  overflow: hidden;
+  white-space: nowrap;
+  text-transform: uppercase;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.menu:hover .menuLabel,
+.menu:focus-within .menuLabel {
+  opacity: 0;
+}
+
+.menuList {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  width: var(--open-width, auto);
+  overflow: hidden;
+  list-style: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out 0.08s;
+}
+
+.menu:hover .menuList,
+.menu:focus-within .menuList {
+  opacity: 1;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.menuItem:last-child {
+  margin-right: 0;
+}
+
+.menuItem::before {
+  content: "";
+  display: block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  background: var(--background);
+  border-radius: 12px;
+}

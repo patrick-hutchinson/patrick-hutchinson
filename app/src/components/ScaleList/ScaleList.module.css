@@ -26,3 +26,12 @@ li.scaleListItem {
   will-change: transform;
   white-space: nowrap;
 }
+
+.scaleListItem_inner {
+  display: flex;
+  white-space: nowrap;
+}
+
+.releaseDate {
+  font-size: 25px;
+}

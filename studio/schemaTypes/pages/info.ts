@@ -7,7 +7,8 @@ export const info = defineType({
     defineField({name: 'description', type: 'portableText'}),
     defineField({name: 'selectedClients', type: 'portableText'}),
     defineField({
-      name: 'contact',
+      name: 'socials',
+      title: 'Socials',
       type: 'array',
       of: [
         {

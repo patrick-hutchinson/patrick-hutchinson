@@ -1,8 +1,91 @@
 .filterMenu {
+  display: block;
+  position: relative;
+  width: calc(var(--closed-width, 0px) + 16px);
+  overflow: hidden;
+  background: var(--foreground);
+  color: var(--background) !important;
+  border-radius: 25px;
+  padding: 4px 8px;
+  opacity: var(--opacity);
+  transition:
+    width 0.35s ease-in-out,
+    opacity 0.4s ease-in-out;
+}
+
+.filterMenu:hover,
+.filterMenu:focus-within {
+  width: calc(var(--open-width, 0px) + 16px);
+  opacity: 1;
+}
+
+.filterMenuLabel {
+  display: block;
+  width: var(--closed-width, auto);
+  overflow: hidden;
+  white-space: nowrap;
+  text-transform: uppercase;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.filterMenu:hover .filterMenuLabel,
+.filterMenu:focus-within .filterMenuLabel {
+  opacity: 0;
+}
+
+.filterMenuList {
   display: flex;
-  gap: var(--margin);
-  background: #fff;
-  color: #000;
-  border-radius: 50px;
-  padding: 6px;
+  align-items: center;
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  width: var(--open-width, auto);
+  overflow: hidden;
+  list-style: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out 0.08s;
+}
+
+.filterMenu:hover .filterMenuList,
+.filterMenu:focus-within .filterMenuList {
+  opacity: 1;
+}
+
+.filterMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 12px;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.filterMenuItem:last-child {
+  margin-right: 0;
+}
+
+.filterMenuItem::before {
+  content: "";
+  display: block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  background: var(--background);
+  border-radius: 12px;
+}
+
+.filterMenuItem button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.inactiveFilterItem {
+  opacity: var(--opacity);
 }

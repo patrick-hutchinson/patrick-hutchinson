@@ -41,14 +41,22 @@ export const project = defineType({
       },
       validation: (Rule) => Rule.unique(),
     }),
+    defineField({name: 'thumbnail', title: 'Thumbnail', type: 'image'}),
     defineField({
       name: 'coverMedia',
       title: 'Cover Media',
       type: 'mediaAsset',
     }),
     defineField({
+      name: 'coverMedia_mobile',
+      title: 'Cover Media (Mobile)',
+      type: 'mediaAsset',
+    }),
+    defineField({
       name: 'gallery',
-      type: 'gallery',
+      title: 'Gallery',
+      type: 'array',
+      of: [{type: 'galleryRow'}],
       validation: (Rule) => Rule.required(),
     }),
     defineField({

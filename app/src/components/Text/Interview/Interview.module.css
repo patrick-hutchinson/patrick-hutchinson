@@ -1,0 +1,47 @@
+.interview {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  height: fit-content;
+}
+
+.runningText {
+  grid-column: 1 / 13;
+}
+
+.row {
+  grid-column: 1 / -1;
+  position: relative;
+}
+
+.speech {
+  position: relative;
+}
+
+.interviewer {
+  grid-column: 4 / 13;
+  color: var(--accent);
+}
+
+.interviewee {
+  grid-column: 1 / 13;
+}
+.interviewee p {
+  text-indent: calc(100% / 12) !important;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  position: relative;
+}
+
+.initials {
+  position: absolute;
+  left: -1px;
+  top: 0.3em;
+}
+
+.interviewerInitials {
+  color: var(--accent);
+}

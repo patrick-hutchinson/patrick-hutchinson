@@ -1,0 +1,20 @@
+.mediaContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.videoPlayer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .videoPlayer:hover .videoControls {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

@@ -1,5 +1,13 @@
 import { getPreviewClient, getProductionClient } from "./client";
-import { homeQuery, infoQuery, siteQuery } from "./queries";
+import {
+  experienceQuery,
+  homeQuery,
+  infoQuery,
+  projectQuery,
+  projectSlugsQuery,
+  publicityQuery,
+  siteQuery,
+} from "./queries";
 
 export const fallbackSiteData = {
   title: "Patrick Hutchinson",
@@ -48,6 +56,22 @@ export async function getInfo() {
   return getSanityClient().fetch(infoQuery);
 }
 
+export async function getExperience() {
+  return getSanityClient().fetch(experienceQuery);
+}
+
+export async function getPublicity() {
+  return getSanityClient().fetch(publicityQuery);
+}
+
+export async function getProject(slug) {
+  return getSanityClient().fetch(projectQuery, { slug });
+}
+
+export async function getProjectSlugs() {
+  return getSanityClient().fetch(projectSlugsQuery);
+}
+
 export async function getHomeStaticProps() {
   const [site, home] = await Promise.all([getSite(), getHome()]);
 
@@ -61,12 +85,51 @@ export async function getHomeStaticProps() {
 }
 
 export async function getInfoStaticProps() {
-  const [site, info] = await Promise.all([getSite(), getInfo()]);
+  const [site, info, experience, publicity] = await Promise.all([
+    getSite(),
+    getInfo(),
+    getExperience(),
+    getPublicity(),
+  ]);
 
   return {
     props: {
       site,
       info,
+      experience,
+      publicity,
+    },
+    revalidate,
+  };
+}
+
+export async function getProjectStaticPaths() {
+  const slugs = await getProjectSlugs();
+
+  return {
+    paths: (slugs || []).map((entry) => ({
+      params: {
+        slug: entry.slug,
+      },
+    })),
+    fallback: "blocking",
+  };
+}
+
+export async function getProjectStaticProps({ params }) {
+  const [site, project] = await Promise.all([getSite(), getProject(params?.slug)]);
+
+  if (!project) {
+    return {
+      notFound: true,
+      revalidate,
+    };
+  }
+
+  return {
+    props: {
+      site,
+      project,
     },
     revalidate,
   };

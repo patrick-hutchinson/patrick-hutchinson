@@ -1,6 +1,5 @@
 export const mediaAssetFragment = `{
   "medium": {
-    _index,
     "type": select(_type == "imageAsset" => "image", _type == "videoAsset" => "video"),
 
     "_id": select(
@@ -10,13 +9,23 @@ export const mediaAssetFragment = `{
     ),
 
     "url": select(_type == "imageAsset" => file.asset->url, true => null),
+    
     "lqip": select(_type == "imageAsset" => file.asset->metadata.lqip, true => null),
     "width": select(_type == "imageAsset" => file.asset->metadata.dimensions.width, true => null),
     "height": select(_type == "imageAsset" => file.asset->metadata.dimensions.height, true => null),
-    "altText": select(_type == "imageAsset" => altText, true => null),
+
+
+    "status": select(_type == "videoAsset" => file.asset->status, true => null),
+    "assetId": select(_type == "videoAsset" => file.asset->assetId, true => null),
+    "playbackId": select(_type == "videoAsset" => file.asset->playbackId, true => null),
+    "aspect_ratio": select(_type == "videoAsset" => file.asset->data.aspect_ratio,
+      true => null
+    ),
+
 
     "copyright": select(
       _type == "imageAsset" => copyright,
+      _type == "videoAsset" => copyright,
       true => null
     ),
   }

@@ -11,9 +11,9 @@ import {project} from './project'
 import {experience} from './experience'
 import {publicity} from './publicity'
 import {pages} from './pages'
-import {gallery} from './types/media/gallery'
+import {gallery, galleryRow} from './types/media/gallery'
 
-const types = [imageAsset, videoAsset, mediaAsset, portableText, link, category, gallery]
+const types = [imageAsset, videoAsset, mediaAsset, portableText, link, category, gallery, galleryRow]
 const objects = [project, experience, publicity]
 
 export const schemaTypes = [site, ...types, ...objects, ...pages]

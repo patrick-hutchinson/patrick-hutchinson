@@ -8,7 +8,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@mux/mux-player-react": "^3.13.0",
+    "@portabletext/react": "^6.2.0",
     "@sanity/client": "^7.23.0",
+    "embla-carousel-react": "^8.6.0",
+    "lenis": "^1.3.25",
     "motion": "^12.42.2",
     "next": "16.2.10",
     "react": "19.2.4",

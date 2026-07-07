@@ -1,0 +1,55 @@
+@font-face {
+  font-family: NeueHaasGroteskDisplay;
+  src: url("../../public/fonts/NeueHaasGrotDisp-75Bold-Trial.otf");
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: NeueHaasGroteskText;
+  src: url("../../public/fonts/NeueHaasGrotText-65Medium-Trial.otf");
+  font-weight: medium;
+}
+
+@font-face {
+  font-family: NeueHaasGroteskText;
+  src: url("../../public/fonts/NeueHaasGrotText-66MediumItalic-Trial.otf");
+  font-weight: medium;
+  font-style: italic;
+}
+
+:root {
+  --font-size-1: clamp(48px, 12vw, 160px);
+  --line-height-1: 0.9;
+  --letter-spacing-1: 0rem;
+  --paragraph-spacing-1: 0rem;
+
+  --font-size-fineprint: 1.25rem;
+  --line-height-fineprint: 1.35rem;
+  --letter-spacing-fineprint: 0.01rem;
+  --paragraph-spacing-fineprint: 0rem;
+}
+
+h1,
+[typo="h1"] {
+  font-family: NeueHaasGroteskDisplay, Arial, Helvetica, sans-serif;
+
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  letter-spacing: var(--letter-spacing-1);
+}
+
+h1 p,
+[typo="h1"] p {
+  margin-bottom: var(--paragraph-spacing-1);
+}
+
+[typo="fineprint"],
+[typo="fineprint"] p {
+  font-family: "NeueHaasGroteskText";
+  font-weight: medium;
+  font-size: var(--font-size-fineprint);
+  line-height: var(--line-height-fineprint);
+  letter-spacing: var(--letter-spacing-fineprint);
+
+  max-width: 700px;
+}

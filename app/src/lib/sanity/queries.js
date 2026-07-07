@@ -28,14 +28,17 @@ export const homeQuery = `*[_type=="home"][0]{
         _id,
         name,
       },
-      year,
+      scheduling,
       description,
       credits[]{
         role,
         entries
       },
       coverMedia[0] ${mediaAssetFragment},
-      gallery[] ${mediaAssetFragment},
+      gallery[]{
+        _key,
+        media[] ${mediaAssetFragment}
+      },
       slug
     },
 
@@ -43,8 +46,7 @@ export const homeQuery = `*[_type=="home"][0]{
       _id,
       _type,
       title,
-      year,
-      location,
+      scheduling,
       thumbnail[0] ${mediaAssetFragment},
       link,
     },
@@ -53,17 +55,44 @@ export const homeQuery = `*[_type=="home"][0]{
       _id,
       _type,
       title,
-      year,
-      location,
+      scheduling,
       thumbnail[0] ${mediaAssetFragment},
       link,
     }
   }
 }`;
 
+export const projectSlugsQuery = `*[_type=="project" && defined(slug.current)]{
+  "slug": slug.current
+}`;
+
+export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
+  _id,
+  _type,
+  title,
+  client,
+  categories[]->{
+    _id,
+    name,
+  },
+  scheduling,
+  description,
+  credits[]{
+    role,
+    entries
+  },
+  coverMedia[0] ${mediaAssetFragment},
+  gallery[]{
+    _key,
+    media[] ${mediaAssetFragment}
+  },
+  link,
+  slug
+}`;
+
 export const infoQuery = `*[_type=="info"][0]{
   description,
-  contact[]{
+  socials[]{
     platform,
     link
   },
@@ -75,4 +104,26 @@ export const infoQuery = `*[_type=="info"][0]{
       originalFilename
     }
   }
+}`;
+
+export const experienceQuery = `*[_type=="experience"] | order(coalesce(scheduling.year, year) desc, title asc){
+  _id,
+  _type,
+  title,
+  scheduling,
+  year,
+  location,
+  thumbnail[0] ${mediaAssetFragment},
+  link,
+}`;
+
+export const publicityQuery = `*[_type=="publicity"] | order(coalesce(scheduling.year, year) desc, title asc){
+  _id,
+  _type,
+  title,
+  scheduling,
+  year,
+  location,
+  thumbnail[0] ${mediaAssetFragment},
+  link,
 }`;
