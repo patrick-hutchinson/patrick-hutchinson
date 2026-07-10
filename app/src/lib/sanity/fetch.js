@@ -3,6 +3,7 @@ import {
   experienceQuery,
   homeQuery,
   infoQuery,
+  projectNavigationQuery,
   projectQuery,
   projectSlugsQuery,
   publicityQuery,
@@ -68,6 +69,10 @@ export async function getProject(slug) {
   return getSanityClient().fetch(projectQuery, { slug });
 }
 
+export async function getProjectNavigation() {
+  return getSanityClient().fetch(projectNavigationQuery);
+}
+
 export async function getProjectSlugs() {
   return getSanityClient().fetch(projectSlugsQuery);
 }
@@ -117,7 +122,7 @@ export async function getProjectStaticPaths() {
 }
 
 export async function getProjectStaticProps({ params }) {
-  const [site, project] = await Promise.all([getSite(), getProject(params?.slug)]);
+  const [site, project, navigation] = await Promise.all([getSite(), getProject(params?.slug), getProjectNavigation()]);
 
   if (!project) {
     return {
@@ -126,10 +131,15 @@ export async function getProjectStaticProps({ params }) {
     };
   }
 
+  const projects = (navigation || []).filter((entry) => entry?._type === "project" && entry?.slug?.current);
+  const projectIndex = projects.findIndex((entry) => entry.slug.current === params?.slug);
+  const nextProject = projectIndex >= 0 ? projects[(projectIndex + 1) % projects.length] : null;
+
   return {
     props: {
       site,
       project,
+      nextProject,
     },
     revalidate,
   };

@@ -7,13 +7,26 @@ import {mediaAsset} from './types/media/mediaAsset'
 import {portableText} from './types/portableText'
 import {videoAsset} from './types/media/videoAsset'
 import {category} from './types/category'
-import {project} from './project'
+import {project} from './project/project'
 import {experience} from './experience'
 import {publicity} from './publicity'
 import {pages} from './pages'
 import {gallery, galleryRow} from './types/media/gallery'
+import {projectDescription} from './project/blocks/projectDescription'
+import {projectFullscreenMedium} from './project/blocks/projectFullscreenMedium'
+import {projectScaleGallery} from './project/blocks/projectScaleGallery'
 
-const types = [imageAsset, videoAsset, mediaAsset, portableText, link, category, gallery, galleryRow]
+const types = [
+  imageAsset,
+  videoAsset,
+  mediaAsset,
+  portableText,
+  link,
+  category,
+  gallery,
+  galleryRow,
+]
 const objects = [project, experience, publicity]
+const blocks = [projectDescription, projectFullscreenMedium, projectScaleGallery]
 
-export const schemaTypes = [site, ...types, ...objects, ...pages]
+export const schemaTypes = [site, ...types, ...objects, ...blocks, ...pages]

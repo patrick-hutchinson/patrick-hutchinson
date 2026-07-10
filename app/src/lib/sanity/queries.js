@@ -66,6 +66,13 @@ export const projectSlugsQuery = `*[_type=="project" && defined(slug.current)]{
   "slug": slug.current
 }`;
 
+export const projectNavigationQuery = `*[_type=="home"][0].selection[]->{
+  _type,
+  title,
+  coverMedia[0] ${mediaAssetFragment},
+  slug
+}`;
+
 export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
   _id,
   _type,
@@ -82,6 +89,19 @@ export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
     entries
   },
   coverMedia[0] ${mediaAssetFragment},
+  pageBuilder[]{
+    _key,
+    _type,
+    _type == "projectDescription" => {
+      text
+    },
+    _type == "projectFullscreenMedium" => {
+      medium[0] ${mediaAssetFragment}
+    },
+    _type == "projectScaleGallery" => {
+      media[] ${mediaAssetFragment}
+    }
+  },
   gallery[]{
     _key,
     media[] ${mediaAssetFragment}

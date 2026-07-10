@@ -1,0 +1,13 @@
+.copyright {
+  display: flex;
+  flex-direction: row;
+  gap: var(--margin);
+}
+
+.copyrightNotice {
+  width: 180px;
+}
+
+.legalNotice {
+  width: 250px;
+}

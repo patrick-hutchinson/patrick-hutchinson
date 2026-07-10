@@ -6,6 +6,19 @@
 
 @font-face {
   font-family: NeueHaasGroteskText;
+  src: url("../../public/fonts/NeueHaasGrotText-75Bold-Trial.otf");
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: NeueHaasGroteskText;
+  src: url("../../public/fonts/NeueHaasGrotText-76BoldItalic-Trial.otf");
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: NeueHaasGroteskText;
   src: url("../../public/fonts/NeueHaasGrotText-65Medium-Trial.otf");
   font-weight: medium;
 }
@@ -23,10 +36,27 @@
   --letter-spacing-1: 0rem;
   --paragraph-spacing-1: 0rem;
 
+  --font-size-2: 58px;
+  --line-height-2: 0.9;
+  --letter-spacing-2: -0.2rem;
+  --paragraph-spacing-2: 0rem;
+
+  --font-size-longcopy: 3.2rem;
+  --line-height-longcopy: 3rem;
+  --letter-spacing-longcopy: 0.01rem;
+  --paragraph-spacing-longcopy: 0rem;
+
   --font-size-fineprint: 1.25rem;
   --line-height-fineprint: 1.35rem;
   --letter-spacing-fineprint: 0.01rem;
   --paragraph-spacing-fineprint: 0rem;
+
+  --font-size-5: 0.8rem;
+  --line-height-5: 0.8rem;
+  --letter-spacing-5: 0.01rem;
+  --paragraph-spacing-5: 0rem;
+
+  --margin-4: 5px;
 }
 
 h1,
@@ -37,12 +67,39 @@ h1,
   line-height: var(--line-height-1);
   letter-spacing: var(--letter-spacing-1);
 }
-
 h1 p,
 [typo="h1"] p {
   margin-bottom: var(--paragraph-spacing-1);
 }
 
+h2,
+[typo="h2"] {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  letter-spacing: var(--letter-spacing-2);
+}
+h2 p,
+[typo="h2"] p {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+
+  margin-bottom: var(--paragraph-spacing-1);
+}
+
+[typo="longcopy"],
+[typo="longcopy"] p,
+p[typo="longcopy"] {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+  font-size: var(--font-size-longcopy);
+  line-height: var(--line-height-longcopy);
+  letter-spacing: var(--letter-spacing-longcopy);
+}
+
+h4,
 [typo="fineprint"],
 [typo="fineprint"] p {
   font-family: "NeueHaasGroteskText";
@@ -52,4 +109,21 @@ h1 p,
   letter-spacing: var(--letter-spacing-fineprint);
 
   max-width: 700px;
+}
+
+h5,
+[typo="h5"] {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+
+  font-size: var(--font-size-5);
+  line-height: var(--line-height-5);
+  letter-spacing: var(--letter-spacing-5);
+}
+h5 p,
+[typo="h5"] p {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+
+  margin-bottom: var(--paragraph-spacing-5);
 }

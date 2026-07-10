@@ -1,0 +1,44 @@
+.container {
+  width: var(--content-width);
+  height: var(--content-height);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+figure.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: min(80vw, var(--content-width));
+}
+
+.medium {
+  width: 100%;
+  height: min(80vh, var(--content-height));
+}
+
+.caption {
+  opacity: var(--opacity);
+  width: 100%;
+}
+
+.subcaption {
+  display: flex;
+  flex-direction: column;
+
+  opacity: var(--opacity);
+  padding-top: 30px;
+  width: 50%;
+}
+
+.subcaption::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 0.8px;
+  margin-top: 3px;
+  background: #fff;
+  opacity: 0.3;
+}

@@ -1,0 +1,19 @@
+.cursor {
+  position: relative;
+  white-space: nowrap;
+}
+
+.preview {
+  display: block;
+  left: calc(100% + var(--margin));
+  position: absolute;
+  top: 50%;
+  width: 300px;
+  aspect-ratio: 16 / 9;
+  transform-origin: center;
+}
+
+.previewMedia {
+  height: 100%;
+  width: 100%;
+}

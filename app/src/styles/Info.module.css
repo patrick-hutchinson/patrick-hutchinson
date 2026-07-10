@@ -25,3 +25,9 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--margin);
 }
+
+.footer {
+  bottom: var(--margin);
+  position: relative;
+  top: var(--margin);
+}

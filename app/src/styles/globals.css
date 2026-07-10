@@ -3,6 +3,7 @@
   --foreground: #000000;
 
   --margin: 12px;
+  --content-height: calc(100vh - 2 * var(--margin));
 
   --opacity: 0.4;
 

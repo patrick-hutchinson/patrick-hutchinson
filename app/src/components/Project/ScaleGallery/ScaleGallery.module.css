@@ -1,0 +1,47 @@
+.scaleGallery {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--margin);
+  height: 100vh;
+}
+
+.media {
+  aspect-ratio: 0.8;
+  height: 400px;
+  background: red;
+
+  transition:
+    width 0.5s,
+    height 0.5s;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--margin-4);
+}
+
+.container:hover .media {
+  height: calc(90vh - var(--margin) * 2);
+  /* height: 600px; */
+}
+
+.caption {
+  opacity: var(--opacity);
+}
+
+.subcaption {
+  opacity: var(--opacity);
+  padding-top: 30px;
+}
+
+.subcaption::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 0.8px;
+  margin-top: 3px;
+  background: currentColor;
+  opacity: 0.3;
+}

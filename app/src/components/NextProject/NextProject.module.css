@@ -1,0 +1,27 @@
+.nextProjectContainer {
+  /* height: var(--content-height); */
+  display: block;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  left: calc(var(--margin) * -1);
+  bottom: calc(var(--margin) * -1);
+  background: #fff;
+  cursor: none;
+  padding: var(--margin);
+  color: #999;
+}
+
+.nextProjectContainer:hover {
+  opacity: 1 !important;
+}
+
+.nextProjectLabel {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

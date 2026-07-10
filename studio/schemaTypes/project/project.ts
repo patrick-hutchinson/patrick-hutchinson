@@ -1,4 +1,4 @@
-import {defineField, defineType} from 'sanity'
+import {defineField, defineType, defineArrayMember} from 'sanity'
 
 export const project = defineType({
   name: 'project',
@@ -52,13 +52,25 @@ export const project = defineType({
       title: 'Cover Media (Mobile)',
       type: 'mediaAsset',
     }),
+
     defineField({
-      name: 'gallery',
-      title: 'Gallery',
+      name: 'pageBuilder',
+      title: 'Page Builder',
       type: 'array',
-      of: [{type: 'galleryRow'}],
-      validation: (Rule) => Rule.required(),
+      of: [
+        defineArrayMember({name: 'projectDescription', type: 'projectDescription'}),
+        defineArrayMember({name: 'projectFullscreenMedium', type: 'projectFullscreenMedium'}),
+        defineArrayMember({name: 'projectScaleGallery', type: 'projectScaleGallery'}),
+      ],
     }),
+
+    // defineField({
+    //   name: 'gallery',
+    //   title: 'Gallery',
+    //   type: 'array',
+    //   of: [{type: 'galleryRow'}],
+    //   validation: (Rule) => Rule.required(),
+    // }),
     defineField({
       name: 'credits',
       type: 'array',

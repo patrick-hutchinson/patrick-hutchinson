@@ -6,6 +6,8 @@ import Media from "@/components/Media/Media";
 
 import SectionSmall from "@/components/Section/SectionSmall";
 
+import Footer from "@/components/Footer/Footer";
+
 function getEntryDate(entry) {
   return [entry?.scheduling?.month, entry?.scheduling?.year || entry?.year].filter(Boolean).join("/");
 }
@@ -67,11 +69,9 @@ export default function Info({ experience, info, publicity }) {
             </div>
           </div>
         </div>
-
-        <div className={styles.lastUpdated} typo="fineprint">
-          Site was last updated.
-        </div>
       </main>
+
+      <Footer className={styles.footer} />
     </div>
   );
 }
