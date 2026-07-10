@@ -1,6 +1,10 @@
 .cursor {
   position: relative;
-  white-space: nowrap;
+}
+
+.title {
+  display: inline-block;
+  max-width: 60vw;
 }
 
 .preview {

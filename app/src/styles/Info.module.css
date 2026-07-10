@@ -9,9 +9,22 @@
 }
 
 .listEntry {
+  display: block;
+}
+
+.listEntryButton {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: none;
   display: flex;
   align-items: center;
   gap: 5px;
+  font: inherit;
+  line-height: inherit;
+  padding: 0;
+  text-align: left;
 }
 
 .lastUpdated {
@@ -25,6 +38,15 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--margin);
+}
+
+.content,
+.footer {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.contentDimmed {
+  opacity: 0.1;
 }
 
 .footer {

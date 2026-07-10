@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { getInfoStaticProps } from "@/lib/sanity/fetch";
 import styles from "@/styles/Info.module.css";
 
@@ -7,12 +9,13 @@ import Media from "@/components/Media/Media";
 import SectionSmall from "@/components/Section/SectionSmall";
 
 import Footer from "@/components/Footer/Footer";
+import ProjectCursor from "@/components/ProjectCursor/ProjectCursor";
 
 function getEntryDate(entry) {
   return [entry?.scheduling?.month, entry?.scheduling?.year || entry?.year].filter(Boolean).join("/");
 }
 
-function InfoList({ entries, title }) {
+function InfoList({ entries, onEntryHover, title }) {
   if (!entries?.length) return null;
 
   return (
@@ -21,10 +24,19 @@ function InfoList({ entries, title }) {
       <ul>
         {entries.map((entry) => (
           <li key={entry._id} typo="fineprint" className={styles.listEntry}>
-            {entry.thumbnail && <Media className={styles.thumbnail} medium={entry.thumbnail.medium} />}
-            {entry.title}
-            {getEntryDate(entry) ? `, ${getEntryDate(entry)}` : null}
-            {entry.scheduling?.location || entry.location ? `, ${entry.scheduling?.location || entry.location}` : null}
+            <button
+              className={styles.listEntryButton}
+              onBlur={() => onEntryHover(null)}
+              onFocus={() => onEntryHover(entry)}
+              onMouseEnter={() => onEntryHover(entry)}
+              onMouseLeave={() => onEntryHover(null)}
+              type="button"
+            >
+              {entry.thumbnail && <Media className={styles.thumbnail} medium={entry.thumbnail.medium} />}
+              {entry.title}
+              {getEntryDate(entry) ? `, ${getEntryDate(entry)}` : null}
+              {entry.scheduling?.location || entry.location ? `, ${entry.scheduling?.location || entry.location}` : null}
+            </button>
           </li>
         ))}
       </ul>
@@ -33,16 +45,19 @@ function InfoList({ entries, title }) {
 }
 
 export default function Info({ experience, info, lastUpdatedAt, publicity }) {
+  const [hoveredEntry, setHoveredEntry] = useState(null);
+
   return (
     <div className={`page ${styles.page}`}>
-      <main className="main">
+      <ProjectCursor isActive={Boolean(hoveredEntry)} project={hoveredEntry} showWhenInactive={false} />
+      <main className={`main ${styles.content} ${hoveredEntry ? styles.contentDimmed : ""}`}>
         <div className={styles.infoContainer}>
           <div className={styles.intro}>
             <SectionSmall>
               <Text text={info.description} typo="fineprint" />
             </SectionSmall>
-            <InfoList entries={experience} title="Experience" />
-            <InfoList entries={publicity} title="Publicity" />
+            <InfoList entries={experience} onEntryHover={setHoveredEntry} title="Experience" />
+            <InfoList entries={publicity} onEntryHover={setHoveredEntry} title="Publicity" />
 
             <Text
               text="Patrick has lived and worked in Germany, Ireland, The Netherlands, Finland, Italy and Austria for extended periods."
@@ -71,7 +86,10 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
         </div>
       </main>
 
-      <Footer className={styles.footer} lastUpdatedAt={lastUpdatedAt} />
+      <Footer
+        className={`${styles.footer} ${hoveredEntry ? styles.contentDimmed : ""}`}
+        lastUpdatedAt={lastUpdatedAt}
+      />
     </div>
   );
 }

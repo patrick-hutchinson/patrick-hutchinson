@@ -1,12 +1,18 @@
 import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Media from "@/components/Media/Media";
 
 import styles from "./ProjectCursor.module.css";
 
-const ProjectCursor = ({ isActive = false, project }) => {
+function getPreviewMedium(project) {
+  return project?.coverMedia?.medium || project?.thumbnail?.medium || project?.medium;
+}
+
+const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) => {
   const ref = useRef(null);
+  const [isReady, setIsReady] = useState(false);
+  const previewMedium = getPreviewMedium(project);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -22,6 +28,10 @@ const ProjectCursor = ({ isActive = false, project }) => {
   });
 
   useEffect(() => {
+    mouseX.set(window.innerWidth / 2);
+    mouseY.set(window.innerHeight / 2);
+    setIsReady(true);
+
     const handleMouseMove = (e) => {
       if (!ref.current) return;
 
@@ -42,7 +52,9 @@ const ProjectCursor = ({ isActive = false, project }) => {
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+  }, [mouseX, mouseY, project?._id]);
+
+  if (!project || (!showWhenInactive && !isActive)) return null;
 
   return (
     <motion.div
@@ -60,21 +72,21 @@ const ProjectCursor = ({ isActive = false, project }) => {
         zIndex: 1000,
       }}
       className={styles.cursor}
-      animate={{ opacity: isActive ? 1 : "var(--opacity)" }}
+      animate={{ opacity: isReady ? (isActive ? 1 : "var(--opacity)") : 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-      <span>{project.title}</span>
+      <span className={styles.title}>{project.title}</span>
       <AnimatePresence>
-        {isActive && project?.coverMedia?.medium ? (
+        {isActive && previewMedium ? (
           <motion.span
             className={styles.preview}
-            key={project.coverMedia.medium._id || project.title}
+            key={previewMedium._id || project.title}
             initial={{ opacity: 0, scale: 0, y: "-50%" }}
             animate={{ opacity: 1, scale: 1, y: "-50%" }}
             exit={{ opacity: 0, scale: 0, y: "-50%" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <Media className={styles.previewMedia} medium={project.coverMedia.medium} eager />
+            <Media className={styles.previewMedia} medium={previewMedium} eager />
           </motion.span>
         ) : null}
       </AnimatePresence>
