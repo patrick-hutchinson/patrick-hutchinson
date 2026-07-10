@@ -92,7 +92,7 @@ export const project = defineType({
     defineField({name: 'link', type: 'link'}),
     defineField({
       name: 'slug',
-      title: 'url',
+      title: 'slug',
       type: 'slug',
       options: {
         source: 'title',

@@ -9,7 +9,7 @@ const ScaleListItem = ({ baseHeight, entry, maxVisualScale, scale }) => {
   const visualScale = Math.min(scale, maxVisualScale);
 
   const Wrapper = entry._type === "project" ? Link : "div";
-  const wrapperProps = entry._type === "project" ? { href: `/projects/${entry.slug.current}` } : {};
+  const wrapperProps = entry._type === "project" ? { href: `/projects/${entry.slug.current}`, scroll: false } : {};
 
   return (
     <motion.li className={styles.scaleListItem} style={{ height }}>

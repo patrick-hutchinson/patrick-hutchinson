@@ -6,10 +6,18 @@
   position: relative;
   left: calc(var(--margin) * -1);
   bottom: calc(var(--margin) * -1);
-  background: #fff;
+  background-color: #fff;
+  background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
+  background-size: 50px 50px;
   cursor: none;
   padding: var(--margin);
-  color: #999;
+  color: #000;
+}
+
+.nextProjectHeader {
+  font-size: 10vw;
+  letter-spacing: -7px;
+  opacity: 0.05 !important;
 }
 
 .nextProjectContainer:hover {
@@ -24,4 +32,10 @@
   position: absolute;
   white-space: nowrap;
   width: 1px;
+}
+
+.footer {
+  position: absolute;
+  bottom: var(--margin);
+  left: var(--margin);
 }

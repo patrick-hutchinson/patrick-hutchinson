@@ -5,10 +5,12 @@ const Credits = ({ credits }) => {
     <div className={styles.credits}>
       {credits.map((credit) => (
         <div key={credit._id} className={styles.credit}>
-          <div className={styles.creditTitle}>{credit.role}</div>
+          <div className={styles.creditTitle} typo="h5">
+            {credit.role}
+          </div>
           <div className={styles.entries}>
             {credit.entries?.map((entry, index) => (
-              <div className={styles.entry} key={index} typo="h2">
+              <div className={styles.entry} key={index} typo="longcopy">
                 {entry}
               </div>
             ))}

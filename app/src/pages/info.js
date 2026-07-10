@@ -32,7 +32,7 @@ function InfoList({ entries, title }) {
   );
 }
 
-export default function Info({ experience, info, publicity }) {
+export default function Info({ experience, info, lastUpdatedAt, publicity }) {
   return (
     <div className={`page ${styles.page}`}>
       <main className="main">
@@ -71,7 +71,7 @@ export default function Info({ experience, info, publicity }) {
         </div>
       </main>
 
-      <Footer className={styles.footer} />
+      <Footer className={styles.footer} lastUpdatedAt={lastUpdatedAt} />
     </div>
   );
 }

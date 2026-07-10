@@ -37,10 +37,14 @@ const Menu = ({ className }) => {
       </span>
       <ul className={styles.menuList} ref={listRef}>
         <li className={styles.menuItem}>
-          <Link href="/">Index</Link>
+          <Link href="/" scroll={false}>
+            Index
+          </Link>
         </li>
         <li className={styles.menuItem}>
-          <Link href="/info">Info</Link>
+          <Link href="/info" scroll={false}>
+            Info
+          </Link>
         </li>
         <li className={styles.menuItem}>
           <a href="mailto:hutchinsonpatrick@icloud.com">Contact</a>

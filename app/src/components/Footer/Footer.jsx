@@ -1,10 +1,24 @@
 import styles from "./Footer.module.css";
 
-const Footer = () => {
+function formatLastUpdated(dateString) {
+  if (!dateString) return null;
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+const Footer = ({ className, lastUpdatedAt }) => {
   const currentYear = new Date().getFullYear();
+  const lastUpdated = formatLastUpdated(lastUpdatedAt);
 
   return (
-    <footer className={styles.footer}>
+    <footer className={[className, styles.footer].filter(Boolean).join(" ")}>
       <div className={styles.copyright}>
         <div typo="h2">PH</div>
         <div typo="fineprint" className={styles.copyrightNotice}>
@@ -17,7 +31,7 @@ const Footer = () => {
       </div>
 
       <div className={styles.lastUpdated} typo="fineprint">
-        Site was last updated.
+        Site was last updated{lastUpdated ? ` ${lastUpdated}.` : "."}
       </div>
     </footer>
   );

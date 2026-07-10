@@ -32,7 +32,7 @@ function getLinkHref(link) {
   return link?.url || link?.href || link?.link || "";
 }
 
-export default function Project({ nextProject, project }) {
+export default function Project({ lastUpdatedAt, nextProject, project }) {
   const [isNextProjectHovered, setIsNextProjectHovered] = useState(false);
   const description = getPlainText(project?.description);
   const date = formatDate(project?.scheduling);
@@ -54,19 +54,10 @@ export default function Project({ nextProject, project }) {
   }, [project?._id]);
 
   return (
-    <div className="page">
+    <div className={`page ${styles.page}`}>
       <ProjectCursor isActive={isNextProjectHovered} project={cursorProject} />
       <main className="main">
         <article className={styles.project}>
-          {/* <header className={styles.header}>
-            <Marquee typo="h1" string={project.title} />
-            <div className={styles.meta} typo="fineprint">
-              {project?.client ? <p>{project.client}</p> : null}
-              {date ? <p>{date}</p> : null}
-              {project?.scheduling?.location ? <p>{project.scheduling.location}</p> : null}
-            </div>
-          </header> */}
-
           <div>{project?.coverMedia ? <Media medium={project.coverMedia.medium} eager /> : null}</div>
 
           <Section>
@@ -121,6 +112,7 @@ export default function Project({ nextProject, project }) {
           ) : null}
 
           <NextProject
+            lastUpdatedAt={lastUpdatedAt}
             onHoverEnd={() => setIsNextProjectHovered(false)}
             onHoverStart={() => setIsNextProjectHovered(true)}
             project={nextProject}

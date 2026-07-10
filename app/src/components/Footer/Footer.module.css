@@ -1,7 +1,19 @@
+footer.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  flex-direction: row;
+  width: var(--content-width);
+
+  opacity: var(--opacity);
+}
+
 .copyright {
   display: flex;
   flex-direction: row;
   gap: var(--margin);
+
+  align-items: end;
 }
 
 .copyrightNotice {

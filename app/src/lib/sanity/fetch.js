@@ -18,6 +18,23 @@ export const fallbackSiteData = {
 
 const revalidate = 60;
 
+function getLastUpdatedAt() {
+  if (process.env.SITE_LAST_UPDATED_AT) {
+    return process.env.SITE_LAST_UPDATED_AT;
+  }
+
+  try {
+    const { execFileSync } = require("node:child_process");
+
+    return execFileSync("git", ["log", "-1", "--format=%cI"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
 export function getSanityClient() {
   const isProduction = process.env.VERCEL_ENV === "production";
   const isPreview = process.env.VERCEL_ENV === "preview";
@@ -103,6 +120,7 @@ export async function getInfoStaticProps() {
       info,
       experience,
       publicity,
+      lastUpdatedAt: getLastUpdatedAt(),
     },
     revalidate,
   };
@@ -140,6 +158,7 @@ export async function getProjectStaticProps({ params }) {
       site,
       project,
       nextProject,
+      lastUpdatedAt: getLastUpdatedAt(),
     },
     revalidate,
   };
