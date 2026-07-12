@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
 import NextProject from "@/components/NextProject/NextProject";
 import Media from "@/components/Media/Media";
@@ -6,7 +6,6 @@ import Marquee from "@/components/Marquee/Marquee";
 import Section from "@/components/Section/Section";
 
 import DescriptionReveal from "@/components/Project/DescriptionReveal/DescriptionReveal";
-import ScaleGallery from "@/components/Project/ScaleGallery/ScaleGallery";
 
 import { buildPage } from "@/components/Project/buildPage";
 
@@ -37,7 +36,8 @@ function getLinkHref(link) {
 
 export default function Project({ lastUpdatedAt, nextProject, project }) {
   const { isMobile } = useContext(DeviceContext);
-  const [isNextProjectHovered, setIsNextProjectHovered] = useState(false);
+  const coverMediaRef = useRef(null);
+  const [isCoverMediaHovered, setIsCoverMediaHovered] = useState(false);
   const description = getPlainText(project?.description);
   const date = formatDate(project?.scheduling);
   const schedulingSubcaption = [project?.scheduling?.location, date].filter(Boolean).join(", ");
@@ -50,26 +50,34 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
   ].filter(Boolean);
   const credits = project?.credits?.filter((credit) => credit?.role || credit?.entries?.length) || [];
   const pageBuilder = project?.pageBuilder || [];
-  const galleryRows =
-    project?.gallery
-      ?.map((row) => ({
-        ...row,
-        media: row?.media?.filter((item) => item?.medium) || [],
-      }))
-      .filter((row) => row.media.length) || [];
-  const cursorProject = isNextProjectHovered && nextProject ? nextProject : project;
+
   const coverMedia = isMobile ? project?.coverMedia_mobile || project?.coverMedia : project?.coverMedia;
 
   useEffect(() => {
-    setIsNextProjectHovered(false);
+    setIsCoverMediaHovered(false);
   }, [project?._id]);
 
   return (
     <div className={`page ${styles.page}`}>
-      {!isMobile ? <ProjectCursor isActive={isNextProjectHovered} project={cursorProject} /> : null}
+      {!isMobile ? (
+        <ProjectCursor
+          boundsRef={coverMediaRef}
+          inactiveOpacity={0}
+          isActive={isCoverMediaHovered}
+          project={project}
+          showPreview={false}
+        />
+      ) : null}
       <main className="main">
         <article className={styles.project}>
-          <div>{coverMedia ? <Media className={styles.coverMedia} medium={coverMedia.medium} eager /> : null}</div>
+          <div
+            className={styles.coverCursorArea}
+            onMouseEnter={() => setIsCoverMediaHovered(true)}
+            onMouseLeave={() => setIsCoverMediaHovered(false)}
+            ref={coverMediaRef}
+          >
+            {coverMedia ? <Media className={styles.coverMedia} medium={coverMedia.medium} eager /> : null}
+          </div>
 
           <Section>
             {description ? (
@@ -92,33 +100,6 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
               {pageBuilder.map((block) => buildPage(block, { fallbackSubcaption: schedulingSubcaption, isMobile }))}
             </Section>
           ) : null}
-          {/* {categories.length ? (
-            <ul className={styles.inlineList}>
-              {categories.map((category) => (
-                <li key={category._id || category.name}>{category.name}</li>
-              ))}
-            </ul>
-          ) : null} */}
-
-          {/* {galleryRows.length ? (
-            <Section className={styles.gallery}>
-              {galleryRows.map((row, rowIndex) => (
-                <div
-                  className={styles.galleryRow}
-                  key={row._key || `gallery-row-${rowIndex}`}
-                  style={{ "--columns": row.media.length }}
-                >
-                  {row.media.map((item, index) => (
-                    <Media
-                      className={styles.mediaItem}
-                      medium={item.medium}
-                      key={`${item?.medium?._id || "media"}-${index}`}
-                    />
-                  ))}
-                </div>
-              ))}
-            </Section>
-          ) : null} */}
 
           {credits.length ? (
             <Section>
@@ -137,8 +118,6 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
 
           <NextProject
             lastUpdatedAt={lastUpdatedAt}
-            onHoverEnd={() => setIsNextProjectHovered(false)}
-            onHoverStart={() => setIsNextProjectHovered(true)}
             project={nextProject}
           />
         </article>

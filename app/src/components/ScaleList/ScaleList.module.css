@@ -1,8 +1,11 @@
 ul.scaleList {
+  --glyph-top-overshoot-compensation: 0.1em;
+
   width: calc(100vw - (var(--margin) * 2));
   height: calc(100vh - (var(--margin) * 2));
   overflow: hidden;
   overscroll-behavior: none;
+  padding-top: var(--glyph-top-overshoot-compensation);
   touch-action: none;
 }
 

@@ -1,5 +1,4 @@
 import FullscreenMedium from "@/components/Project/FullscreenMedium/FullscreenMedium";
-import ProjectDescription from "@/components/Project/ProjectDescription/ProjectDescription";
 import ScaleGallery from "@/components/Project/ScaleGallery/ScaleGallery";
 
 export const buildPage = (block, options = {}) => {

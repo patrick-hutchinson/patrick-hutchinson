@@ -3,8 +3,6 @@ import { useRef, useState, useEffect } from "react";
 
 import { useVideoPlayer } from "@/components/Media/hooks/useVideoPlayer";
 
-import VideoControls from "./VideoControls";
-
 import Video from "./Video";
 import Placeholder from "../Placeholder";
 
@@ -31,8 +29,6 @@ const VideoFrame = ({ medium, className }) => {
       <div ref={videoRef} className={styles.videoPlayer} style={{ aspectRatio: aspectRatio }}>
         <Placeholder medium={medium} aspectRatio={aspectRatio} isLoaded={isLoaded} />
         <Video medium={medium} playerState={playerState} playerControls={playerControls} />
-
-        <VideoControls className={styles.videoControls} playerState={playerState} playerControls={playerControls} />
       </div>
     </div>
   );

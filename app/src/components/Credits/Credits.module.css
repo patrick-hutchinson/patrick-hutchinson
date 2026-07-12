@@ -1,5 +1,12 @@
-.entry {
+.entry,
+.entryActive {
+  color: #fff;
   opacity: var(--opacity);
+  transition: opacity 0.45s ease-in-out;
+}
+
+.entryActive {
+  opacity: 1;
 }
 
 .credits {

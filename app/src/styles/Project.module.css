@@ -1,15 +1,22 @@
 .page {
-  cursor: none !important;
+  cursor: auto;
+}
+
+.coverCursorArea {
+  cursor: none;
+  height: 100vh !important;
+  left: calc(-1 * var(--margin));
+  position: relative;
+  top: calc(-1 * var(--margin));
+  width: 100vw !important;
 }
 
 .coverMedia {
-  width: 100vw;
-  height: 100vh;
-  left: calc(-1 * var(--margin));
-  top: calc(-1 * var(--margin));
+  width: 100% !important;
+  height: 100% !important;
 }
 
-:global(html[data-project-cursor-near-menu="true"]) .page {
+:global(html[data-project-cursor-near-menu="true"]) .coverCursorArea {
   cursor: auto !important;
 }
 
@@ -73,4 +80,13 @@ article.project {
   margin-top: 3px;
   background: currentColor;
   opacity: 0.1;
+}
+
+@media screen and (max-width: 749px) {
+  .descriptionContainer .subcaption {
+    width: 100%;
+  }
+  .descriptionContainer::after {
+    width: 100%;
+  }
 }

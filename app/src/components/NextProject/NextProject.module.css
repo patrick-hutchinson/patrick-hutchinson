@@ -24,6 +24,10 @@
   opacity: 1 !important;
 }
 
+:global(html[data-project-cursor-near-menu="true"]) .nextProjectContainer {
+  cursor: auto !important;
+}
+
 .footer {
   position: absolute;
   bottom: var(--margin);

@@ -151,6 +151,11 @@ h5 p,
 
 @media screen and (max-width: 749px) {
   :root {
+    --font-size-2: 38px;
+    --line-height-2: 0.9;
+    --letter-spacing-2: -0.2rem;
+    --paragraph-spacing-2: 0rem;
+
     --font-size-longcopy: 2.2rem;
     --line-height-longcopy: 2.3rem;
     --letter-spacing-longcopy: 0.01rem;

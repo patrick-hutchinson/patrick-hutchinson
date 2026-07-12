@@ -12,7 +12,6 @@ import {experience} from './experience'
 import {publicity} from './publicity'
 import {pages} from './pages'
 import {gallery, galleryRow} from './types/media/gallery'
-import {projectDescription} from './project/blocks/projectDescription'
 import {projectFullscreenMedium} from './project/blocks/projectFullscreenMedium'
 import {projectScaleGallery} from './project/blocks/projectScaleGallery'
 
@@ -27,6 +26,6 @@ const types = [
   galleryRow,
 ]
 const objects = [project, experience, publicity]
-const blocks = [projectDescription, projectFullscreenMedium, projectScaleGallery]
+const blocks = [projectFullscreenMedium, projectScaleGallery]
 
 export const schemaTypes = [site, ...types, ...objects, ...blocks, ...pages]

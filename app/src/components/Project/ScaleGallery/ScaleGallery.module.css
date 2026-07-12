@@ -1,19 +1,21 @@
 .scaleGallery {
+  --media-height: 400px;
+  --media-hover-height: calc(90vh - var(--margin) * 2);
+
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  align-content: center;
+  align-content: start;
   align-items: start;
+  box-sizing: border-box;
   justify-content: center;
   gap: var(--margin);
   height: 100vh;
+  padding-top: calc((100vh - var(--media-height)) / 2);
 }
 
 .media {
   aspect-ratio: 0.8;
-  --media-height: 400px;
-  --media-hover-height: calc(90vh - var(--margin) * 2);
-
   height: var(--media-height);
   background: transparent;
   transform-origin: center center;
@@ -44,6 +46,7 @@
   flex-direction: column;
   height: auto;
   justify-content: flex-start;
+  padding-top: 0;
 }
 
 .mobileContainer {

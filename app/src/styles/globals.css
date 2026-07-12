@@ -2,7 +2,7 @@
   --background: #ffffff;
   --foreground: #000000;
 
-  --margin: 12px;
+  --margin: 20px;
   --content-height: calc(100vh - 2 * var(--margin));
   --content-width: calc(100vw - 2 * var(--margin));
 

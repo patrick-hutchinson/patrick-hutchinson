@@ -1,0 +1,33 @@
+.imageView {
+  align-items: center;
+  display: flex;
+  height: calc(100vh - var(--margin) * 2);
+  justify-content: center;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  width: calc(100vw - var(--margin) * 2);
+}
+
+.cursor {
+  mix-blend-mode: difference;
+}
+
+.mediaLink {
+  display: block;
+}
+
+.mediaLink:hover {
+  opacity: 1;
+}
+
+.mediaFrame {
+  aspect-ratio: 1920 / 1080;
+  width: min(80vw, var(--content-width));
+  transform-origin: center center;
+}
+
+.media {
+  height: 100%;
+  width: 100%;
+}

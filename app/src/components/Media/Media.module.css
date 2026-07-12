@@ -11,10 +11,3 @@
   overflow: hidden;
   position: relative;
 }
-
-@media (hover: hover) and (pointer: fine) {
-  .videoPlayer:hover .videoControls {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
