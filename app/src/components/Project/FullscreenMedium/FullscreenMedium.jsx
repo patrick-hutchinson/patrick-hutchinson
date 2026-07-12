@@ -5,8 +5,8 @@ import Media from "@/components/Media/Media";
 import styles from "./FullscreenMedium.module.css";
 
 const FullscreenMedium = ({ block, fallbackSubcaption }) => {
-  const figureRef = useRef(null);
-  const isInView = useInView(figureRef, { amount: 0.45 });
+  const containerRef = useRef(null);
+  const isInView = useInView(containerRef, { amount: 0.45 });
 
   if (!block?.medium?.medium) return null;
 
@@ -16,11 +16,10 @@ const FullscreenMedium = ({ block, fallbackSubcaption }) => {
   const copyright = block?.copyright || medium?.copyright;
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       <motion.figure
-        animate={{ "--media-scale": isInView ? 1.15 : 1 }}
+        animate={{ "--media-scale": isInView ? 0.9 : 0.8 }}
         className={styles.figure}
-        ref={figureRef}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <div className={styles.mediaFrame}>
@@ -30,15 +29,16 @@ const FullscreenMedium = ({ block, fallbackSubcaption }) => {
           {caption || "Here's a placeholder caption for the media piece."}
         </div>
 
-        <div typo="h5" className={styles.subcaption}>
-          {subcaption || "Here's a placeholder caption for the media piece."}
-        </div>
-
-        {copyright ? (
-          <div typo="fineprint" className={styles.copyright}>
-            {copyright}
+        <div typo="h5" className={styles.subcaptionWrapper}>
+          <div className={styles.subcaptionInner}>
+            {subcaption ? (
+              <div className={styles.subcaption}>{subcaption}</div>
+            ) : (
+              "Here's a placeholder caption for the media piece."
+            )}
+            {copyright ? <div className={styles.copyright}>© {copyright}</div> : null}
           </div>
-        ) : null}
+        </div>
       </motion.figure>
     </div>
   );

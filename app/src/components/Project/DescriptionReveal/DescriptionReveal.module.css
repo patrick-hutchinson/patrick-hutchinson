@@ -1,0 +1,13 @@
+.description {
+  color: #fff;
+}
+
+.word,
+.wordActive {
+  opacity: var(--opacity);
+  transition: opacity 0.45s ease-in-out;
+}
+
+.wordActive {
+  opacity: 1;
+}

@@ -91,6 +91,7 @@ export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
     entries
   },
   coverMedia[0] ${mediaAssetFragment},
+  coverMedia_mobile[0] ${mediaAssetFragment},
   pageBuilder[]{
     _key,
     _type,

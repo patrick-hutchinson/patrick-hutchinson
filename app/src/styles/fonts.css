@@ -148,3 +148,12 @@ h5 p,
 
   margin-bottom: var(--paragraph-spacing-5);
 }
+
+@media screen and (max-width: 749px) {
+  :root {
+    --font-size-longcopy: 2.2rem;
+    --line-height-longcopy: 2.3rem;
+    --letter-spacing-longcopy: 0.01rem;
+    --paragraph-spacing-longcopy: 0rem;
+  }
+}

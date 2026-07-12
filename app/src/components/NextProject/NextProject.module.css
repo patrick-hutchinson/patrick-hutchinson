@@ -29,3 +29,11 @@
   bottom: var(--margin);
   left: var(--margin);
 }
+
+@media (max-width: 768px) {
+  .nextProjectContainer {
+    height: 100lvh;
+    min-height: 100lvh;
+    cursor: auto;
+  }
+}

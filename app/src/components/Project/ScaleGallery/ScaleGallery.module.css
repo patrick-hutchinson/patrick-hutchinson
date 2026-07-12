@@ -1,6 +1,9 @@
 .scaleGallery {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-content: center;
+  align-items: start;
   justify-content: center;
   gap: var(--margin);
   height: 100vh;
@@ -8,12 +11,18 @@
 
 .media {
   aspect-ratio: 0.8;
-  height: 400px;
+  --media-height: 400px;
+  --media-hover-height: calc(90vh - var(--margin) * 2);
+
+  height: var(--media-height);
   background: transparent;
+  transform-origin: center center;
 
   transition:
     width 0.3s,
-    height 0.3s;
+    height 0.3s,
+    margin-bottom 0.3s,
+    transform 0.3s;
 }
 
 .container {
@@ -23,8 +32,39 @@
 }
 
 .container:hover .media {
-  height: calc(90vh - var(--margin) * 2);
+  height: var(--media-hover-height);
   /* height: 600px; */
+  margin-bottom: calc((var(--media-height) - var(--media-hover-height)) / 2);
+  transform: translateY(calc((var(--media-height) - var(--media-hover-height)) / 2));
+}
+
+.mobileScaleGallery {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  height: auto;
+  justify-content: flex-start;
+}
+
+.mobileContainer {
+  width: 100%;
+}
+
+.mobileContainer .media {
+  height: auto;
+  width: 100%;
+}
+
+.mobileContainer:hover .media {
+  height: auto;
+  margin-bottom: 0;
+  transform: none;
+  width: 100%;
+}
+
+.mobileContainer .caption,
+.mobileContainer .subcaption {
+  max-width: 100%;
 }
 
 .caption {

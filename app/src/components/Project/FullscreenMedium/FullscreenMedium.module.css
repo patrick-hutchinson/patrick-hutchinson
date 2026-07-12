@@ -5,6 +5,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: visible;
+  min-height: 100vh;
 }
 
 figure.figure {
@@ -14,12 +16,11 @@ figure.figure {
   flex-direction: column;
   align-items: flex-start;
   width: min(calc(80vw * var(--media-scale)), var(--content-width));
+  will-change: width;
 }
 
 .mediaFrame {
   width: 100%;
-  /* height: min(calc(80vh * var(--media-scale)), var(--content-height)); */
-  height: auto;
   overflow: hidden;
 }
 
@@ -34,7 +35,7 @@ figure.figure {
   padding-top: var(--margin-4);
 }
 
-.subcaption {
+.subcaptionWrapper {
   display: flex;
   flex-direction: column;
 
@@ -43,7 +44,20 @@ figure.figure {
   width: 50%;
 }
 
-.subcaption::after {
+.subcaptionInner {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--margin);
+  width: 100%;
+}
+
+.subcaption {
+  white-space: nowrap;
+}
+
+.subcaptionWrapper::after {
   content: "";
   display: block;
   width: 100%;
@@ -54,7 +68,13 @@ figure.figure {
 }
 
 .copyright {
-  opacity: var(--opacity);
-  padding-top: var(--margin);
-  width: 100%;
+  /* opacity: var(--opacity); */
+
+  /* width: 100%; */
+}
+
+@media screen and (max-width: 749px) {
+  .subcaptionWrapper {
+    width: 100%;
+  }
 }

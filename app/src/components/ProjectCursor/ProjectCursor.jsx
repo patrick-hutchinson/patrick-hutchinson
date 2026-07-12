@@ -6,6 +6,32 @@ import CyclingMedia from "@/components/Media/CyclingMedia";
 import styles from "./ProjectCursor.module.css";
 
 const DEFAULT_TITLE_WIDTH = "0px";
+const fallbackPointer = { x: 0, y: 0 };
+
+let lastPointer = null;
+let isTrackingPointer = false;
+
+function ensurePointerTracker() {
+  if (typeof window === "undefined" || isTrackingPointer) return;
+
+  fallbackPointer.x = window.innerWidth / 2;
+  fallbackPointer.y = window.innerHeight / 2;
+
+  window.addEventListener(
+    "pointermove",
+    (event) => {
+      if (event.pointerType === "touch") return;
+
+      lastPointer = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+    },
+    { passive: true },
+  );
+
+  isTrackingPointer = true;
+}
 
 function getPreviewMedia(project) {
   const gallery = Array.isArray(project?.gallery) ? project.gallery.filter((item) => item?.medium) : [];
@@ -23,7 +49,7 @@ function isPointNearRect(x, y, rect, distance) {
   return Math.hypot(x - nearestX, y - nearestY) <= distance;
 }
 
-const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) => {
+const ProjectCursor = ({ isActive = false, project, showWhenInactive = true, staticCentered = false }) => {
   const ref = useRef(null);
   const titleRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
@@ -45,9 +71,34 @@ const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) =
     damping: 35,
   });
 
+  const positionCursor = (clientX, clientY, shouldJump = false) => {
+    const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin"));
+    const { width, height } = ref.current?.getBoundingClientRect() || { width: 0, height: 0 };
+    const halfW = width / 2;
+    const halfH = height / 2;
+    const clampedX = Math.min(window.innerWidth - margin - halfW, Math.max(margin + halfW, clientX));
+    const clampedY = Math.min(window.innerHeight - margin - halfH, Math.max(margin + halfH, clientY));
+
+    mouseX.set(clampedX);
+    mouseY.set(clampedY);
+
+    if (shouldJump) {
+      x.jump?.(clampedX);
+      y.jump?.(clampedY);
+    }
+  };
+
   useEffect(() => {
-    mouseX.set(window.innerWidth / 2);
-    mouseY.set(window.innerHeight / 2);
+    if (staticCentered) {
+      mouseX.set(window.innerWidth / 2);
+      mouseY.set(window.innerHeight / 2);
+      setIsReady(true);
+      return undefined;
+    }
+
+    ensurePointerTracker();
+    const initialPointer = lastPointer || fallbackPointer;
+    positionCursor(initialPointer.x, initialPointer.y, true);
     setIsReady(true);
 
     const handleMouseMove = (e) => {
@@ -58,24 +109,12 @@ const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) =
 
       setIsNearMenu((currentIsNearMenu) => (currentIsNearMenu === nextIsNearMenu ? currentIsNearMenu : nextIsNearMenu));
 
-      const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin"));
-
-      const { width, height } = ref.current.getBoundingClientRect();
-
-      const halfW = width / 2;
-      const halfH = height / 2;
-
-      const clampedX = Math.min(window.innerWidth - margin - halfW, Math.max(margin + halfW, e.clientX));
-
-      const clampedY = Math.min(window.innerHeight - margin - halfH, Math.max(margin + halfH, e.clientY));
-
-      mouseX.set(clampedX);
-      mouseY.set(clampedY);
+      positionCursor(e.clientX, e.clientY);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY, project?._id]);
+  }, [mouseX, mouseY, project?._id, staticCentered, x, y]);
 
   useEffect(() => {
     const titleNode = titleRef.current;
@@ -106,6 +145,8 @@ const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) =
   }, [project?.title]);
 
   useEffect(() => {
+    if (staticCentered) return undefined;
+
     if (isNearMenu) {
       document.documentElement.dataset.projectCursorNearMenu = "true";
     } else {
@@ -115,7 +156,7 @@ const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) =
     return () => {
       delete document.documentElement.dataset.projectCursorNearMenu;
     };
-  }, [isNearMenu]);
+  }, [isNearMenu, staticCentered]);
 
   if (!project || (!showWhenInactive && !isActive)) return null;
 
@@ -128,17 +169,20 @@ const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) =
       style={{
         "--project-cursor-title-width": titleWidth,
         position: "fixed",
-        left: 0,
-        top: 0,
-        x,
-        y,
+        left: staticCentered ? "50%" : 0,
+        top: staticCentered ? "50%" : 0,
+        x: staticCentered ? undefined : x,
+        y: staticCentered ? undefined : y,
         translateX: "-50%",
         translateY: "-50%",
         pointerEvents: "none",
+        transformOrigin: "center",
         zIndex: 1000,
       }}
-      className={styles.cursor}
+      className={`${styles.cursor} ${staticCentered ? styles.staticCursor : ""}`}
       animate={{ opacity: cursorOpacity, scale: isNearMenu ? 0 : 1 }}
+      exit={{ opacity: 0, scale: 0.92 }}
+      initial={{ opacity: 0, scale: 0.92 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       <span className={styles.title} ref={titleRef}>
@@ -147,11 +191,11 @@ const ProjectCursor = ({ isActive = false, project, showWhenInactive = true }) =
       <AnimatePresence>
         {isActive && (previewMedia.gallery.length || previewMedia.medium) ? (
           <motion.span
-            className={styles.preview}
+            className={`${styles.preview} ${staticCentered ? styles.staticPreview : ""}`}
             key={project._id || project.title}
-            initial={{ opacity: 0, scale: 0, y: "-50%" }}
-            animate={{ opacity: 1, scale: 1, y: "-50%" }}
-            exit={{ opacity: 0, scale: 0, y: "-50%" }}
+            initial={{ opacity: 0, scale: 0, y: staticCentered ? 0 : "-50%" }}
+            animate={{ opacity: 1, scale: 1, y: staticCentered ? 0 : "-50%" }}
+            exit={{ opacity: 0, scale: 0, y: staticCentered ? 0 : "-50%" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <CyclingMedia className={styles.previewMedia} gallery={previewMedia.gallery} medium={previewMedia.medium} />

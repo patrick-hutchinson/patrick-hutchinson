@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import NextProject from "@/components/NextProject/NextProject";
 import Media from "@/components/Media/Media";
 import Marquee from "@/components/Marquee/Marquee";
 import Section from "@/components/Section/Section";
 
+import DescriptionReveal from "@/components/Project/DescriptionReveal/DescriptionReveal";
 import ScaleGallery from "@/components/Project/ScaleGallery/ScaleGallery";
 
 import { buildPage } from "@/components/Project/buildPage";
@@ -12,6 +13,7 @@ import { buildPage } from "@/components/Project/buildPage";
 import Credits from "@/components/Credits/Credits";
 import ProjectCursor from "@/components/ProjectCursor/ProjectCursor";
 
+import { DeviceContext } from "@/context/DeviceContext";
 import { getProjectStaticPaths, getProjectStaticProps } from "@/lib/sanity/fetch";
 
 import styles from "@/styles/Project.module.css";
@@ -34,6 +36,7 @@ function getLinkHref(link) {
 }
 
 export default function Project({ lastUpdatedAt, nextProject, project }) {
+  const { isMobile } = useContext(DeviceContext);
   const [isNextProjectHovered, setIsNextProjectHovered] = useState(false);
   const description = getPlainText(project?.description);
   const date = formatDate(project?.scheduling);
@@ -55,6 +58,7 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
       }))
       .filter((row) => row.media.length) || [];
   const cursorProject = isNextProjectHovered && nextProject ? nextProject : project;
+  const coverMedia = isMobile ? project?.coverMedia_mobile || project?.coverMedia : project?.coverMedia;
 
   useEffect(() => {
     setIsNextProjectHovered(false);
@@ -62,19 +66,15 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
 
   return (
     <div className={`page ${styles.page}`}>
-      <ProjectCursor isActive={isNextProjectHovered} project={cursorProject} />
+      {!isMobile ? <ProjectCursor isActive={isNextProjectHovered} project={cursorProject} /> : null}
       <main className="main">
         <article className={styles.project}>
-          <div>
-            {project?.coverMedia ? <Media className={styles.coverMedia} medium={project.coverMedia.medium} eager /> : null}
-          </div>
+          <div>{coverMedia ? <Media className={styles.coverMedia} medium={coverMedia.medium} eager /> : null}</div>
 
           <Section>
             {description ? (
               <div className={styles.descriptionContainer}>
-                <p className={styles.description} typo="longcopy">
-                  {description}
-                </p>
+                <DescriptionReveal className={styles.description} text={description} />
 
                 {subcaptionItems.length ? (
                   <div typo="h5" className={styles.subcaption}>
@@ -88,7 +88,9 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
           </Section>
 
           {pageBuilder.length ? (
-            <Section>{pageBuilder.map((block) => buildPage(block, { fallbackSubcaption: schedulingSubcaption }))}</Section>
+            <Section>
+              {pageBuilder.map((block) => buildPage(block, { fallbackSubcaption: schedulingSubcaption, isMobile }))}
+            </Section>
           ) : null}
           {/* {categories.length ? (
             <ul className={styles.inlineList}>

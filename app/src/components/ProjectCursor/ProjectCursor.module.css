@@ -21,3 +21,23 @@
   height: 100%;
   width: 100%;
 }
+
+.staticCursor {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--margin);
+  text-align: center;
+  width: calc(100vw - var(--margin) * 2);
+}
+
+.staticCursor .title {
+  max-width: 100%;
+}
+
+.staticPreview {
+  left: auto;
+  position: relative;
+  top: auto;
+  width: min(70vw, 360px);
+}
