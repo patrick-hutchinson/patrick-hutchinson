@@ -58,7 +58,6 @@ export const project = defineType({
       title: 'Page Builder',
       type: 'array',
       of: [
-        defineArrayMember({name: 'projectDescription', type: 'projectDescription'}),
         defineArrayMember({name: 'projectFullscreenMedium', type: 'projectFullscreenMedium'}),
         defineArrayMember({name: 'projectScaleGallery', type: 'projectScaleGallery'}),
       ],

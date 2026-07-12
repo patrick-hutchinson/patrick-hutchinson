@@ -20,7 +20,6 @@ const NextProject = ({ lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
       <div typo="h2" className={styles.nextProjectHeader}>
         Next Project:
       </div>
-      <span className={styles.nextProjectLabel}>{project.title}</span>
 
       <Footer className={styles.footer} lastUpdatedAt={lastUpdatedAt} />
     </Link>

@@ -29,11 +29,13 @@
 
 .caption {
   opacity: var(--opacity);
+  max-width: calc(400px * 0.8);
 }
 
 .subcaption {
   opacity: var(--opacity);
   padding-top: 30px;
+  max-width: calc(400px * 0.8);
 }
 
 .subcaption::after {

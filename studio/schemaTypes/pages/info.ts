@@ -22,9 +22,10 @@ export const info = defineType({
     }),
     defineField({name: 'VATNumber', type: 'string'}),
     defineField({name: 'CV', type: 'file'}),
+    defineField({name: 'recommendations', type: 'file'}),
   ],
 
   preview: {
-    prepare: () => ({title: 'Archive'}),
+    prepare: () => ({title: 'Info'}),
   },
 })

@@ -8,6 +8,7 @@ export const experience = defineType({
     defineField({name: 'year', type: 'string'}),
     defineField({name: 'location', type: 'string'}),
     defineField({name: 'thumbnail', type: 'mediaAsset'}),
+    defineField({name: 'gallery', type: 'gallery'}),
     defineField({name: 'link', type: 'link'}),
   ],
 })

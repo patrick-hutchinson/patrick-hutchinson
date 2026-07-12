@@ -2,6 +2,17 @@
   cursor: none !important;
 }
 
+.coverMedia {
+  width: 100vw;
+  height: 100vh;
+  left: calc(-1 * var(--margin));
+  top: calc(-1 * var(--margin));
+}
+
+:global(html[data-project-cursor-near-menu="true"]) .page {
+  cursor: auto !important;
+}
+
 article.project {
   padding: var(--margin);
 }
@@ -42,9 +53,9 @@ article.project {
   line-height: 1;
 }
 
-.descriptionContainer {
+/* .descriptionContainer {
   padding: var(--margin) 0;
-}
+} */
 .descriptionContainer .subcaption {
   display: flex;
   flex-direction: row;

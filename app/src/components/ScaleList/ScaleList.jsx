@@ -14,6 +14,7 @@ const POINTER_SMOOTHING = 1;
 const POINTER_SETTLE_THRESHOLD = 0.25;
 const SCALE_SMOOTHING = 0.2;
 const SCALE_SETTLE_THRESHOLD = 0.002;
+const TRACKPAD_SENSITIVITY = 1;
 
 function getScaleFromDistance(distance) {
   const minScaleDistance = -Math.log(MIN_SCALE / MAX_VISUAL_SCALE) * DISTANCE_FALLOFF;
@@ -47,6 +48,10 @@ function getScales(cursorY, listTop, itemCount) {
   return scales;
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 const ScaleList = ({ array }) => {
   const containerRef = useRef(null);
   const animationFrame = useRef(null);
@@ -55,6 +60,7 @@ const ScaleList = ({ array }) => {
   const renderedScales = useRef([]);
   const targetScales = useRef([]);
   const targetPointerY = useRef(-1000);
+  const trackpadPointerY = useRef(null);
   const [scales, setScales] = useState([]);
 
   const mappedArray = useMemo(
@@ -137,6 +143,7 @@ const ScaleList = ({ array }) => {
 
   useEffect(() => {
     const handlePointerMove = (event) => {
+      trackpadPointerY.current = null;
       targetPointerY.current = event.clientY;
       scheduleScaleUpdate();
     };
@@ -154,14 +161,33 @@ const ScaleList = ({ array }) => {
   }, [scheduleScaleUpdate, updateScales]);
 
   const handlePointerLeave = () => {
+    trackpadPointerY.current = null;
     targetPointerY.current = -1000;
+    scheduleScaleUpdate();
+  };
+
+  const handleWheel = (event) => {
+    if (!containerRef.current) return;
+
+    event.preventDefault();
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const currentPointerY =
+      trackpadPointerY.current ??
+      (targetPointerY.current >= rect.top && targetPointerY.current <= rect.bottom
+        ? targetPointerY.current
+        : rect.top + rect.height / 2);
+    const nextPointerY = clamp(currentPointerY + event.deltaY * TRACKPAD_SENSITIVITY, rect.top, rect.bottom);
+
+    trackpadPointerY.current = nextPointerY;
+    targetPointerY.current = nextPointerY;
     scheduleScaleUpdate();
   };
 
   if (!array.length) return null;
 
   return (
-    <motion.ul className={styles.scaleList} ref={containerRef} onPointerLeave={handlePointerLeave}>
+    <motion.ul className={styles.scaleList} ref={containerRef} onPointerLeave={handlePointerLeave} onWheel={handleWheel}>
       {mappedArray.map((entry, index) => (
         <ScaleListItem
           baseHeight={BASE_HEIGHT}

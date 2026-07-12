@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import NextProject from "@/components/NextProject/NextProject";
 import Media from "@/components/Media/Media";
+import Marquee from "@/components/Marquee/Marquee";
 import Section from "@/components/Section/Section";
 
 import ScaleGallery from "@/components/Project/ScaleGallery/ScaleGallery";
@@ -36,8 +37,14 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
   const [isNextProjectHovered, setIsNextProjectHovered] = useState(false);
   const description = getPlainText(project?.description);
   const date = formatDate(project?.scheduling);
+  const schedulingSubcaption = [project?.scheduling?.location, date].filter(Boolean).join(", ");
   const projectLink = getLinkHref(project?.link);
   const categories = project?.categories?.filter((category) => category?.name) || [];
+  const subcaptionItems = [
+    schedulingSubcaption,
+    project?.client,
+    categories.map((category) => category.name).join(", "),
+  ].filter(Boolean);
   const credits = project?.credits?.filter((credit) => credit?.role || credit?.entries?.length) || [];
   const pageBuilder = project?.pageBuilder || [];
   const galleryRows =
@@ -58,7 +65,9 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
       <ProjectCursor isActive={isNextProjectHovered} project={cursorProject} />
       <main className="main">
         <article className={styles.project}>
-          <div>{project?.coverMedia ? <Media medium={project.coverMedia.medium} eager /> : null}</div>
+          <div>
+            {project?.coverMedia ? <Media className={styles.coverMedia} medium={project.coverMedia.medium} eager /> : null}
+          </div>
 
           <Section>
             {description ? (
@@ -67,16 +76,20 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
                   {description}
                 </p>
 
-                <div typo="h5" className={styles.subcaption}>
-                  <div>Rotterdam, 06/2025</div>
-                  <div>Nieuwe Instituut, 06/2025</div>
-                  <div>Exhibition Design, Animation</div>
-                </div>
+                {subcaptionItems.length ? (
+                  <div typo="h5" className={styles.subcaption}>
+                    {subcaptionItems.map((item) => (
+                      <div key={item}>{item}</div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </Section>
 
-          {pageBuilder.length ? <Section>{pageBuilder.map((block) => buildPage(block))}</Section> : null}
+          {pageBuilder.length ? (
+            <Section>{pageBuilder.map((block) => buildPage(block, { fallbackSubcaption: schedulingSubcaption }))}</Section>
+          ) : null}
           {/* {categories.length ? (
             <ul className={styles.inlineList}>
               {categories.map((category) => (
@@ -108,6 +121,15 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
           {credits.length ? (
             <Section>
               <Credits credits={credits} />
+            </Section>
+          ) : null}
+
+          {projectLink ? (
+            <Section>
+              <div typo="h5">Link</div>
+              <a href={projectLink} target="_blank" rel="noreferrer">
+                <Marquee string={projectLink} typo="h1" />
+              </a>
             </Section>
           ) : null}
 

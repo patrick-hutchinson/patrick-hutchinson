@@ -46,6 +46,11 @@
   --letter-spacing-longcopy: 0.01rem;
   --paragraph-spacing-longcopy: 0rem;
 
+  --font-size-4: 2.2rem;
+  --line-height-4: 2rem;
+  --letter-spacing-4: 0.01rem;
+  --paragraph-spacing-4: 0rem;
+
   --font-size-fineprint: 1.25rem;
   --line-height-fineprint: 1.35rem;
   --letter-spacing-fineprint: 0.01rem;
@@ -99,7 +104,6 @@ p[typo="longcopy"] {
   letter-spacing: var(--letter-spacing-longcopy);
 }
 
-h4,
 [typo="fineprint"],
 [typo="fineprint"] p {
   font-family: "NeueHaasGroteskText";
@@ -109,6 +113,23 @@ h4,
   letter-spacing: var(--letter-spacing-fineprint);
 
   max-width: 700px;
+}
+
+h4,
+[typo="h4"] {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+
+  font-size: var(--font-size-4);
+  line-height: var(--line-height-4);
+  letter-spacing: var(--letter-spacing-4);
+}
+h4 p,
+[typo="h4"] p {
+  font-family: "NeueHaasGroteskText";
+  font-weight: bold;
+
+  margin-bottom: var(--paragraph-spacing-4);
 }
 
 h5,

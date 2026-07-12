@@ -48,6 +48,7 @@ export const homeQuery = `*[_type=="home"][0]{
       title,
       scheduling,
       thumbnail[0] ${mediaAssetFragment},
+      gallery[] ${mediaAssetFragment},
       link,
     },
 
@@ -57,6 +58,7 @@ export const homeQuery = `*[_type=="home"][0]{
       title,
       scheduling,
       thumbnail[0] ${mediaAssetFragment},
+      gallery[] ${mediaAssetFragment},
       link,
     }
   }
@@ -92,9 +94,6 @@ export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
   pageBuilder[]{
     _key,
     _type,
-    _type == "projectDescription" => {
-      text
-    },
     _type == "projectFullscreenMedium" => {
       medium[0] ${mediaAssetFragment}
     },
@@ -123,6 +122,20 @@ export const infoQuery = `*[_type=="info"][0]{
       url,
       originalFilename
     }
+  },
+  recommendations{
+    asset->{
+      _id,
+      url,
+      originalFilename
+    }
+  },
+  Recommendations{
+    asset->{
+      _id,
+      url,
+      originalFilename
+    }
   }
 }`;
 
@@ -134,6 +147,7 @@ export const experienceQuery = `*[_type=="experience"] | order(coalesce(scheduli
   year,
   location,
   thumbnail[0] ${mediaAssetFragment},
+  gallery[] ${mediaAssetFragment},
   link,
 }`;
 
@@ -145,5 +159,6 @@ export const publicityQuery = `*[_type=="publicity"] | order(coalesce(scheduling
   year,
   location,
   thumbnail[0] ${mediaAssetFragment},
+  gallery[] ${mediaAssetFragment},
   link,
 }`;

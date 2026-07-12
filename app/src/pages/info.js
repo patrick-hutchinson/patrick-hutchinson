@@ -4,7 +4,7 @@ import { getInfoStaticProps } from "@/lib/sanity/fetch";
 import styles from "@/styles/Info.module.css";
 
 import Text from "@/components/Text/Text";
-import Media from "@/components/Media/Media";
+import CyclingMedia from "@/components/Media/CyclingMedia";
 
 import SectionSmall from "@/components/Section/SectionSmall";
 
@@ -23,20 +23,22 @@ function InfoList({ entries, onEntryHover, title }) {
       <h2 typo="fineprint">{title}</h2>
       <ul>
         {entries.map((entry) => (
-          <li key={entry._id} typo="fineprint" className={styles.listEntry}>
-            <button
+          <li key={entry._id} typo="h4" className={styles.listEntry}>
+            <div
               className={styles.listEntryButton}
               onBlur={() => onEntryHover(null)}
               onFocus={() => onEntryHover(entry)}
               onMouseEnter={() => onEntryHover(entry)}
               onMouseLeave={() => onEntryHover(null)}
-              type="button"
+              tabIndex={0}
             >
-              {entry.thumbnail && <Media className={styles.thumbnail} medium={entry.thumbnail.medium} />}
-              {entry.title}
-              {getEntryDate(entry) ? `, ${getEntryDate(entry)}` : null}
-              {entry.scheduling?.location || entry.location ? `, ${entry.scheduling?.location || entry.location}` : null}
-            </button>
+              <CyclingMedia className={styles.thumbnail} gallery={entry.gallery} medium={entry.thumbnail?.medium} />
+              <span className={styles.title}>
+                {entry.title}
+                {/* {getEntryDate(entry) ? `, ${getEntryDate(entry)}` : null} */}
+                {entry.scheduling?.location || entry.location ? `, ${entry.scheduling?.location || entry.location}` : null}
+              </span>
+            </div>
           </li>
         ))}
       </ul>
@@ -46,6 +48,7 @@ function InfoList({ entries, onEntryHover, title }) {
 
 export default function Info({ experience, info, lastUpdatedAt, publicity }) {
   const [hoveredEntry, setHoveredEntry] = useState(null);
+  const recommendations = info.recommendations || info.Recommendations;
 
   return (
     <div className={`page ${styles.page}`}>
@@ -78,6 +81,22 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
 
             {info.VATNumber && <div>{info.VATNumber}</div>}
 
+            {info.CV?.asset?.url ? (
+              <div>
+                <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
+                  Download CV
+                </a>
+              </div>
+            ) : null}
+
+            {recommendations?.asset?.url ? (
+              <div>
+                <a href={recommendations.asset.url} download={recommendations.asset.originalFilename || undefined}>
+                  Download Recommendations
+                </a>
+              </div>
+            ) : null}
+
             <div>
               Commissions and General Enquiries:
               <a href="mailto:hutchinsonpatrick@icloud.com">hutchinsonpatrick@icloud.com</a>
@@ -86,10 +105,7 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
         </div>
       </main>
 
-      <Footer
-        className={`${styles.footer} ${hoveredEntry ? styles.contentDimmed : ""}`}
-        lastUpdatedAt={lastUpdatedAt}
-      />
+      <Footer className={`${styles.footer} ${hoveredEntry ? styles.contentDimmed : ""}`} lastUpdatedAt={lastUpdatedAt} />
     </div>
   );
 }

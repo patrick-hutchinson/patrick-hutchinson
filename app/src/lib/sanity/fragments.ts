@@ -28,5 +28,17 @@ export const mediaAssetFragment = `{
       _type == "videoAsset" => copyright,
       true => null
     ),
+
+    "caption": select(
+      _type == "imageAsset" => caption,
+      _type == "videoAsset" => caption,
+      true => null
+    ),
+
+    "subcaption": select(
+      _type == "imageAsset" => subcaption,
+      _type == "videoAsset" => subcaption,
+      true => null
+    ),
   }
 }`;

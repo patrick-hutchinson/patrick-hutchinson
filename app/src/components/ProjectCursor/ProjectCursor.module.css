@@ -9,7 +9,7 @@
 
 .preview {
   display: block;
-  left: calc(100% + var(--margin));
+  left: calc(var(--project-cursor-title-width, 100%) + var(--margin));
   position: absolute;
   top: 50%;
   width: 300px;

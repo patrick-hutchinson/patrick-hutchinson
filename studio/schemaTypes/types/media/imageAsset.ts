@@ -23,22 +23,20 @@ export const imageAsset = defineType({
       type: 'image',
       options: {hotspot: true},
     }),
-    defineField({
-      title: 'Title (Displayed in the Archive)',
-      name: 'altText',
-      type: 'string',
-    }),
+    defineField({name: 'caption', type: 'string'}),
+    defineField({name: 'subcaption', type: 'string'}),
+    defineField({name: 'copyright', type: 'string'}),
   ],
   preview: {
     select: {
       file: 'file',
-      altText: 'altText',
+      caption: 'caption',
       copyright: 'copyright',
       uploadedAt: 'file.asset._createdAt',
       size: 'file.asset.size',
     },
-    prepare({file, altText, copyright, uploadedAt, size}) {
-      const title = altText?.trim() || 'Image'
+    prepare({file, caption, copyright, uploadedAt, size}) {
+      const title = caption?.trim() || 'Image'
       const subtitleParts = [copyright?.trim() || `Uploaded ${formatDate(uploadedAt)}`]
       const sizeLabel = formatMegabytes(size)
 

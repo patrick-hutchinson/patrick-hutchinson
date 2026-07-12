@@ -24,6 +24,7 @@ const Menu = ({ className }) => {
 
   return (
     <nav
+      data-menu-control
       className={[className, styles.menu].filter(Boolean).join(" ")}
       typo="fineprint"
       aria-label="Primary navigation"
@@ -41,7 +42,7 @@ const Menu = ({ className }) => {
             Index
           </Link>
         </li>
-        <li className={styles.menuItem}>
+        <li className={styles.menuItem} style={{ marginRight: "80px" }}>
           <Link href="/info" scroll={false}>
             Info
           </Link>

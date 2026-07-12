@@ -13,9 +13,6 @@
 }
 
 .listEntryButton {
-  appearance: none;
-  background: none;
-  border: 0;
   color: inherit;
   cursor: none;
   display: flex;
@@ -27,6 +24,10 @@
   text-align: left;
 }
 
+.listEntryButton .title {
+  opacity: var(--opacity);
+}
+
 .lastUpdated {
   position: absolute;
   bottom: 0;
@@ -36,7 +37,7 @@
 
 .infoContainer {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: var(--margin);
 }
 
