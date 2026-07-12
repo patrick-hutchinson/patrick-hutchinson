@@ -50,7 +50,9 @@ function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
               }}
               tabIndex={0}
             >
-              <CyclingMedia className={styles.thumbnail} gallery={entry.gallery} medium={entry.thumbnail?.medium} />
+              <span className={styles.thumbnailSlot}>
+                <CyclingMedia className={styles.thumbnail} gallery={entry.gallery} medium={entry.thumbnail?.medium} />
+              </span>
               <span className={styles.title}>
                 {entry.title}
                 {/* {getEntryDate(entry) ? `, ${getEntryDate(entry)}` : null} */}

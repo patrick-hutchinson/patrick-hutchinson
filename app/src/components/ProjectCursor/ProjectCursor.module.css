@@ -41,3 +41,9 @@
   top: auto;
   width: min(70vw, 360px);
 }
+
+@media screen and (max-width: 749px) {
+  .title {
+    max-width: 90vw;
+  }
+}

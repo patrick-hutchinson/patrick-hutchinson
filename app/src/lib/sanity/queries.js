@@ -35,6 +35,7 @@ export const homeQuery = `*[_type=="home"][0]{
         entries
       },
       coverMedia[0] ${mediaAssetFragment},
+      coverMedia_mobile[0] ${mediaAssetFragment},
       gallery[]{
         _key,
         media[] ${mediaAssetFragment}

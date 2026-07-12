@@ -27,6 +27,12 @@
   transform-origin: center center;
 }
 
+.mobileMediaFrame {
+  aspect-ratio: 1080 / 1920;
+  height: min(80vh, var(--content-height));
+  width: auto;
+}
+
 .media {
   height: 100%;
   width: 100%;

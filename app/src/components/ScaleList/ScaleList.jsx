@@ -11,7 +11,7 @@ const MAX_VISUAL_SCALE = 2.2;
 const MOBILE_SCALE_MULTIPLIER = 0.33;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 100;
-const MOBILE_DISTANCE_MULTIPLIER = 2;
+const MOBILE_DISTANCE_MULTIPLIER = 1.2;
 const SOLVE_PASSES = 8;
 const POINTER_SMOOTHING = 1;
 const POINTER_SETTLE_THRESHOLD = 0.25;
@@ -76,10 +76,7 @@ const ScaleList = ({ array }) => {
   const trackpadSensitivity = isMobile ? MOBILE_TRACKPAD_SENSITIVITY : TRACKPAD_SENSITIVITY;
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
-  const mappedArray = useMemo(
-    () => Array.from({ length: repeatCount }, () => array).flat(),
-    [array, repeatCount],
-  );
+  const mappedArray = useMemo(() => Array.from({ length: repeatCount }, () => array).flat(), [array, repeatCount]);
 
   const animateScales = useCallback(() => {
     if (!containerRef.current) {

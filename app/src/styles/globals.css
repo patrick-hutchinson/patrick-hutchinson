@@ -78,6 +78,9 @@ html[data-scale-list-page="true"] body {
   top: var(--margin);
   right: var(--margin);
   z-index: 1001;
+
+  backdrop-filter: blur(10px);
+  border-radius: 25px;
 }
 
 .copyright {

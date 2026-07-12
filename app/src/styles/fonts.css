@@ -46,8 +46,8 @@
   --letter-spacing-longcopy: 0.01rem;
   --paragraph-spacing-longcopy: 0rem;
 
-  --font-size-4: 2.2rem;
-  --line-height-4: 2rem;
+  --font-size-4: 2rem;
+  --line-height-4: 1.9rem;
   --letter-spacing-4: 0.01rem;
   --paragraph-spacing-4: 0rem;
 
@@ -156,9 +156,14 @@ h5 p,
     --letter-spacing-2: -0.2rem;
     --paragraph-spacing-2: 0rem;
 
-    --font-size-longcopy: 2.2rem;
-    --line-height-longcopy: 2.3rem;
+    --font-size-longcopy: 1.9rem;
+    --line-height-longcopy: 2rem;
     --letter-spacing-longcopy: 0.01rem;
     --paragraph-spacing-longcopy: 0rem;
+
+    --font-size-4: 1.6rem;
+    --line-height-4: 1.6rem;
+    --letter-spacing-4: 0.01rem;
+    --paragraph-spacing-4: 0rem;
   }
 }

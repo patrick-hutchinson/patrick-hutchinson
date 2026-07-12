@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import Media from "@/components/Media/Media";
 import ProjectCursor from "@/components/ProjectCursor/ProjectCursor";
+import { DeviceContext } from "@/context/DeviceContext";
 
 import styles from "./ImageView.module.css";
 
@@ -15,6 +16,7 @@ function wrap(value, max) {
 }
 
 const ImageView = ({ array }) => {
+  const { isMobile } = useContext(DeviceContext);
   const projects = useMemo(
     () => array.filter((entry) => entry?._type === "project" && entry?.coverMedia?.medium && entry?.slug?.current),
     [array],
@@ -82,7 +84,9 @@ const ImageView = ({ array }) => {
   };
 
   const activeProject = projects[activeIndex];
-  const medium = activeProject?.coverMedia.medium;
+  const usesMobileCover = isMobile && Boolean(activeProject?.coverMedia_mobile);
+  const coverMedia = usesMobileCover ? activeProject?.coverMedia_mobile : activeProject?.coverMedia;
+  const medium = coverMedia?.medium;
 
   if (!projects.length) return null;
 
@@ -102,7 +106,7 @@ const ImageView = ({ array }) => {
       >
         <motion.div
           animate={{ scale: 1 }}
-          className={styles.mediaFrame}
+          className={[styles.mediaFrame, usesMobileCover ? styles.mobileMediaFrame : null].filter(Boolean).join(" ")}
           initial={{ scale: 0.96 }}
           key={activeProject._id}
           transition={{ duration: 0.35, ease: "easeOut" }}
