@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { getHomeStaticProps } from "@/lib/sanity/fetch";
 
@@ -8,6 +8,14 @@ import styles from "@/styles/Index.module.css";
 
 export default function Home({ activeFilter, home }) {
   const selection = home?.selection || [];
+
+  useEffect(() => {
+    document.documentElement.dataset.scaleListPage = "true";
+
+    return () => {
+      delete document.documentElement.dataset.scaleListPage;
+    };
+  }, []);
 
   if (!home || home.length === 0) return null;
 

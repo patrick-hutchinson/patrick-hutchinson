@@ -44,6 +44,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html[data-scale-list-page="true"],
+html[data-scale-list-page="true"] body {
+  height: 100%;
+  overflow: hidden;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

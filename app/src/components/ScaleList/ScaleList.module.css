@@ -2,6 +2,8 @@ ul.scaleList {
   width: calc(100vw - (var(--margin) * 2));
   height: calc(100vh - (var(--margin) * 2));
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 li.scaleListItem {
