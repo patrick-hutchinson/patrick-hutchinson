@@ -111,7 +111,7 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
             <Section>
               <div typo="h5">Link</div>
               <a href={projectLink} target="_blank" rel="noreferrer">
-                <Marquee string={projectLink} typo="h1" />
+                <Marquee canDrag={false} reliableLoop={false} string={projectLink} typo="h1" />
               </a>
             </Section>
           ) : null}

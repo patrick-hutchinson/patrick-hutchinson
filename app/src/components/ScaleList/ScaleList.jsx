@@ -4,6 +4,11 @@ import ScaleListItem from "./ScaleListItem";
 import { motion } from "motion/react";
 
 import { DeviceContext } from "@/context/DeviceContext";
+import {
+  getMediumPreviewImageUrl,
+  getProjectThumbnailMedia,
+  preloadImageUrl,
+} from "@/lib/media/projectThumbnails";
 import styles from "./ScaleList.module.css";
 
 const BASE_HEIGHT = 64;
@@ -21,6 +26,8 @@ const TRACKPAD_SENSITIVITY = 1;
 const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
 const DESKTOP_REPEAT_COUNT = 10;
 const MOBILE_REPEAT_COUNT = 30;
+const ACTIVE_VIDEO_COUNT = 10;
+const ACTIVE_VIDEO_SCALE_THRESHOLD = MIN_SCALE + 0.001;
 
 function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   const minScaleDistance = -Math.log(MIN_SCALE / maxVisualScale) * DISTANCE_FALLOFF * distanceMultiplier;
@@ -58,6 +65,17 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, isPointerActive) {
+  if (!isPointerActive) return [];
+
+  return scales
+    .map((scale, index) => ({ index, scale, medium: thumbnailMediaByProjectId[mappedArray[index]?._id] }))
+    .filter(({ scale, medium }) => scale > ACTIVE_VIDEO_SCALE_THRESHOLD && medium?.type === "video")
+    .sort((a, b) => b.scale - a.scale)
+    .slice(0, ACTIVE_VIDEO_COUNT)
+    .map(({ index }) => index);
+}
+
 const ScaleList = ({ array }) => {
   const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
@@ -70,13 +88,67 @@ const ScaleList = ({ array }) => {
   const trackpadPointerY = useRef(null);
   const touchPointerY = useRef(null);
   const touchStartY = useRef(null);
+  const preloadedThumbnails = useRef([]);
+  const isPointerActive = useRef(false);
   const [scales, setScales] = useState([]);
+  const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
   const distanceMultiplier = isMobile ? MOBILE_DISTANCE_MULTIPLIER : 1;
   const trackpadSensitivity = isMobile ? MOBILE_TRACKPAD_SENSITIVITY : TRACKPAD_SENSITIVITY;
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
   const mappedArray = useMemo(() => Array.from({ length: repeatCount }, () => array).flat(), [array, repeatCount]);
+  const thumbnailMediaByProjectId = useMemo(() => {
+    const media = {};
+
+    array.forEach((entry) => {
+      if (entry?._type !== "project") return;
+
+      media[entry._id] = getProjectThumbnailMedia(entry, false);
+    });
+
+    return media;
+  }, [array]);
+  const thumbnailUrlsByProjectId = useMemo(() => {
+    const urls = {};
+
+    array.forEach((entry) => {
+      if (entry?._type !== "project") return;
+
+      urls[entry._id] = getMediumPreviewImageUrl(thumbnailMediaByProjectId[entry._id]);
+    });
+
+    return urls;
+  }, [array, thumbnailMediaByProjectId]);
+
+  useEffect(() => {
+    const uniqueUrls = [...new Set(Object.values(thumbnailUrlsByProjectId).filter(Boolean))];
+
+    preloadedThumbnails.current = uniqueUrls.map((url) => preloadImageUrl(url)).filter(Boolean);
+  }, [thumbnailUrlsByProjectId]);
+
+  const updateActiveVideoIndexes = useCallback(
+    (nextScales) => {
+      const nextIndexes = getClosestVideoIndexes(
+        nextScales,
+        mappedArray,
+        thumbnailMediaByProjectId,
+        isPointerActive.current,
+      );
+
+      setActiveVideoIndexes((currentIndexes) => {
+        if (
+          currentIndexes.length === nextIndexes.length &&
+          currentIndexes.every((currentIndex, index) => currentIndex === nextIndexes[index])
+        ) {
+          return currentIndexes;
+        }
+
+        return nextIndexes;
+      });
+    },
+    [mappedArray, thumbnailMediaByProjectId],
+  );
 
   const animateScales = useCallback(() => {
     if (!containerRef.current) {
@@ -111,12 +183,13 @@ const ScaleList = ({ array }) => {
 
     renderedScales.current = nextScales;
     setScales(nextScales);
+    updateActiveVideoIndexes(nextScales);
 
     animationFrame.current =
       areScalesSettled && Math.abs(pointerDifference) <= POINTER_SETTLE_THRESHOLD
         ? null
         : requestAnimationFrame(animateScales);
-  }, [distanceMultiplier, mappedArray.length, maxVisualScale]);
+  }, [distanceMultiplier, mappedArray.length, maxVisualScale, updateActiveVideoIndexes]);
 
   const startScaleAnimation = useCallback(() => {
     if (animationFrame.current) return;
@@ -142,11 +215,12 @@ const ScaleList = ({ array }) => {
       renderedPointerY.current = targetPointerY.current;
       renderedScales.current = nextTargetScales;
       setScales(nextTargetScales);
+      updateActiveVideoIndexes(nextTargetScales);
       return;
     }
 
     startScaleAnimation();
-  }, [distanceMultiplier, mappedArray.length, maxVisualScale, startScaleAnimation]);
+  }, [distanceMultiplier, mappedArray.length, maxVisualScale, startScaleAnimation, updateActiveVideoIndexes]);
 
   const scheduleScaleUpdate = useCallback(() => {
     if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
@@ -172,6 +246,7 @@ const ScaleList = ({ array }) => {
 
       trackpadPointerY.current = nextPointerY;
       touchPointerY.current = nextPointerY;
+      isPointerActive.current = true;
       targetPointerY.current = nextPointerY;
       scheduleScaleUpdate();
     },
@@ -184,6 +259,7 @@ const ScaleList = ({ array }) => {
 
       trackpadPointerY.current = null;
       touchPointerY.current = null;
+      isPointerActive.current = true;
       targetPointerY.current = event.clientY;
       scheduleScaleUpdate();
     };
@@ -205,6 +281,8 @@ const ScaleList = ({ array }) => {
 
     trackpadPointerY.current = null;
     touchPointerY.current = null;
+    isPointerActive.current = false;
+    setActiveVideoIndexes([]);
     targetPointerY.current = -1000;
     scheduleScaleUpdate();
   };
@@ -252,7 +330,10 @@ const ScaleList = ({ array }) => {
           entry={entry}
           key={`${entry._id}-${index}`}
           maxVisualScale={maxVisualScale}
+          playVideo={activeVideoIndexes.includes(index)}
           scale={scales[index] ?? MIN_SCALE}
+          thumbnailMedium={thumbnailMediaByProjectId[entry._id]}
+          thumbnailUrl={thumbnailUrlsByProjectId[entry._id]}
         />
       ))}
     </motion.ul>

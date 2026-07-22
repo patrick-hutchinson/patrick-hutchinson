@@ -1,15 +1,16 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { getHomeStaticProps } from "@/lib/sanity/fetch";
+import { preloadMedium } from "@/lib/media/projectThumbnails";
 
 import ImageView from "@/components/ImageView/ImageView";
 import ScaleList from "@/components/ScaleList/ScaleList";
 
 import styles from "@/styles/Index.module.css";
 
-export default function Home({ activeFilter, home }) {
-  const [view, setView] = useState("list");
+export default function Home({ activeFilter, home, indexView = "list" }) {
+  const preloadedMedia = useRef([]);
   const selection = home?.selection || [];
   const filteredSelection = useMemo(
     () => (activeFilter ? selection.filter((entry) => entry._type === activeFilter) : selection),
@@ -24,6 +25,14 @@ export default function Home({ activeFilter, home }) {
     };
   }, []);
 
+  useEffect(() => {
+    preloadedMedia.current = selection
+      .filter((entry) => entry?._type === "project")
+      .flatMap((project) => [project?.thumbnail?.medium, project?.thumbnail_mobile?.medium])
+      .map((medium) => preloadMedium(medium))
+      .filter(Boolean);
+  }, [selection]);
+
   if (!home || home.length === 0) return null;
 
   return (
@@ -34,29 +43,13 @@ export default function Home({ activeFilter, home }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             initial={{ opacity: 0 }}
-            key={view}
+            key={indexView}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            {view === "list" ? <ScaleList array={filteredSelection} /> : <ImageView array={filteredSelection} />}
+            {indexView === "list" ? <ScaleList array={filteredSelection} /> : <ImageView array={filteredSelection} />}
           </motion.div>
         </AnimatePresence>
       </main>
-      <div className={styles.viewToggle} typo="fineprint" aria-label="View options">
-        <button
-          className={view === "list" ? styles.viewToggleButtonActive : styles.viewToggleButton}
-          onClick={() => setView("list")}
-          type="button"
-        >
-          List
-        </button>
-        <button
-          className={view === "image" ? styles.viewToggleButtonActive : styles.viewToggleButton}
-          onClick={() => setView("image")}
-          type="button"
-        >
-          Image
-        </button>
-      </div>
     </div>
   );
 }

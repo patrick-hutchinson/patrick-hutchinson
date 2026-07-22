@@ -35,6 +35,8 @@ export default function App({ Component, pageProps }) {
   const router = useRouter();
   const site = pageProps.site || fallbackSiteData;
   const [exitingScrollY, setExitingScrollY] = useState(0);
+  const [indexView, setIndexView] = useState("list");
+  const isIndexPage = router.pathname === "/";
   // const [activeFilter, setActiveFilter] = useState(null);
   // const filterArray = useMemo(() => {
   //   const selection = pageProps.home?.selection || [];
@@ -76,6 +78,24 @@ export default function App({ Component, pageProps }) {
                 <FilterMenu activeFilter={activeFilter} array={filterArray} onFilterChange={setActiveFilter} />
               ) : null} */}
               <Menu />
+              {isIndexPage ? (
+                <div className="viewToggle" typo="fineprint" aria-label="View options">
+                  <button
+                    className={indexView === "list" ? "viewToggleButtonActive" : "viewToggleButton"}
+                    onClick={() => setIndexView("list")}
+                    type="button"
+                  >
+                    List
+                  </button>
+                  <button
+                    className={indexView === "image" ? "viewToggleButtonActive" : "viewToggleButton"}
+                    onClick={() => setIndexView("image")}
+                    type="button"
+                  >
+                    Image
+                  </button>
+                </div>
+              ) : null}
             </div>
             <div className="pageTransitionRoot">
               <AnimatePresence custom={exitingScrollY} initial={false}>
@@ -91,6 +111,8 @@ export default function App({ Component, pageProps }) {
                 >
                   <Component
                     {...pageProps}
+                    indexView={indexView}
+                    setIndexView={setIndexView}
                     // activeFilter={activeFilter}
                   />
                 </motion.div>

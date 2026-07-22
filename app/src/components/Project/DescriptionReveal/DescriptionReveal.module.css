@@ -1,5 +1,5 @@
 .description {
-  color: #fff;
+  color: var(--foreground);
 }
 
 .word,

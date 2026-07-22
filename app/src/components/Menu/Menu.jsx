@@ -5,6 +5,7 @@ import styles from "./Menu.module.css";
 const Menu = ({ className }) => {
   const labelRef = useRef(null);
   const listRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [widths, setWidths] = useState({ closed: 0, open: 0 });
 
   useEffect(() => {
@@ -25,9 +26,12 @@ const Menu = ({ className }) => {
   return (
     <nav
       data-menu-control
-      className={[className, styles.menu].filter(Boolean).join(" ")}
+      className={[className, styles.menu, isOpen ? styles.menuOpen : null].filter(Boolean).join(" ")}
       typo="fineprint"
       aria-label="Primary navigation"
+      aria-expanded={isOpen}
+      onClick={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
       style={{
         "--closed-width": `${widths.closed}px`,
         "--open-width": `${widths.open}px`,

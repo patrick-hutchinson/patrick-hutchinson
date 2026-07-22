@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useMotionValue, useSpring } from "framer-motio
 import { useEffect, useRef, useState } from "react";
 
 import CyclingMedia from "@/components/Media/CyclingMedia";
+import { getProjectThumbnailMedia } from "@/lib/media/projectThumbnails";
 
 import styles from "./ProjectCursor.module.css";
 
@@ -33,12 +34,12 @@ function ensurePointerTracker() {
   isTrackingPointer = true;
 }
 
-function getPreviewMedia(project) {
+function getPreviewMedia(project, isMobile = false) {
   const gallery = Array.isArray(project?.gallery) ? project.gallery.filter((item) => item?.medium) : [];
 
   return {
     gallery,
-    medium: project?.coverMedia?.medium || project?.thumbnail?.medium || project?.medium,
+    medium: getProjectThumbnailMedia(project, isMobile) || project?.medium,
   };
 }
 
@@ -74,7 +75,7 @@ const ProjectCursor = ({
   const [isNearMenu, setIsNearMenu] = useState(false);
   const [titleWidth, setTitleWidth] = useState(DEFAULT_TITLE_WIDTH);
 
-  const previewMedia = getPreviewMedia(project);
+  const previewMedia = getPreviewMedia(project, staticCentered);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);

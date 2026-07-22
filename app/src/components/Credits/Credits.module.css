@@ -1,6 +1,6 @@
 .entry,
 .entryActive {
-  color: #fff;
+  color: var(--foreground);
   opacity: var(--opacity);
   transition: opacity 0.45s ease-in-out;
 }

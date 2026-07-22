@@ -14,8 +14,7 @@
   z-index: 1001;
 }
 
-.menu:hover,
-.menu:focus-within {
+.menuOpen {
   width: calc(var(--open-width, 0px) + 16px);
   opacity: 1;
 }
@@ -30,8 +29,7 @@
   transition: opacity 0.2s ease-in-out;
 }
 
-.menu:hover .menuLabel,
-.menu:focus-within .menuLabel {
+.menuOpen .menuLabel {
   opacity: 0;
 }
 
@@ -48,8 +46,7 @@
   transition: opacity 0.2s ease-in-out 0.08s;
 }
 
-.menu:hover .menuList,
-.menu:focus-within .menuList {
+.menuOpen .menuList {
   opacity: 1;
 }
 

@@ -1,17 +1,9 @@
 import { useEffect } from "react";
 
-const DEFAULT_RENDITION = "highest.mp4";
-
-function getStaticRenditionUrl(playbackId, rendition = DEFAULT_RENDITION) {
-  if (!playbackId) return null;
-
-  const renditionName = rendition.endsWith(".mp4") || rendition.endsWith(".m4a") ? rendition : `${rendition}.mp4`;
-
-  return `https://stream.mux.com/${playbackId}/${renditionName}`;
-}
+import { getVideoRenditionUrl } from "@/lib/media/projectThumbnails";
 
 const Video = ({ medium, playerState, playerControls }) => {
-  const src = getStaticRenditionUrl(medium.playbackId, medium.staticRendition);
+  const src = getVideoRenditionUrl(medium);
 
   useEffect(() => {
     const player = playerControls.playerRef.current;

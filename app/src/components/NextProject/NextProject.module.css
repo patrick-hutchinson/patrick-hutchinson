@@ -11,13 +11,15 @@
   background-size: 50px 50px;
   cursor: none;
   padding: var(--margin);
-  color: #000;
+  color: var(--foreground);
 }
 
 .nextProjectHeader {
   font-size: 10vw;
   letter-spacing: -7px;
   opacity: 0.05 !important;
+  position: relative;
+  z-index: 2;
 }
 
 .nextProjectContainer:hover {
@@ -32,6 +34,7 @@
   position: absolute;
   bottom: var(--margin);
   left: var(--margin);
+  z-index: 2;
 }
 
 @media (max-width: 768px) {

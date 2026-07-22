@@ -10,6 +10,11 @@
   cursor: grab;
 }
 
+.containerDragDisabled {
+  cursor: inherit;
+  touch-action: pan-y pinch-zoom;
+}
+
 .slide {
   flex: 0 0 auto;
   min-width: 0;

@@ -1,6 +1,6 @@
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: #fff;
+  --foreground: #0a0a0a;
 
   --margin: 20px;
   --content-height: calc(100vh - 2 * var(--margin));
@@ -10,13 +10,6 @@
 
   --section-spacing: 100px;
   --section-small-spacing: 20px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 *,
@@ -81,6 +74,41 @@ html[data-scale-list-page="true"] body {
 
   backdrop-filter: blur(10px);
   border-radius: 25px;
+}
+
+.viewToggle {
+  align-items: center;
+  background: var(--foreground);
+  border-radius: 25px;
+  color: var(--background);
+  display: flex;
+  gap: 12px;
+  opacity: var(--opacity);
+  padding: 4px 8px;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.viewToggle:hover,
+.viewToggle:focus-within {
+  opacity: 1;
+}
+
+.viewToggleButton,
+.viewToggleButtonActive {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  opacity: 0.45;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.viewToggleButtonActive {
+  opacity: 1;
 }
 
 .copyright {

@@ -41,17 +41,10 @@ export const project = defineType({
       },
       validation: (Rule) => Rule.unique(),
     }),
-    defineField({name: 'thumbnail', title: 'Thumbnail', type: 'image'}),
-    defineField({
-      name: 'coverMedia',
-      title: 'Cover Media',
-      type: 'mediaAsset',
-    }),
-    defineField({
-      name: 'coverMedia_mobile',
-      title: 'Cover Media (Mobile)',
-      type: 'mediaAsset',
-    }),
+    defineField({name: 'thumbnail', title: 'Thumbnail', type: 'mediaAsset'}),
+    defineField({name: 'thumbnail_mobile', title: 'Thumbnail (Mobile)', type: 'mediaAsset'}),
+    defineField({name: 'coverMedia', title: 'Cover Media', type: 'mediaAsset'}),
+    defineField({name: 'coverMedia_mobile', title: 'Cover Media (Mobile)', type: 'mediaAsset'}),
 
     defineField({
       name: 'pageBuilder',
@@ -84,6 +77,20 @@ export const project = defineType({
               type: 'array',
               of: [{type: 'string', name: 'entry'}],
             }),
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'socials',
+      title: 'Socials',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {name: 'platform', title: 'Platform', type: 'string'},
+            {name: 'link', title: 'url', type: 'string'},
           ],
         },
       ],

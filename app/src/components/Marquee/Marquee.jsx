@@ -7,24 +7,25 @@ const AUTO_SCROLL_SPEED = 1;
 const OVERFLOW_TOLERANCE = 1;
 const SCROLLING_SLIDE_COUNT = 3;
 
-const Marquee = ({ string, typo }) => {
+const Marquee = ({ canDrag = true, reliableLoop = true, string, typo }) => {
   const [shouldScroll, setShouldScroll] = useState(false);
   const [viewportNode, setViewportNode] = useState(null);
   const measureRef = useRef(null);
   const animationFrame = useRef(null);
+  const canLoop = shouldScroll && reliableLoop;
   const options = useMemo(
     () => ({
       align: "start",
       containScroll: false,
-      dragFree: shouldScroll,
-      loop: shouldScroll,
+      dragFree: shouldScroll && canDrag,
+      loop: canLoop,
       skipSnaps: true,
-      watchDrag: shouldScroll,
+      watchDrag: shouldScroll && canDrag,
     }),
-    [shouldScroll],
+    [canDrag, canLoop, shouldScroll],
   );
   const [emblaRef, emblaApi] = useEmblaCarousel(options);
-  const slides = shouldScroll ? Array.from({ length: SCROLLING_SLIDE_COUNT }, () => string) : [string];
+  const slides = shouldScroll && reliableLoop ? Array.from({ length: SCROLLING_SLIDE_COUNT }, () => string) : [string];
 
   const setRefs = useCallback(
     (node) => {
@@ -71,8 +72,10 @@ const Marquee = ({ string, typo }) => {
       if (!engine.dragHandler.pointerDown()) {
         engine.location.add(-AUTO_SCROLL_SPEED);
         engine.target.set(engine.location);
-        engine.scrollLooper.loop(-1);
-        engine.slideLooper.loop();
+        if (canLoop) {
+          engine.scrollLooper.loop(-1);
+          engine.slideLooper.loop();
+        }
         engine.translate.to(engine.location.get());
       }
 
@@ -84,12 +87,12 @@ const Marquee = ({ string, typo }) => {
     return () => {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
     };
-  }, [emblaApi, shouldScroll]);
+  }, [canLoop, emblaApi, shouldScroll]);
 
   return (
     <div typo={typo}>
       <div className={styles.viewport} ref={setRefs}>
-        <div className={styles.container}>
+        <div className={[styles.container, canDrag ? null : styles.containerDragDisabled].filter(Boolean).join(" ")}>
           {slides.map((slide, index) => (
             <div className={styles.slide} key={`${slide}-${index}`} ref={index === 0 ? measureRef : null}>
               {slide}

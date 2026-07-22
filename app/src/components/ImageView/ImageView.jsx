@@ -1,14 +1,16 @@
-import Link from "next/link";
 import { motion } from "framer-motion";
+import { useRouter } from "next/router";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import Media from "@/components/Media/Media";
 import ProjectCursor from "@/components/ProjectCursor/ProjectCursor";
 import { DeviceContext } from "@/context/DeviceContext";
+import { getProjectThumbnailMedia, preloadMedium } from "@/lib/media/projectThumbnails";
 
 import styles from "./ImageView.module.css";
 
 const SCROLL_SENSITIVITY = 1;
+const CHANGE_SCALE_DURATION = 320;
 
 function wrap(value, max) {
   if (max <= 0) return 0;
@@ -17,13 +19,31 @@ function wrap(value, max) {
 
 const ImageView = ({ array }) => {
   const { isMobile } = useContext(DeviceContext);
+  const router = useRouter();
   const projects = useMemo(
-    () => array.filter((entry) => entry?._type === "project" && entry?.coverMedia?.medium && entry?.slug?.current),
+    () =>
+      array.filter(
+        (entry) =>
+          entry?._type === "project" &&
+          entry?.slug?.current &&
+          (entry?.thumbnail?.medium ||
+            entry?.thumbnail_mobile?.medium ||
+            entry?.coverMedia?.medium ||
+            entry?.coverMedia_mobile?.medium),
+      ),
     [array],
   );
+  const thumbnailMedia = useMemo(
+    () => projects.map((project) => getProjectThumbnailMedia(project, isMobile)),
+    [isMobile, projects],
+  );
   const virtualY = useRef(0);
+  const preloadedMedia = useRef([]);
+  const hasInitializedActiveIndex = useRef(false);
+  const scaleTimeout = useRef(null);
   const touchY = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [scalingIndex, setScalingIndex] = useState(null);
 
   const updateFromVirtualY = useCallback(
     (nextY) => {
@@ -58,6 +78,33 @@ const ImageView = ({ array }) => {
     };
   }, [updateFromVirtualY]);
 
+  useEffect(() => {
+    preloadedMedia.current = projects
+      .flatMap((project) => [project?.thumbnail?.medium, project?.thumbnail_mobile?.medium])
+      .map((medium) => preloadMedium(medium))
+      .filter(Boolean);
+  }, [projects]);
+
+  useEffect(() => {
+    if (!hasInitializedActiveIndex.current) {
+      hasInitializedActiveIndex.current = true;
+      return undefined;
+    }
+
+    if (scaleTimeout.current) window.clearTimeout(scaleTimeout.current);
+
+    setScalingIndex(activeIndex);
+
+    scaleTimeout.current = window.setTimeout(() => {
+      setScalingIndex(null);
+      scaleTimeout.current = null;
+    }, CHANGE_SCALE_DURATION);
+
+    return () => {
+      if (scaleTimeout.current) window.clearTimeout(scaleTimeout.current);
+    };
+  }, [activeIndex]);
+
   const handleWheel = (event) => {
     event.preventDefault();
     updateFromVirtualY(virtualY.current + event.deltaY * SCROLL_SENSITIVITY);
@@ -84,36 +131,70 @@ const ImageView = ({ array }) => {
   };
 
   const activeProject = projects[activeIndex];
-  const usesMobileCover = isMobile && Boolean(activeProject?.coverMedia_mobile);
-  const coverMedia = usesMobileCover ? activeProject?.coverMedia_mobile : activeProject?.coverMedia;
-  const medium = coverMedia?.medium;
+  const usesMobileThumbnail = isMobile && Boolean(activeProject?.thumbnail_mobile?.medium);
+
+  const navigateToActiveProject = () => {
+    if (!activeProject?.slug?.current) return;
+
+    router.push(`/projects/${activeProject.slug.current}`, undefined, { scroll: false });
+  };
+
+  const handleClick = (event) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+
+    navigateToActiveProject();
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    navigateToActiveProject();
+  };
 
   if (!projects.length) return null;
 
   return (
     <div
       className={styles.imageView}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
       onWheel={handleWheel}
+      role="link"
+      tabIndex={0}
     >
       <ProjectCursor className={styles.cursor} isActive project={activeProject} showPreview={false} />
-      <Link
-        className={styles.mediaLink}
-        href={`/projects/${activeProject.slug.current}`}
-        scroll={false}
+      <motion.div
+        animate={{ scale: 1 }}
+        className={[styles.mediaFrame, usesMobileThumbnail ? styles.mobileMediaFrame : null].filter(Boolean).join(" ")}
+        initial={{ scale: 0.96 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
       >
-        <motion.div
-          animate={{ scale: 1 }}
-          className={[styles.mediaFrame, usesMobileCover ? styles.mobileMediaFrame : null].filter(Boolean).join(" ")}
-          initial={{ scale: 0.96 }}
-          key={activeProject._id}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-        >
-          <Media className={styles.media} medium={medium} eager />
-        </motion.div>
-      </Link>
+        {projects.map((project, index) => {
+          const medium = thumbnailMedia[index];
+          const isActive = index === activeIndex;
+          const usesMobileProjectThumbnail = isMobile && Boolean(project?.thumbnail_mobile?.medium);
+
+          return (
+            <div
+              className={[
+                styles.mediaItem,
+                isActive ? styles.mediaItemActive : null,
+                scalingIndex === index ? styles.mediaItemScalePulse : null,
+                usesMobileProjectThumbnail ? styles.mobileMediaItem : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              key={project._id}
+            >
+              <Media className={styles.media} medium={medium} eager paused={!isActive} />
+            </div>
+          );
+        })}
+      </motion.div>
     </div>
   );
 };
