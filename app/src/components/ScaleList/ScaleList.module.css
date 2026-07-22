@@ -39,6 +39,21 @@ li.scaleListItem {
   white-space: nowrap;
 }
 
+.scaleListItemLink:hover {
+  opacity: 1;
+}
+
+.scaleListItemText {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.12em;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.scaleListItemLink:hover .scaleListItemText {
+  opacity: var(--opacity);
+}
+
 .thumbnail {
   aspect-ratio: 1920 / 1080;
   display: block;
@@ -65,4 +80,5 @@ li.scaleListItem {
 
 .releaseDate {
   font-size: 25px;
+  color: #9c9c9d;
 }

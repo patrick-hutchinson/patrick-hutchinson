@@ -78,7 +78,7 @@ const NextProject = ({ lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
         ref={containerRef}
         scroll={false}
       >
-        {!isMobile ? <ImageTrail media={trailMedia} /> : null}
+        {!isMobile ? <ImageTrail isActive={isHovered} media={trailMedia} /> : null}
         <div typo="h2" className={styles.nextProjectHeader}>
           Next Project:
         </div>

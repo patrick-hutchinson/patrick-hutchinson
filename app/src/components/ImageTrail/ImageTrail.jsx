@@ -37,7 +37,7 @@ function createSlots(mediaItems) {
   }));
 }
 
-const ImageTrail = ({ media }) => {
+const ImageTrail = ({ isActive = true, media }) => {
   const containerRef = useRef(null);
   const pointerClientPosition = useRef(null);
   const lastLocalPosition = useRef(null);
@@ -185,11 +185,24 @@ const ImageTrail = ({ media }) => {
     slotReuseTimeouts.current.set(activeSlotIndex, reuseTimeoutId);
   };
 
+  useEffect(() => {
+    if (isActive) return;
+
+    pointerClientPosition.current = null;
+    lastLocalPosition.current = null;
+    slotReuseTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    slotReuseTimeouts.current.clear();
+
+    slotsRef.current.forEach((slot, index) => {
+      if (slot.phase !== "hidden") startSlotExit(index, slot.activationId);
+    });
+  }, [isActive]);
+
   useAnimationFrame(() => {
     const container = containerRef.current;
     const pointer = pointerClientPosition.current;
 
-    if (!container || !pointer || !mediaItems.length) return;
+    if (!isActive || !container || !pointer || !mediaItems.length) return;
 
     const rect = container.getBoundingClientRect();
     const isInside =

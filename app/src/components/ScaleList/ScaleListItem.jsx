@@ -16,7 +16,7 @@ const ScaleListItem = ({ baseHeight, entry, maxVisualScale, playVideo, scale, th
   return (
     <motion.li className={styles.scaleListItem} style={{ height }}>
       <motion.div className={styles.scaleListItemContent} style={{ scale: visualScale }}>
-        <Wrapper {...wrapperProps}>
+        <Wrapper className={styles.scaleListItemLink} {...wrapperProps}>
           <div className={styles.scaleListItem_inner}>
             {thumbnailUrl ? (
               <span className={styles.thumbnail} aria-hidden="true">
@@ -26,8 +26,10 @@ const ScaleListItem = ({ baseHeight, entry, maxVisualScale, playVideo, scale, th
                 ) : null}
               </span>
             ) : null}
-            {entry.title}
-            <div className={styles.releaseDate}>{`${entry.scheduling?.month}/${entry.scheduling?.year}`}</div>
+            <span className={styles.scaleListItemText}>
+              {entry.title}
+              <span className={styles.releaseDate}>{`${entry.scheduling?.month}/${entry.scheduling?.year}`}</span>
+            </span>
           </div>
         </Wrapper>
       </motion.div>
