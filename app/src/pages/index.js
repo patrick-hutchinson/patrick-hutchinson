@@ -36,7 +36,7 @@ export default function Home({ activeFilter, home, indexView = "list" }) {
   if (!home || home.length === 0) return null;
 
   return (
-    <div className={`page ${styles.page}`}>
+    <div className={`page ${indexView === "image" ? styles.imagePage : styles.page}`}>
       <main className="main">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

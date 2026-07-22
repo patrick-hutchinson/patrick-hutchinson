@@ -1,71 +1,82 @@
 .imageView {
-  align-items: center;
-  display: flex;
-  height: calc(100vh - var(--margin) * 2);
-  justify-content: center;
+  cursor: default;
+  height: calc(100vh);
   overflow: hidden;
   overscroll-behavior: none;
-  touch-action: none;
-  width: calc(100vw - var(--margin) * 2);
-  cursor: pointer;
-}
-
-.cursor {
-  mix-blend-mode: difference;
-}
-
-.mediaFrame {
-  aspect-ratio: 1920 / 1080;
-  overflow: hidden;
   position: relative;
-  width: min(80vw, var(--content-width));
-  transform-origin: center center;
+  touch-action: none;
+  width: calc(100vw);
 }
 
-.mobileMediaFrame {
-  aspect-ratio: 1080 / 1920;
-  height: min(80vh, var(--content-height));
-  width: auto;
-}
-
-.media {
-  height: 100%;
-  width: 100%;
-}
-
-.mediaItem {
+.canvas {
+  display: block;
   height: 100%;
   inset: 0;
-  opacity: 0;
-  pointer-events: none;
   position: absolute;
-  transition: opacity 0.25s ease-in-out;
-  transform-origin: center center;
   width: 100%;
-  z-index: 0;
 }
 
-.mediaItemActive {
+.positionIndicator {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+  position: fixed;
+  right: var(--margin);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  z-index: 2;
+}
+
+.positionThumbnailButton {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: block;
+  padding: 0;
+  width: 40px;
+}
+
+.positionThumbnail {
+  aspect-ratio: 1920 / 1080;
+  display: block;
+  object-fit: cover;
+  opacity: 0.3;
+  transition: opacity 0.25s ease-in-out;
+  width: 40px;
+}
+
+.positionThumbnailActive {
   opacity: 1;
-  z-index: 1;
 }
 
-.mediaItemScalePulse {
-  animation: mediaItemScalePulse 0.32s ease-out;
+.positionThumbnailMobile {
+  aspect-ratio: 1080 / 1920;
 }
 
-@keyframes mediaItemScalePulse {
-  0% {
-    transform: scale(0.85);
-  }
-
-  100% {
-    transform: scale(1);
-  }
+.fallback {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 15vh;
+  height: 100%;
+  inset: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 100%;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mediaItemScalePulse {
-    animation: none;
+.fallbackImage {
+  aspect-ratio: 1920 / 1080;
+  display: block;
+  object-fit: cover;
+  width: 80%;
+}
+
+@media screen and (max-width: 749px) {
+  .fallbackImage {
+    aspect-ratio: 1080 / 1920;
   }
 }
