@@ -25,10 +25,11 @@ const ScaleListItem = ({ baseHeight, entry, maxVisualScale, playVideo, scale, th
                   <Media className={styles.thumbnailMedia} medium={thumbnailMedium} eager />
                 ) : null}
               </span>
-            ) : null}
+            ) : null}{" "}
+            <span className={styles.releaseDate}>{`‘${entry.scheduling?.year.slice(0, 2)}`}</span>
             <span className={styles.scaleListItemText}>
               {entry.title}
-              <span className={styles.releaseDate}>{`${entry.scheduling?.month}/${entry.scheduling?.year}`}</span>
+              <span className={styles.location}>{entry.scheduling?.location}</span>
             </span>
           </div>
         </Wrapper>

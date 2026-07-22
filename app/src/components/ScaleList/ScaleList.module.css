@@ -78,7 +78,8 @@ li.scaleListItem {
   z-index: 1;
 }
 
-.releaseDate {
+.releaseDate,
+.location {
   font-size: 25px;
   color: #9c9c9d;
 }
