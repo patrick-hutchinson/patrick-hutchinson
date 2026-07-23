@@ -117,6 +117,19 @@ html[data-scale-list-page="true"] body {
   opacity: 1;
 }
 
+@media screen and (max-width: 748px) {
+  .controls {
+    bottom: var(--margin);
+    top: auto;
+  }
+}
+
+@media screen and (min-width: 749px) {
+  :root {
+    --margin: 8px;
+  }
+}
+
 .copyright {
   position: fixed;
   bottom: var(--margin);

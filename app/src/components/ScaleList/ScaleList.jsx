@@ -10,10 +10,10 @@ import styles from "./ScaleList.module.css";
 const BASE_HEIGHT = 64;
 const ITEM_GAP = 0;
 const MAX_VISUAL_SCALE = 2.2;
-const MOBILE_SCALE_MULTIPLIER = 0.33;
+const MOBILE_SCALE_MULTIPLIER = 1.1;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 120;
-const MOBILE_DISTANCE_MULTIPLIER = 1.2;
+const MOBILE_DISTANCE_MULTIPLIER = 0.8;
 const SOLVE_PASSES = 8;
 const POINTER_SMOOTHING = 1;
 const POINTER_SETTLE_THRESHOLD = 0.25;
@@ -22,7 +22,7 @@ const SCALE_SETTLE_THRESHOLD = 0.002;
 const TRACKPAD_SENSITIVITY = 1;
 const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
 const DESKTOP_REPEAT_COUNT = 10;
-const MOBILE_REPEAT_COUNT = 30;
+const MOBILE_REPEAT_COUNT = 5;
 const ACTIVE_VIDEO_COUNT = 10;
 const ACTIVE_VIDEO_SCALE_THRESHOLD = MIN_SCALE + 0.001;
 
@@ -95,6 +95,11 @@ const ScaleList = ({ array }) => {
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
   const mappedArray = useMemo(() => Array.from({ length: repeatCount }, () => array).flat(), [array, repeatCount]);
+  const selectedMobileIndex = useMemo(() => {
+    if (!isMobile || !scales.length) return null;
+
+    return scales.reduce((selectedIndex, scale, index) => (scale > scales[selectedIndex] ? index : selectedIndex), 0);
+  }, [isMobile, scales]);
   const thumbnailMediaByProjectId = useMemo(() => {
     const media = {};
 
@@ -119,18 +124,18 @@ const ScaleList = ({ array }) => {
   }, [array, thumbnailMediaByProjectId]);
 
   useEffect(() => {
-    if (isMobile) {
-      preloadedThumbnails.current = [];
-      return;
-    }
-
     const uniqueUrls = [...new Set(Object.values(thumbnailUrlsByProjectId).filter(Boolean))];
 
     preloadedThumbnails.current = uniqueUrls.map((url) => preloadImageUrl(url)).filter(Boolean);
-  }, [isMobile, thumbnailUrlsByProjectId]);
+  }, [thumbnailUrlsByProjectId]);
 
   const updateActiveVideoIndexes = useCallback(
     (nextScales) => {
+      if (isMobile) {
+        setActiveVideoIndexes((currentIndexes) => (currentIndexes.length ? [] : currentIndexes));
+        return;
+      }
+
       const nextIndexes = getClosestVideoIndexes(
         nextScales,
         mappedArray,
@@ -149,7 +154,7 @@ const ScaleList = ({ array }) => {
         return nextIndexes;
       });
     },
-    [mappedArray, thumbnailMediaByProjectId],
+    [isMobile, mappedArray, thumbnailMediaByProjectId],
   );
 
   const animateScales = useCallback(() => {
@@ -222,7 +227,13 @@ const ScaleList = ({ array }) => {
     }
 
     startScaleAnimation();
-  }, [distanceMultiplier, mappedArray.length, maxVisualScale, startScaleAnimation, updateActiveVideoIndexes]);
+  }, [
+    distanceMultiplier,
+    mappedArray.length,
+    maxVisualScale,
+    startScaleAnimation,
+    updateActiveVideoIndexes,
+  ]);
 
   const scheduleScaleUpdate = useCallback(() => {
     if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
@@ -333,11 +344,12 @@ const ScaleList = ({ array }) => {
           gap={ITEM_GAP}
           key={`${entry._id}-${index}`}
           maxVisualScale={maxVisualScale}
-          playVideo={activeVideoIndexes.includes(index)}
+          playVideo={isMobile ? index === selectedMobileIndex : activeVideoIndexes.includes(index)}
           scale={scales[index] ?? MIN_SCALE}
           isMobile={isMobile}
-          thumbnailMedium={isMobile ? null : thumbnailMediaByProjectId[entry._id]}
-          thumbnailUrl={isMobile ? null : thumbnailUrlsByProjectId[entry._id]}
+          isSelected={isMobile && index === selectedMobileIndex}
+          thumbnailMedium={thumbnailMediaByProjectId[entry._id]}
+          thumbnailUrl={thumbnailUrlsByProjectId[entry._id]}
         />
       ))}
     </motion.ul>

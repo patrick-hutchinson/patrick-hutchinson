@@ -20,9 +20,9 @@ const INDICATOR_WIDTH = 40;
 const ITEM_GAP_RATIO = 0.04;
 const MENU_SCROLL_EASE = 0.035;
 const SCROLL_SENSITIVITY = 1;
+const MOBILE_SCROLL_SENSITIVITY = 4;
 const SCREEN_EDGE_SCALE = 1;
-const SHOW_PROJECT_TITLE = false;
-const TITLE_TEXTURE_SCALE = 2;
+const TEXTURE_TEXT_SCALE = 2;
 const VELOCITY_DECAY = 0.92;
 const VELOCITY_EASE = 0.11;
 const VISIBLE_CYCLES = [-1, 0, 1, 2];
@@ -171,52 +171,87 @@ function getCssVariable(name, fallback) {
 
 function getPixelValue(value, fallback) {
   const parsed = parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed)) return fallback;
+
+  if (typeof value === "string" && value.endsWith("rem")) {
+    return parsed * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 10);
+  }
+
+  return parsed;
 }
 
 function getReleaseYear(project) {
   return project?.scheduling?.year ? `‘${project.scheduling.year.slice(0, 2)}` : "";
 }
 
-function createTitleTexture(gl, title) {
-  const fontSize = getPixelValue(getCssVariable("--font-size-2", "58px"), 58);
-  const lineHeightValue = getCssVariable("--line-height-2", "0.9");
-  const lineHeightNumber = getPixelValue(lineHeightValue, 0.9);
-  const lineHeight = lineHeightValue.endsWith("px") ? lineHeightNumber : fontSize * lineHeightNumber;
+function getLineHeight(variableName, fallback, fontSize) {
+  const lineHeightValue = getCssVariable(variableName, fallback);
+  const lineHeightNumber = getPixelValue(lineHeightValue, parseFloat(fallback));
+
+  return lineHeightValue.endsWith("px") || lineHeightValue.endsWith("rem") ? lineHeightNumber : fontSize * lineHeightNumber;
+}
+
+function createMetadataTexture(gl, project) {
+  const title = project?.title || "";
+  const year = getReleaseYear(project);
+  const location = project?.scheduling?.location || "";
+  const fineprintSize = getPixelValue(getCssVariable("--font-size-fineprint", "12.5px"), 12.5);
+  const h4Size = getPixelValue(getCssVariable("--font-size-4", "17.5px"), 17.5);
+  const fineprintLineHeight = getLineHeight("--line-height-fineprint", "13.5px", fineprintSize);
+  const h4LineHeight = getLineHeight("--line-height-4", "17.5px", h4Size);
+  const lineHeight = Math.max(fineprintLineHeight, h4LineHeight);
   const family = "NeueHaasGroteskText, Arial, Helvetica, sans-serif";
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
 
   if (!context) return null;
 
-  context.font = `bold ${fontSize * TITLE_TEXTURE_SCALE}px ${family}`;
-
-  const measuredWidth = context.measureText(title).width / TITLE_TEXTURE_SCALE;
+  const gap = h4Size * 0.35;
   const padding = 2;
-  const width = Math.max(1, Math.ceil((measuredWidth + padding * 2) * TITLE_TEXTURE_SCALE));
-  const height = Math.max(1, Math.ceil(lineHeight * TITLE_TEXTURE_SCALE));
+  const parts = [
+    { color: "#9c9c9d", font: `500 ${fineprintSize}px ${family}`, text: year },
+    { color: getCssVariable("--foreground", "#0a0a0a"), font: `bold ${h4Size}px ${family}`, text: title },
+    { color: "#9c9c9d", font: `500 ${fineprintSize}px ${family}`, text: location },
+  ].filter((part) => part.text);
+
+  if (!parts.length) return null;
+
+  const measuredWidth = parts.reduce((width, part, index) => {
+    context.font = part.font;
+    return width + context.measureText(part.text).width + (index > 0 ? gap : 0);
+  }, 0);
+
+  const width = Math.max(1, Math.ceil((measuredWidth + padding * 2) * TEXTURE_TEXT_SCALE));
+  const height = Math.max(1, Math.ceil(lineHeight * TEXTURE_TEXT_SCALE));
 
   canvas.width = width;
   canvas.height = height;
 
-  context.scale(TITLE_TEXTURE_SCALE, TITLE_TEXTURE_SCALE);
+  context.scale(TEXTURE_TEXT_SCALE, TEXTURE_TEXT_SCALE);
   context.clearRect(0, 0, width, height);
-  context.fillStyle = getCssVariable("--foreground", "#0a0a0a");
-  context.font = `bold ${fontSize}px ${family}`;
   context.textBaseline = "middle";
-  context.fillText(title, padding, lineHeight / 2);
+
+  let x = padding;
+  parts.forEach((part, index) => {
+    if (index > 0) x += gap;
+
+    context.fillStyle = part.color;
+    context.font = part.font;
+    context.fillText(part.text, x, lineHeight / 2);
+    x += context.measureText(part.text).width;
+  });
 
   return {
     height,
-    pixelRatio: TITLE_TEXTURE_SCALE,
+    pixelRatio: TEXTURE_TEXT_SCALE,
     texture: createTexture(gl, canvas),
     width,
   };
 }
 
-function createSafeTitleTexture(gl, title) {
+function createSafeMetadataTexture(gl, project) {
   try {
-    return createTitleTexture(gl, title);
+    return createMetadataTexture(gl, project);
   } catch {
     return null;
   }
@@ -280,9 +315,9 @@ async function loadTextureEntry(gl, item) {
       const entry = {
         hasUploadedVideoFrame: false,
         height: previewImage.naturalHeight || previewImage.height || 1080,
+        metadata: createSafeMetadataTexture(gl, item.project),
         source: null,
         texture: createTexture(gl, previewImage),
-        title: SHOW_PROJECT_TITLE ? createSafeTitleTexture(gl, item.project.title) : null,
         type: "video",
         width: previewImage.naturalWidth || previewImage.width || 1920,
       };
@@ -304,9 +339,9 @@ async function loadTextureEntry(gl, item) {
     return {
       hasUploadedVideoFrame: false,
       height: video.videoHeight || 1080,
+      metadata: createSafeMetadataTexture(gl, item.project),
       source: video,
       texture: createTexture(gl, video),
-      title: SHOW_PROJECT_TITLE ? createSafeTitleTexture(gl, item.project.title) : null,
       type: "video",
       width: video.videoWidth || 1920,
     };
@@ -317,9 +352,9 @@ async function loadTextureEntry(gl, item) {
 
   return {
     height: image.naturalHeight || image.height,
+    metadata: createSafeMetadataTexture(gl, item.project),
     source: image,
     texture: createTexture(gl, image),
-    title: SHOW_PROJECT_TITLE ? createSafeTitleTexture(gl, item.project.title) : null,
     type: "image",
     width: image.naturalWidth || image.width,
   };
@@ -349,7 +384,6 @@ const ImageView = ({ array }) => {
   const canvasRef = useRef(null);
   const frameRef = useRef(null);
   const glState = useRef(null);
-  const metadataRefs = useRef(new Map());
   const preloadedImages = useRef([]);
   const rafRef = useRef(null);
   const activeIndexRef = useRef(0);
@@ -391,19 +425,6 @@ const ImageView = ({ array }) => {
         };
       }),
     [isMobile, projects],
-  );
-
-  const metadataSlots = useMemo(
-    () =>
-      VISIBLE_CYCLES.flatMap((cycle) =>
-        items.map((item, index) => ({
-          cycle,
-          index,
-          item,
-          key: `${cycle}-${item.project._id}`,
-        })),
-      ),
-    [items],
   );
 
   useEffect(() => {
@@ -493,7 +514,7 @@ const ImageView = ({ array }) => {
       textures.forEach((entry) => {
         entry?.source?.pause?.();
         if (entry?.texture) gl.deleteTexture(entry.texture);
-        if (entry?.title?.texture) gl.deleteTexture(entry.title.texture);
+        if (entry?.metadata?.texture) gl.deleteTexture(entry.metadata.texture);
       });
       gl.deleteBuffer(positionBuffer);
       gl.deleteProgram(program);
@@ -565,15 +586,9 @@ const ImageView = ({ array }) => {
       const centerY = height / 2;
       let closestIndex = activeIndexRef.current;
       let closestDistance = Number.POSITIVE_INFINITY;
-      const titleGap = margin * dpr;
       const drawPadding = Math.min(height * 0.26, imageHeight * 0.7);
       const scrollOffset = wrap(scrollCurrent.current, listHeight);
       let closestRect = null;
-
-      metadataRefs.current.forEach((node) => {
-        node.style.opacity = "0";
-        node.style.pointerEvents = "none";
-      });
 
       for (const cycle of VISIBLE_CYCLES) {
         for (let index = 0; index < items.length; index += 1) {
@@ -590,16 +605,6 @@ const ImageView = ({ array }) => {
           const scaledImageHeight = imageHeight * itemScale;
           const scaledX = isMobile ? (width - scaledImageWidth) / 2 : 0;
           const scaledY = y + (imageHeight - scaledImageHeight) / 2;
-          const metadataNode = metadataRefs.current.get(`${cycle}-${items[index].project._id}`);
-
-          if (metadataNode) {
-            metadataNode.style.opacity = "1";
-            metadataNode.style.pointerEvents = "auto";
-            metadataNode.style.transform = `translate3d(${scaledX / dpr}px, ${
-              (scaledY + scaledImageHeight + captionGap) / dpr
-            }px, 0)`;
-            metadataNode.style.width = `${scaledImageWidth / dpr}px`;
-          }
 
           if (!textureEntry?.texture) continue;
 
@@ -636,17 +641,20 @@ const ImageView = ({ array }) => {
             drawPadding,
           );
 
-          if (textureEntry.title?.texture) {
-            const titleWidth = (textureEntry.title.width / textureEntry.title.pixelRatio) * dpr;
-            const titleHeight = (textureEntry.title.height / textureEntry.title.pixelRatio) * dpr;
-            const titleX = scaledX + scaledImageWidth + titleGap;
-            const titleY = scaledY + scaledImageHeight / 2 - titleHeight / 2;
+          if (textureEntry.metadata?.texture) {
+            const metadataWidth = Math.min(
+              (textureEntry.metadata.width / textureEntry.metadata.pixelRatio) * dpr,
+              scaledImageWidth,
+            );
+            const metadataHeight = (textureEntry.metadata.height / textureEntry.metadata.pixelRatio) * dpr;
+            const metadataX = scaledX;
+            const metadataY = scaledY + scaledImageHeight + captionGap;
 
             drawTextureRect(
               state,
-              textureEntry.title.texture,
-              { height: titleHeight, width: titleWidth, x: titleX, y: titleY },
-              { height: titleHeight, width: titleWidth, x: titleX, y: titleY },
+              textureEntry.metadata.texture,
+              { height: metadataHeight, width: metadataWidth, x: metadataX, y: metadataY },
+              { height: metadataHeight, width: metadataWidth, x: metadataX, y: metadataY },
               { offset: [0, 0], scale: [1, 1] },
               velocity.current,
               drawPadding,
@@ -670,7 +678,7 @@ const ImageView = ({ array }) => {
   const handleWheel = (event) => {
     event.preventDefault();
     menuScrollTarget.current = null;
-    scrollTarget.current += event.deltaY * SCROLL_SENSITIVITY;
+    scrollTarget.current += event.deltaY * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
   };
 
   const handleTouchStart = (event) => {
@@ -686,7 +694,7 @@ const ImageView = ({ array }) => {
     if (typeof nextTouchY !== "number") return;
 
     menuScrollTarget.current = null;
-    scrollTarget.current += (touchY.current - nextTouchY) * SCROLL_SENSITIVITY;
+    scrollTarget.current += (touchY.current - nextTouchY) * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
     touchY.current = nextTouchY;
   };
 
@@ -717,10 +725,10 @@ const ImageView = ({ array }) => {
     const rect = activeImageRect.current;
     const nextIsImageHovered = Boolean(
       rect &&
-        event.clientX >= rect.left &&
-        event.clientX <= rect.right &&
-        event.clientY >= rect.top &&
-        event.clientY <= rect.bottom,
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom,
     );
 
     setIsImageHovered((currentIsImageHovered) =>
@@ -816,31 +824,6 @@ const ImageView = ({ array }) => {
     >
       <div className={styles.canvasFrame} ref={frameRef}>
         <canvas aria-hidden="true" className={styles.canvas} ref={canvasRef} />
-        <div aria-hidden="true" className={styles.metadataLayer}>
-          {metadataSlots.map(({ item, key }) => (
-            <div
-              className={styles.metadata}
-              key={key}
-              ref={(node) => {
-                if (node) {
-                  metadataRefs.current.set(key, node);
-                } else {
-                  metadataRefs.current.delete(key);
-                }
-              }}
-            >
-              <span className={styles.metadataYear} typo="fineprint">
-                {getReleaseYear(item.project)}
-              </span>
-              <span className={styles.metadataTitle} typo="h4">
-                {item.project.title}
-              </span>
-              <span className={styles.metadataLocation} typo="fineprint">
-                {item.project.scheduling?.location}
-              </span>
-            </div>
-          ))}
-        </div>
       </div>
       {!isMobile ? (
         <div aria-label="Project position" className={styles.positionIndicator}>
