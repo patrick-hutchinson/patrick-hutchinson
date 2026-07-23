@@ -18,7 +18,8 @@ const IMAGE_WIDTH_RATIO = 0.66;
 const INERTIA = 0.08;
 const INDICATOR_WIDTH = 40;
 const ITEM_GAP_RATIO = 0.04;
-const MENU_SCROLL_EASE = 0.035;
+const ENTRY_SCROLL_OFFSET_ITEMS = 4;
+const PROGRAMMATIC_SCROLL_DURATION = 2400;
 const SCROLL_SENSITIVITY = 1;
 const MOBILE_SCROLL_SENSITIVITY = 4;
 const SCREEN_EDGE_SCALE = 1;
@@ -90,6 +91,12 @@ void main() {
 function wrap(value, max) {
   if (max <= 0) return 0;
   return ((value % max) + max) % max;
+}
+
+function easeInOutSmootherStep(progress) {
+  const t = Math.min(1, Math.max(0, progress));
+
+  return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 function compileShader(gl, type, source) {
@@ -389,7 +396,8 @@ const ImageView = ({ array }) => {
   const activeIndexRef = useRef(0);
   const activeImageRect = useRef(null);
   const listMetrics = useRef(null);
-  const menuScrollTarget = useRef(null);
+  const programmaticScroll = useRef(null);
+  const hasPlayedEntryAnimation = useRef(false);
   const scrollCurrent = useRef(0);
   const scrollTarget = useRef(0);
   const touchY = useRef(null);
@@ -558,14 +566,33 @@ const ImageView = ({ array }) => {
       const itemGap = imageHeight * ITEM_GAP_RATIO;
       const itemStride = itemHeight + itemGap;
       const listHeight = itemStride * items.length;
+      const now = performance.now();
       listMetrics.current = { itemStride, listHeight };
 
-      if (menuScrollTarget.current !== null) {
-        scrollTarget.current += (menuScrollTarget.current - scrollTarget.current) * MENU_SCROLL_EASE;
+      if (!hasPlayedEntryAnimation.current) {
+        const entryOffset = itemStride * Math.min(ENTRY_SCROLL_OFFSET_ITEMS, Math.max(items.length - 1, 0));
 
-        if (Math.abs(menuScrollTarget.current - scrollTarget.current) < 0.5) {
-          scrollTarget.current = menuScrollTarget.current;
-          menuScrollTarget.current = null;
+        hasPlayedEntryAnimation.current = true;
+        scrollCurrent.current = entryOffset;
+        scrollTarget.current = entryOffset;
+        programmaticScroll.current = {
+          duration: PROGRAMMATIC_SCROLL_DURATION,
+          from: entryOffset,
+          start: now,
+          to: 0,
+        };
+      }
+
+      if (programmaticScroll.current) {
+        const { duration, from, start, to } = programmaticScroll.current;
+        const progress = Math.min(1, (now - start) / duration);
+        const easedProgress = easeInOutSmootherStep(progress);
+
+        scrollTarget.current = from + (to - from) * easedProgress;
+
+        if (progress >= 1) {
+          scrollTarget.current = to;
+          programmaticScroll.current = null;
         }
       }
 
@@ -677,7 +704,7 @@ const ImageView = ({ array }) => {
 
   const handleWheel = (event) => {
     event.preventDefault();
-    menuScrollTarget.current = null;
+    programmaticScroll.current = null;
     scrollTarget.current += event.deltaY * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
   };
 
@@ -693,7 +720,7 @@ const ImageView = ({ array }) => {
     const nextTouchY = event.touches[0]?.clientY;
     if (typeof nextTouchY !== "number") return;
 
-    menuScrollTarget.current = null;
+    programmaticScroll.current = null;
     scrollTarget.current += (touchY.current - nextTouchY) * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
     touchY.current = nextTouchY;
   };
@@ -753,7 +780,12 @@ const ImageView = ({ array }) => {
     if (delta > metrics.listHeight / 2) delta -= metrics.listHeight;
     if (delta < -metrics.listHeight / 2) delta += metrics.listHeight;
 
-    menuScrollTarget.current = scrollTarget.current + delta;
+    programmaticScroll.current = {
+      duration: PROGRAMMATIC_SCROLL_DURATION,
+      from: scrollTarget.current,
+      start: performance.now(),
+      to: scrollTarget.current + delta,
+    };
   };
 
   const handleIndicatorClick = (event, index) => {

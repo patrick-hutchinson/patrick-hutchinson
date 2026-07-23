@@ -2,6 +2,14 @@
   color: var(--foreground);
 }
 
+.paragraph {
+  margin: 0;
+}
+
+.paragraph + .paragraph {
+  margin-top: 0.5em;
+}
+
 .word,
 .wordActive {
   opacity: var(--opacity);

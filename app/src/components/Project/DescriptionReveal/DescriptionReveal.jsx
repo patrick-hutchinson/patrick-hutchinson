@@ -9,7 +9,15 @@ const DescriptionReveal = ({ className, text }) => {
   const wordRefs = useRef([]);
   const [lineIndexes, setLineIndexes] = useState([]);
   const [activeLines, setActiveLines] = useState(() => new Set());
-  const words = useMemo(() => text.split(/(\s+)/).filter(Boolean), [text]);
+  const paragraphs = useMemo(
+    () =>
+      text
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean)
+        .map((paragraph) => paragraph.split(/(\s+)/).filter(Boolean)),
+    [text],
+  );
 
   const measureLines = useCallback(() => {
     const lineTops = [];
@@ -88,27 +96,36 @@ const DescriptionReveal = ({ className, text }) => {
     return () => observer.disconnect();
   }, [lineIndexes]);
 
+  let wordIndex = 0;
+
   return (
-    <p className={`${className} ${styles.description}`} ref={containerRef} typo="longcopy">
-      {words.map((word, index) => {
-        if (/^\s+$/.test(word)) return word;
+    <div className={`${className} ${styles.description}`} ref={containerRef} typo="longcopy">
+      {paragraphs.map((words, paragraphIndex) => (
+        <p className={styles.paragraph} key={paragraphIndex}>
+          {words.map((word) => {
+            const index = wordIndex;
+            wordIndex += 1;
 
-        const lineIndex = lineIndexes[index];
-        const isActive = typeof lineIndex === "number" && activeLines.has(lineIndex);
+            if (/^\s+$/.test(word)) return word;
 
-        return (
-          <span
-            className={isActive ? styles.wordActive : styles.word}
-            key={`${word}-${index}`}
-            ref={(node) => {
-              wordRefs.current[index] = node;
-            }}
-          >
-            {word}
-          </span>
-        );
-      })}
-    </p>
+            const lineIndex = lineIndexes[index];
+            const isActive = typeof lineIndex === "number" && activeLines.has(lineIndex);
+
+            return (
+              <span
+                className={isActive ? styles.wordActive : styles.word}
+                key={`${word}-${index}`}
+                ref={(node) => {
+                  wordRefs.current[index] = node;
+                }}
+              >
+                {word}
+              </span>
+            );
+          })}
+        </p>
+      ))}
+    </div>
   );
 };
 

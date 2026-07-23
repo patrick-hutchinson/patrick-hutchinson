@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "r
 import ScaleListItem from "./ScaleListItem";
 
 import { motion } from "motion/react";
+import { useRouter } from "next/router";
 
 import { DeviceContext } from "@/context/DeviceContext";
 import { getMediumPreviewImageUrl, getProjectThumbnailMedia, preloadImageUrl } from "@/lib/media/projectThumbnails";
@@ -9,22 +10,27 @@ import styles from "./ScaleList.module.css";
 
 const BASE_HEIGHT = 64;
 const ITEM_GAP = 0;
-const MAX_VISUAL_SCALE = 2.2;
+const MAX_VISUAL_SCALE = 2.5;
 const MOBILE_SCALE_MULTIPLIER = 1.1;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 120;
 const MOBILE_DISTANCE_MULTIPLIER = 0.8;
 const SOLVE_PASSES = 8;
-const POINTER_SMOOTHING = 1;
+const DESKTOP_CURSOR_SENSITIVITY = 1;
+const DESKTOP_POINTER_SMOOTHING = 0.75;
+const MOBILE_POINTER_SMOOTHING = 1;
 const POINTER_SETTLE_THRESHOLD = 0.25;
-const SCALE_SMOOTHING = 0.2;
-const SCALE_SETTLE_THRESHOLD = 0.002;
-const TRACKPAD_SENSITIVITY = 1;
+const DESKTOP_SCALE_SMOOTHING = 0.1;
+const MOBILE_SCALE_SMOOTHING = 0.2;
+const DESKTOP_LARGE_SCALE_INERTIA_START = 0.3;
+const DESKTOP_LARGE_SCALE_SMOOTHING = 0.02;
+const SCALE_SETTLE_THRESHOLD = 0.0001;
+const TRACKPAD_SENSITIVITY = 0.015;
 const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
 const DESKTOP_REPEAT_COUNT = 10;
 const MOBILE_REPEAT_COUNT = 5;
-const ACTIVE_VIDEO_COUNT = 10;
-const ACTIVE_VIDEO_SCALE_THRESHOLD = MIN_SCALE + 0.001;
+const ACTIVE_VIDEO_COUNT = 3;
+const ACTIVE_VIDEO_CURSOR_RADIUS = 220;
 
 function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   const minScaleDistance = -Math.log(MIN_SCALE / maxVisualScale) * DISTANCE_FALLOFF * distanceMultiplier;
@@ -62,19 +68,57 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, isPointerActive) {
-  if (!isPointerActive) return [];
+function getScaleSmoothing(currentScale, targetScale, maxVisualScale, isMobile) {
+  if (isMobile) return MOBILE_SCALE_SMOOTHING;
+
+  const scaleRange = Math.max(maxVisualScale - DESKTOP_LARGE_SCALE_INERTIA_START, 1);
+  const largeScaleProgress = clamp(
+    (Math.max(currentScale, targetScale) - DESKTOP_LARGE_SCALE_INERTIA_START) / scaleRange,
+    0,
+    1,
+  );
+
+  return DESKTOP_SCALE_SMOOTHING + (DESKTOP_LARGE_SCALE_SMOOTHING - DESKTOP_SCALE_SMOOTHING) * largeScaleProgress;
+}
+
+function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, isPointerActive, listTop, cursorY) {
+  if (!isPointerActive || typeof cursorY !== "number") return [];
+
+  let itemTop = listTop;
 
   return scales
-    .map((scale, index) => ({ index, scale, medium: thumbnailMediaByProjectId[mappedArray[index]?._id] }))
-    .filter(({ scale, medium }) => scale > ACTIVE_VIDEO_SCALE_THRESHOLD && medium?.type === "video")
-    .sort((a, b) => b.scale - a.scale)
+    .map((scale, index) => {
+      const center = itemTop + (BASE_HEIGHT * scale) / 2;
+      const distance = Math.abs(center - cursorY);
+
+      itemTop += BASE_HEIGHT * scale + ITEM_GAP;
+
+      return {
+        distance,
+        index,
+        medium: thumbnailMediaByProjectId[mappedArray[index]?._id],
+      };
+    })
+    .filter(({ distance, medium }) => distance <= ACTIVE_VIDEO_CURSOR_RADIUS && medium?.type === "video")
+    .sort((a, b) => a.distance - b.distance)
     .slice(0, ACTIVE_VIDEO_COUNT)
     .map(({ index }) => index);
 }
 
+function getLargestScaledProjectIndex(scales, mappedArray) {
+  if (!scales.length) return null;
+
+  return scales.reduce((selectedIndex, scale, index) => {
+    if (mappedArray[index]?._type !== "project") return selectedIndex;
+    if (selectedIndex === null) return index;
+
+    return scale > scales[selectedIndex] ? index : selectedIndex;
+  }, null);
+}
+
 const ScaleList = ({ array }) => {
   const { isMobile } = useContext(DeviceContext);
+  const router = useRouter();
   const containerRef = useRef(null);
   const animationFrame = useRef(null);
   const updateFrame = useRef(null);
@@ -82,6 +126,7 @@ const ScaleList = ({ array }) => {
   const renderedScales = useRef([]);
   const targetScales = useRef([]);
   const targetPointerY = useRef(-1000);
+  const lastCursorY = useRef(null);
   const trackpadPointerY = useRef(null);
   const touchPointerY = useRef(null);
   const touchStartY = useRef(null);
@@ -91,6 +136,7 @@ const ScaleList = ({ array }) => {
   const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
   const distanceMultiplier = isMobile ? MOBILE_DISTANCE_MULTIPLIER : 1;
+  const pointerSmoothing = isMobile ? MOBILE_POINTER_SMOOTHING : DESKTOP_POINTER_SMOOTHING;
   const trackpadSensitivity = isMobile ? MOBILE_TRACKPAD_SENSITIVITY : TRACKPAD_SENSITIVITY;
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
@@ -130,7 +176,7 @@ const ScaleList = ({ array }) => {
   }, [thumbnailUrlsByProjectId]);
 
   const updateActiveVideoIndexes = useCallback(
-    (nextScales) => {
+    (nextScales, listTop) => {
       if (isMobile) {
         setActiveVideoIndexes((currentIndexes) => (currentIndexes.length ? [] : currentIndexes));
         return;
@@ -141,6 +187,8 @@ const ScaleList = ({ array }) => {
         mappedArray,
         thumbnailMediaByProjectId,
         isPointerActive.current,
+        listTop,
+        lastCursorY.current,
       );
 
       setActiveVideoIndexes((currentIndexes) => {
@@ -168,7 +216,7 @@ const ScaleList = ({ array }) => {
     let nextPointerY = targetPointerY.current;
 
     if (Math.abs(pointerDifference) > POINTER_SETTLE_THRESHOLD) {
-      nextPointerY = renderedPointerY.current + pointerDifference * POINTER_SMOOTHING;
+      nextPointerY = renderedPointerY.current + pointerDifference * pointerSmoothing;
     }
 
     renderedPointerY.current = nextPointerY;
@@ -185,18 +233,18 @@ const ScaleList = ({ array }) => {
       if (Math.abs(difference) <= SCALE_SETTLE_THRESHOLD) return target;
 
       areScalesSettled = false;
-      return currentScale + difference * SCALE_SMOOTHING;
+      return currentScale + difference * getScaleSmoothing(currentScale, target, maxVisualScale, isMobile);
     });
 
     renderedScales.current = nextScales;
     setScales(nextScales);
-    updateActiveVideoIndexes(nextScales);
+    updateActiveVideoIndexes(nextScales, rect.top);
 
     animationFrame.current =
       areScalesSettled && Math.abs(pointerDifference) <= POINTER_SETTLE_THRESHOLD
         ? null
         : requestAnimationFrame(animateScales);
-  }, [distanceMultiplier, mappedArray.length, maxVisualScale, updateActiveVideoIndexes]);
+  }, [distanceMultiplier, isMobile, mappedArray.length, maxVisualScale, pointerSmoothing, updateActiveVideoIndexes]);
 
   const startScaleAnimation = useCallback(() => {
     if (animationFrame.current) return;
@@ -222,18 +270,12 @@ const ScaleList = ({ array }) => {
       renderedPointerY.current = targetPointerY.current;
       renderedScales.current = nextTargetScales;
       setScales(nextTargetScales);
-      updateActiveVideoIndexes(nextTargetScales);
+      updateActiveVideoIndexes(nextTargetScales, rect.top);
       return;
     }
 
     startScaleAnimation();
-  }, [
-    distanceMultiplier,
-    mappedArray.length,
-    maxVisualScale,
-    startScaleAnimation,
-    updateActiveVideoIndexes,
-  ]);
+  }, [distanceMultiplier, mappedArray.length, maxVisualScale, startScaleAnimation, updateActiveVideoIndexes]);
 
   const scheduleScaleUpdate = useCallback(() => {
     if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
@@ -269,11 +311,23 @@ const ScaleList = ({ array }) => {
   useEffect(() => {
     const handlePointerMove = (event) => {
       if (event.pointerType === "touch") return;
+      if (!containerRef.current) return;
 
+      const rect = containerRef.current.getBoundingClientRect();
+      const cursorY = event.clientY;
+      const currentPointerY =
+        targetPointerY.current >= rect.top && targetPointerY.current <= rect.bottom ? targetPointerY.current : cursorY;
+      const cursorDelta = lastCursorY.current === null ? 0 : cursorY - lastCursorY.current;
+      const nextPointerY =
+        lastCursorY.current === null
+          ? cursorY
+          : clamp(currentPointerY + cursorDelta * DESKTOP_CURSOR_SENSITIVITY, rect.top, rect.bottom);
+
+      lastCursorY.current = cursorY;
       trackpadPointerY.current = null;
       touchPointerY.current = null;
       isPointerActive.current = true;
-      targetPointerY.current = event.clientY;
+      targetPointerY.current = nextPointerY;
       scheduleScaleUpdate();
     };
 
@@ -294,6 +348,7 @@ const ScaleList = ({ array }) => {
 
     trackpadPointerY.current = null;
     touchPointerY.current = null;
+    lastCursorY.current = null;
     isPointerActive.current = false;
     setActiveVideoIndexes([]);
     targetPointerY.current = -1000;
@@ -303,6 +358,20 @@ const ScaleList = ({ array }) => {
   const handleWheel = (event) => {
     event.preventDefault();
     updateVirtualPointer(event.deltaY);
+  };
+
+  const handleClick = (event) => {
+    if (isMobile) return;
+
+    event.preventDefault();
+
+    const currentScales = renderedScales.current.length === mappedArray.length ? renderedScales.current : scales;
+    const selectedIndex = getLargestScaledProjectIndex(currentScales, mappedArray);
+    const selectedEntry = selectedIndex === null ? null : mappedArray[selectedIndex];
+
+    if (selectedEntry?._type !== "project" || !selectedEntry.slug?.current) return;
+
+    router.push(`/projects/${selectedEntry.slug.current}`, undefined, { scroll: false });
   };
 
   const handleTouchStart = (event) => {
@@ -336,6 +405,7 @@ const ScaleList = ({ array }) => {
       onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
       onWheel={handleWheel}
+      onClick={handleClick}
     >
       {mappedArray.map((entry, index) => (
         <ScaleListItem
