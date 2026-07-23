@@ -109,7 +109,7 @@ export default function App({ Component, pageProps }) {
                     exit="exit"
                     initial="initial"
                     key={router.asPath}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    transition={{ duration: 1, ease: "easeInOut" }}
                     variants={pageTransitionVariants}
                   >
                     <Component

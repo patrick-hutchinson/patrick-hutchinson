@@ -14,20 +14,21 @@ const MAX_VISUAL_SCALE = 2.5;
 const MOBILE_SCALE_MULTIPLIER = 1.1;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 120;
+const SCALE_FALLOFF_STRENGTH = 0.85;
 const MOBILE_DISTANCE_MULTIPLIER = 0.8;
 const SOLVE_PASSES = 8;
 const DESKTOP_CURSOR_SENSITIVITY = 1;
 const DESKTOP_POINTER_SMOOTHING = 0.75;
 const MOBILE_POINTER_SMOOTHING = 1;
 const POINTER_SETTLE_THRESHOLD = 0.25;
-const DESKTOP_SCALE_SMOOTHING = 0.1;
+const DESKTOP_SCALE_SMOOTHING = 0.15;
 const MOBILE_SCALE_SMOOTHING = 0.2;
 const DESKTOP_LARGE_SCALE_INERTIA_START = 0.3;
 const DESKTOP_LARGE_SCALE_SMOOTHING = 0.02;
-const SCALE_SETTLE_THRESHOLD = 0.0001;
-const TRACKPAD_SENSITIVITY = 0.015;
+const SCALE_SETTLE_THRESHOLD = 0.01;
+const TRACKPAD_SENSITIVITY = 0.025;
 const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
-const DESKTOP_REPEAT_COUNT = 10;
+const DESKTOP_REPEAT_COUNT = 8;
 const MOBILE_REPEAT_COUNT = 5;
 const ACTIVE_VIDEO_COUNT = 3;
 const ACTIVE_VIDEO_CURSOR_RADIUS = 220;
@@ -36,7 +37,7 @@ function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   const minScaleDistance = -Math.log(MIN_SCALE / maxVisualScale) * DISTANCE_FALLOFF * distanceMultiplier;
   const mirroredDistance = minScaleDistance - Math.abs((distance % (minScaleDistance * 2)) - minScaleDistance);
 
-  return Math.max(maxVisualScale * Math.exp(-mirroredDistance / DISTANCE_FALLOFF), MIN_SCALE);
+  return Math.max(maxVisualScale * Math.exp((-mirroredDistance * SCALE_FALLOFF_STRENGTH) / DISTANCE_FALLOFF), MIN_SCALE);
 }
 
 function getScaleForItem(cursorY, itemTop, maxVisualScale, distanceMultiplier) {
@@ -132,6 +133,7 @@ const ScaleList = ({ array }) => {
   const touchStartY = useRef(null);
   const preloadedThumbnails = useRef([]);
   const isPointerActive = useRef(false);
+  const isWindowFocused = useRef(true);
   const [scales, setScales] = useState([]);
   const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
@@ -309,12 +311,43 @@ const ScaleList = ({ array }) => {
   );
 
   useEffect(() => {
+    const handleWindowBlur = () => {
+      isWindowFocused.current = false;
+    };
+
+    const handleWindowFocus = () => {
+      isWindowFocused.current = true;
+    };
+
+    const handleVisibilityChange = () => {
+      isWindowFocused.current = document.visibilityState === "visible" && document.hasFocus();
+    };
+
     const handlePointerMove = (event) => {
       if (event.pointerType === "touch") return;
       if (!containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
+      const cursorX = event.clientX;
       const cursorY = event.clientY;
+      const isInsideScaleList =
+        cursorX >= rect.left && cursorX <= rect.right && cursorY >= rect.top && cursorY <= rect.bottom;
+
+      if (!isInsideScaleList) {
+        trackpadPointerY.current = null;
+        touchPointerY.current = null;
+        lastCursorY.current = null;
+        isPointerActive.current = false;
+        setActiveVideoIndexes([]);
+
+        if (isWindowFocused.current && document.visibilityState === "visible" && document.hasFocus()) {
+          targetPointerY.current = -1000;
+          scheduleScaleUpdate();
+        }
+
+        return;
+      }
+
       const currentPointerY =
         targetPointerY.current >= rect.top && targetPointerY.current <= rect.bottom ? targetPointerY.current : cursorY;
       const cursorDelta = lastCursorY.current === null ? 0 : cursorY - lastCursorY.current;
@@ -331,29 +364,24 @@ const ScaleList = ({ array }) => {
       scheduleScaleUpdate();
     };
 
+    isWindowFocused.current = document.visibilityState === "visible" && document.hasFocus();
     updateScales();
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("resize", scheduleScaleUpdate);
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
       if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", scheduleScaleUpdate);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [scheduleScaleUpdate, updateScales]);
-
-  const handlePointerLeave = (event) => {
-    if (event.pointerType === "touch") return;
-
-    trackpadPointerY.current = null;
-    touchPointerY.current = null;
-    lastCursorY.current = null;
-    isPointerActive.current = false;
-    setActiveVideoIndexes([]);
-    targetPointerY.current = -1000;
-    scheduleScaleUpdate();
-  };
 
   const handleWheel = (event) => {
     event.preventDefault();
@@ -400,7 +428,6 @@ const ScaleList = ({ array }) => {
     <motion.ul
       className={styles.scaleList}
       ref={containerRef}
-      onPointerLeave={handlePointerLeave}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
