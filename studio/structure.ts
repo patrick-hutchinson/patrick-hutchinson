@@ -1,6 +1,6 @@
 import type {StructureResolver} from 'sanity/structure'
-import {MasterDetailIcon} from '@sanity/icons'
-import {DashboardIcon} from '@sanity/icons'
+import {DashboardIcon} from '@sanity/icons/Dashboard'
+import {MasterDetailIcon} from '@sanity/icons/MasterDetail'
 
 // Define singleton document IDs here
 const pages = ['site', 'home', 'info']

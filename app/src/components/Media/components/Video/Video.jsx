@@ -30,7 +30,7 @@ const Video = ({ medium, playerState, playerControls }) => {
       playsInline
       loop
       muted={playerControls.muted ?? true}
-      preload="metadata"
+      preload={playerState.eager ? "auto" : "metadata"}
       poster={`https://image.mux.com/${medium.playbackId}/thumbnail.jpg?width=1200`}
       style={{
         position: "relative",

@@ -3,10 +3,31 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "./Menu.module.css";
 const Menu = ({ className }) => {
+  const menuRef = useRef(null);
   const labelRef = useRef(null);
   const listRef = useRef(null);
+  const hideTimeoutRef = useRef(null);
+  const isHoveredRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
   const [widths, setWidths] = useState({ closed: 0, open: 0 });
+
+  const clearHideTimeout = () => {
+    if (!hideTimeoutRef.current) return;
+
+    window.clearTimeout(hideTimeoutRef.current);
+    hideTimeoutRef.current = null;
+  };
+
+  const scheduleHide = () => {
+    clearHideTimeout();
+
+    hideTimeoutRef.current = window.setTimeout(() => {
+      if (isHoveredRef.current) return;
+
+      setIsOpen(false);
+      hideTimeoutRef.current = null;
+    }, 3000);
+  };
 
   useEffect(() => {
     const updateWidths = () => {
@@ -23,15 +44,47 @@ const Menu = ({ className }) => {
     return () => window.removeEventListener("resize", updateWidths);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (menuRef.current?.contains(event.target)) return;
+
+      clearHideTimeout();
+      setIsOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => clearHideTimeout();
+  }, []);
+
   return (
     <nav
+      ref={menuRef}
       data-menu-control
       className={[className, styles.menu, isOpen ? styles.menuOpen : null].filter(Boolean).join(" ")}
       typo="fineprint"
       aria-label="Primary navigation"
       aria-expanded={isOpen}
-      onClick={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
+      onPointerEnter={() => {
+        isHoveredRef.current = true;
+        clearHideTimeout();
+      }}
+      onPointerLeave={() => {
+        isHoveredRef.current = false;
+        if (isOpen) scheduleHide();
+      }}
+      onClick={() => {
+        clearHideTimeout();
+        setIsOpen(true);
+      }}
       style={{
         "--closed-width": `${widths.closed}px`,
         "--open-width": `${widths.open}px`,

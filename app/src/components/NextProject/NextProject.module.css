@@ -11,7 +11,7 @@
   background-size: 50px 50px;
   cursor: none;
   padding: var(--margin);
-  color: var(--foreground);
+  color: #000;
 }
 
 .nextProjectHeader {

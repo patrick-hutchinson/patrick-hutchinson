@@ -8,7 +8,7 @@ import Placeholder from "../Placeholder";
 
 import styles from "../../Media.module.css";
 
-const VideoFrame = ({ medium, className, paused }) => {
+const VideoFrame = ({ medium, className, eager = false, paused, showPlaceholder = true }) => {
   const videoRef = useRef(null);
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -21,14 +21,14 @@ const VideoFrame = ({ medium, className, paused }) => {
   const [aspectWidth, aspectHeight] = medium.aspect_ratio.split(":");
   const aspectRatio = aspectWidth / aspectHeight;
 
-  const playerState = { isLoaded, setIsLoaded, isInView };
+  const playerState = { eager, isLoaded, setIsLoaded, isInView: eager || isInView };
   const playerControls = useVideoPlayer();
   const controlledPlayerControls = { ...playerControls, paused: paused ?? playerControls.paused };
 
   return (
     <div className={`${styles.mediaContainer} ${className}`}>
       <div ref={videoRef} className={styles.videoPlayer} style={{ aspectRatio: aspectRatio }}>
-        <Placeholder medium={medium} aspectRatio={aspectRatio} isLoaded={isLoaded} />
+        {showPlaceholder ? <Placeholder medium={medium} aspectRatio={aspectRatio} isLoaded={isLoaded} /> : null}
         <Video medium={medium} playerState={playerState} playerControls={controlledPlayerControls} />
       </div>
     </div>

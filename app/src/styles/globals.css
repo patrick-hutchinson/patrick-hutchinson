@@ -9,7 +9,13 @@
   --opacity: 0.4;
 
   --section-spacing: 100px;
-  --section-small-spacing: 20px;
+  --section-small-spacing: calc(var(--font-size-4) * 2);
+}
+
+html[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #fff;
+  color-scheme: dark;
 }
 
 *,
@@ -133,6 +139,14 @@ a {
   color: inherit;
   text-decoration: none;
   transition: 0.3s ease-in-out;
+}
+
+a:focus,
+a:focus-visible,
+button:focus,
+button:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 a:hover {

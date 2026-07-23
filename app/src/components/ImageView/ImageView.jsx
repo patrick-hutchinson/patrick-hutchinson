@@ -14,16 +14,18 @@ import styles from "./ImageView.module.css";
 const ASPECT_DESKTOP = 1920 / 1080;
 const ASPECT_MOBILE = 1080 / 1920;
 const DPR_CAP = 1.5;
-const IMAGE_WIDTH_RATIO = 0.5;
-const INERTIA = 0.04;
+const IMAGE_WIDTH_RATIO = 0.66;
+const INERTIA = 0.08;
+const INDICATOR_WIDTH = 40;
 const ITEM_GAP_RATIO = 0.04;
 const MENU_SCROLL_EASE = 0.035;
 const SCROLL_SENSITIVITY = 1;
-const SCREEN_EDGE_SCALE = 0.74;
+const SCREEN_EDGE_SCALE = 1;
 const SHOW_PROJECT_TITLE = false;
 const TITLE_TEXTURE_SCALE = 2;
 const VELOCITY_DECAY = 0.92;
 const VELOCITY_EASE = 0.11;
+const VISIBLE_CYCLES = [-1, 0, 1, 2];
 
 const VERTEX_SHADER = `
 attribute vec2 a_position;
@@ -170,6 +172,10 @@ function getCssVariable(name, fallback) {
 function getPixelValue(value, fallback) {
   const parsed = parseFloat(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getReleaseYear(project) {
+  return project?.scheduling?.year ? `‘${project.scheduling.year.slice(0, 2)}` : "";
 }
 
 function createTitleTexture(gl, title) {
@@ -343,6 +349,7 @@ const ImageView = ({ array }) => {
   const canvasRef = useRef(null);
   const frameRef = useRef(null);
   const glState = useRef(null);
+  const metadataRefs = useRef(new Map());
   const preloadedImages = useRef([]);
   const rafRef = useRef(null);
   const activeIndexRef = useRef(0);
@@ -355,6 +362,7 @@ const ImageView = ({ array }) => {
   const velocity = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasWebGl, setHasWebGl] = useState(true);
+  const [isImageHovered, setIsImageHovered] = useState(false);
 
   const projects = useMemo(
     () =>
@@ -383,6 +391,19 @@ const ImageView = ({ array }) => {
         };
       }),
     [isMobile, projects],
+  );
+
+  const metadataSlots = useMemo(
+    () =>
+      VISIBLE_CYCLES.flatMap((cycle) =>
+        items.map((item, index) => ({
+          cycle,
+          index,
+          item,
+          key: `${cycle}-${item.project._id}`,
+        })),
+      ),
+    [items],
   );
 
   useEffect(() => {
@@ -508,8 +529,13 @@ const ImageView = ({ array }) => {
       const aspectRatio = isMobile ? ASPECT_MOBILE : ASPECT_DESKTOP;
       const imageWidth = rect.width * IMAGE_WIDTH_RATIO * dpr;
       const imageHeight = imageWidth / aspectRatio;
+      const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin")) || 0;
+      const fontSize = getPixelValue(getCssVariable("--font-size-4", "17.5px"), 17.5);
+      const captionGap = margin * 0.4 * dpr;
+      const captionHeight = (fontSize + margin * 0.8) * dpr;
+      const itemHeight = imageHeight + captionGap + captionHeight;
       const itemGap = imageHeight * ITEM_GAP_RATIO;
-      const itemStride = imageHeight + itemGap;
+      const itemStride = itemHeight + itemGap;
       const listHeight = itemStride * items.length;
       listMetrics.current = { itemStride, listHeight };
 
@@ -539,29 +565,43 @@ const ImageView = ({ array }) => {
       const centerY = height / 2;
       let closestIndex = activeIndexRef.current;
       let closestDistance = Number.POSITIVE_INFINITY;
-      const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin")) || 0;
-      const x = margin * dpr;
       const titleGap = margin * dpr;
       const drawPadding = Math.min(height * 0.26, imageHeight * 0.7);
       const scrollOffset = wrap(scrollCurrent.current, listHeight);
       let closestRect = null;
 
-      for (let cycle = -1; cycle <= 2; cycle += 1) {
+      metadataRefs.current.forEach((node) => {
+        node.style.opacity = "0";
+        node.style.pointerEvents = "none";
+      });
+
+      for (const cycle of VISIBLE_CYCLES) {
         for (let index = 0; index < items.length; index += 1) {
           const textureEntry = state.textures[index];
-          if (!textureEntry?.texture) continue;
 
-          const y = cycle * listHeight + index * itemStride - scrollOffset + (height - imageHeight) / 2;
-          if (y > height + imageHeight || y + imageHeight < -imageHeight) continue;
+          const y = cycle * listHeight + index * itemStride - scrollOffset + (height - itemHeight) / 2;
+          if (y > height + itemHeight || y + itemHeight < -itemHeight) continue;
 
-          const itemCenterDistance = Math.abs(y + imageHeight / 2 - centerY);
-          const centerProgress = 1 - Math.min(itemCenterDistance / (height / 2 + imageHeight / 2), 1);
+          const itemCenterDistance = Math.abs(y + itemHeight / 2 - centerY);
+          const centerProgress = 1 - Math.min(itemCenterDistance / (height / 2 + itemHeight / 2), 1);
           const scaleProgress = centerProgress * centerProgress * (3 - 2 * centerProgress);
           const itemScale = SCREEN_EDGE_SCALE + (1 - SCREEN_EDGE_SCALE) * scaleProgress;
           const scaledImageWidth = imageWidth * itemScale;
           const scaledImageHeight = imageHeight * itemScale;
-          const scaledX = x;
+          const scaledX = isMobile ? (width - scaledImageWidth) / 2 : 0;
           const scaledY = y + (imageHeight - scaledImageHeight) / 2;
+          const metadataNode = metadataRefs.current.get(`${cycle}-${items[index].project._id}`);
+
+          if (metadataNode) {
+            metadataNode.style.opacity = "1";
+            metadataNode.style.pointerEvents = "auto";
+            metadataNode.style.transform = `translate3d(${scaledX / dpr}px, ${
+              (scaledY + scaledImageHeight + captionGap) / dpr
+            }px, 0)`;
+            metadataNode.style.width = `${scaledImageWidth / dpr}px`;
+          }
+
+          if (!textureEntry?.texture) continue;
 
           if (itemCenterDistance < closestDistance) {
             closestDistance = itemCenterDistance;
@@ -671,6 +711,29 @@ const ImageView = ({ array }) => {
     navigateToActiveProject();
   };
 
+  const handlePointerMove = (event) => {
+    if (event.pointerType === "touch") return;
+
+    const rect = activeImageRect.current;
+    const nextIsImageHovered = Boolean(
+      rect &&
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom,
+    );
+
+    setIsImageHovered((currentIsImageHovered) =>
+      currentIsImageHovered === nextIsImageHovered ? currentIsImageHovered : nextIsImageHovered,
+    );
+  };
+
+  const handlePointerLeave = (event) => {
+    if (event.pointerType === "touch") return;
+
+    setIsImageHovered(false);
+  };
+
   const scrollToIndex = (index) => {
     const metrics = listMetrics.current;
     if (!metrics) return;
@@ -739,54 +802,88 @@ const ImageView = ({ array }) => {
 
   return (
     <div
-      className={styles.imageView}
+      className={[styles.imageView, isImageHovered ? styles.imageViewClickable : null].filter(Boolean).join(" ")}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onPointerLeave={handlePointerLeave}
+      onPointerMove={handlePointerMove}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
       onWheel={handleWheel}
-      ref={frameRef}
       role="link"
       tabIndex={0}
     >
-      <canvas aria-hidden="true" className={styles.canvas} ref={canvasRef} />
-      <div aria-label="Project position" className={styles.positionIndicator}>
-        {items.map((item, index) => (
-          <button
-            aria-label={`Scroll to ${item.project.title}`}
-            className={[styles.positionThumbnailButton, index === activeIndex ? styles.positionThumbnailActive : null]
-              .filter(Boolean)
-              .join(" ")}
-            key={item.project._id}
-            onClick={(event) => handleIndicatorClick(event, index)}
-            type="button"
-          >
-            <img
-              alt=""
-              className={[
-                styles.positionThumbnail,
-                index === activeIndex ? styles.positionThumbnailActive : null,
-                isMobile ? styles.positionThumbnailMobile : null,
-              ]
+      <div className={styles.canvasFrame} ref={frameRef}>
+        <canvas aria-hidden="true" className={styles.canvas} ref={canvasRef} />
+        <div aria-hidden="true" className={styles.metadataLayer}>
+          {metadataSlots.map(({ item, key }) => (
+            <div
+              className={styles.metadata}
+              key={key}
+              ref={(node) => {
+                if (node) {
+                  metadataRefs.current.set(key, node);
+                } else {
+                  metadataRefs.current.delete(key);
+                }
+              }}
+            >
+              <span className={styles.metadataYear} typo="fineprint">
+                {getReleaseYear(item.project)}
+              </span>
+              <span className={styles.metadataTitle} typo="h4">
+                {item.project.title}
+              </span>
+              <span className={styles.metadataLocation} typo="fineprint">
+                {item.project.scheduling?.location}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {!isMobile ? (
+        <div aria-label="Project position" className={styles.positionIndicator}>
+          {items.map((item, index) => (
+            <button
+              aria-label={`Scroll to ${item.project.title}`}
+              className={[styles.positionThumbnailButton, index === activeIndex ? styles.positionThumbnailActive : null]
                 .filter(Boolean)
                 .join(" ")}
-              draggable={false}
-              src={item.previewUrl}
-            />
-          </button>
-        ))}
-      </div>
+              key={item.project._id}
+              onClick={(event) => handleIndicatorClick(event, index)}
+              onMouseLeave={(event) => event.currentTarget.blur()}
+              type="button"
+            >
+              <img
+                alt=""
+                className={[styles.positionThumbnail, index === activeIndex ? styles.positionThumbnailActive : null]
+                  .filter(Boolean)
+                  .join(" ")}
+                draggable={false}
+                src={item.previewUrl}
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
       {!hasWebGl ? (
         <div className={styles.fallback}>
           {[...items, ...items, ...items].map((item, index) => (
-            <img
-              alt=""
-              className={styles.fallbackImage}
-              draggable={false}
-              key={`${item.project._id}-${index}`}
-              src={item.previewUrl}
-            />
+            <div className={styles.fallbackItem} key={`${item.project._id}-${index}`}>
+              <img alt="" className={styles.fallbackImage} draggable={false} src={item.previewUrl} />
+              <div className={styles.fallbackMetadata}>
+                <span className={styles.metadataYear} typo="fineprint">
+                  {getReleaseYear(item.project)}
+                </span>
+                <span className={styles.metadataTitle} typo="h4">
+                  {item.project.title}
+                </span>
+                <span className={styles.metadataLocation} typo="fineprint">
+                  {item.project.scheduling?.location}
+                </span>
+              </div>
+            </div>
           ))}
         </div>
       ) : null}

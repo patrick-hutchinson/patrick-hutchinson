@@ -6,7 +6,7 @@ import { getProjectThumbnailMedia } from "@/lib/media/projectThumbnails";
 
 import styles from "./ProjectCursor.module.css";
 
-const DEFAULT_TITLE_WIDTH = "0px";
+const DEFAULT_TITLE_WIDTH = "auto";
 const fallbackPointer = { x: 0, y: 0 };
 
 let lastPointer = null;
@@ -158,14 +158,16 @@ const ProjectCursor = ({
     if (!titleNode) return undefined;
 
     const measureTitle = () => {
-      const range = document.createRange();
-      range.selectNodeContents(titleNode);
+      window.requestAnimationFrame(() => {
+        const range = document.createRange();
+        range.selectNodeContents(titleNode);
 
-      const lineWidths = Array.from(range.getClientRects()).map((rect) => rect.width);
-      range.detach();
+        const lineWidths = Array.from(range.getClientRects()).map((rect) => rect.width);
+        range.detach();
 
-      const measuredWidth = lineWidths.length ? Math.max(...lineWidths) : titleNode.getBoundingClientRect().width;
-      setTitleWidth(`${measuredWidth}px`);
+        const measuredWidth = lineWidths.length ? Math.max(...lineWidths) : titleNode.getBoundingClientRect().width;
+        setTitleWidth(`${Math.ceil(measuredWidth)}px`);
+      });
     };
 
     measureTitle();
@@ -230,9 +232,9 @@ const ProjectCursor = ({
           <motion.span
             className={`${styles.preview} ${staticCentered ? styles.staticPreview : ""}`}
             key={project._id || project.title}
-            initial={{ opacity: 0, scale: 0, y: staticCentered ? 0 : "-50%" }}
-            animate={{ opacity: 1, scale: 1, y: staticCentered ? 0 : "-50%" }}
-            exit={{ opacity: 0, scale: 0, y: staticCentered ? 0 : "-50%" }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             <CyclingMedia className={styles.previewMedia} gallery={previewMedia.gallery} medium={previewMedia.medium} />

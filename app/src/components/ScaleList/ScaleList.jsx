@@ -4,18 +4,15 @@ import ScaleListItem from "./ScaleListItem";
 import { motion } from "motion/react";
 
 import { DeviceContext } from "@/context/DeviceContext";
-import {
-  getMediumPreviewImageUrl,
-  getProjectThumbnailMedia,
-  preloadImageUrl,
-} from "@/lib/media/projectThumbnails";
+import { getMediumPreviewImageUrl, getProjectThumbnailMedia, preloadImageUrl } from "@/lib/media/projectThumbnails";
 import styles from "./ScaleList.module.css";
 
 const BASE_HEIGHT = 64;
+const ITEM_GAP = 0;
 const MAX_VISUAL_SCALE = 2.2;
 const MOBILE_SCALE_MULTIPLIER = 0.33;
 const MIN_SCALE = 0.05;
-const DISTANCE_FALLOFF = 100;
+const DISTANCE_FALLOFF = 120;
 const MOBILE_DISTANCE_MULTIPLIER = 1.2;
 const SOLVE_PASSES = 8;
 const POINTER_SMOOTHING = 1;
@@ -55,7 +52,7 @@ function getScales(cursorY, listTop, itemCount, maxVisualScale, distanceMultipli
     const scale = getScaleForItem(cursorY, itemTop, maxVisualScale, distanceMultiplier);
 
     scales.push(scale);
-    itemTop += BASE_HEIGHT * scale;
+    itemTop += BASE_HEIGHT * scale + ITEM_GAP;
   }
 
   return scales;
@@ -122,10 +119,15 @@ const ScaleList = ({ array }) => {
   }, [array, thumbnailMediaByProjectId]);
 
   useEffect(() => {
+    if (isMobile) {
+      preloadedThumbnails.current = [];
+      return;
+    }
+
     const uniqueUrls = [...new Set(Object.values(thumbnailUrlsByProjectId).filter(Boolean))];
 
     preloadedThumbnails.current = uniqueUrls.map((url) => preloadImageUrl(url)).filter(Boolean);
-  }, [thumbnailUrlsByProjectId]);
+  }, [isMobile, thumbnailUrlsByProjectId]);
 
   const updateActiveVideoIndexes = useCallback(
     (nextScales) => {
@@ -328,12 +330,14 @@ const ScaleList = ({ array }) => {
         <ScaleListItem
           baseHeight={BASE_HEIGHT}
           entry={entry}
+          gap={ITEM_GAP}
           key={`${entry._id}-${index}`}
           maxVisualScale={maxVisualScale}
           playVideo={activeVideoIndexes.includes(index)}
           scale={scales[index] ?? MIN_SCALE}
-          thumbnailMedium={thumbnailMediaByProjectId[entry._id]}
-          thumbnailUrl={thumbnailUrlsByProjectId[entry._id]}
+          isMobile={isMobile}
+          thumbnailMedium={isMobile ? null : thumbnailMediaByProjectId[entry._id]}
+          thumbnailUrl={isMobile ? null : thumbnailUrlsByProjectId[entry._id]}
         />
       ))}
     </motion.ul>

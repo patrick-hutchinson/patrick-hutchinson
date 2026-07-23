@@ -1,5 +1,6 @@
 import Head from "next/head";
 import { AnimatePresence, motion } from "framer-motion";
+import { ThemeProvider } from "next-themes";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -37,6 +38,7 @@ export default function App({ Component, pageProps }) {
   const [exitingScrollY, setExitingScrollY] = useState(0);
   const [indexView, setIndexView] = useState("list");
   const isIndexPage = router.pathname === "/";
+  const forcedTheme = router.pathname.startsWith("/projects/") ? "dark" : "light";
   // const [activeFilter, setActiveFilter] = useState(null);
   // const filterArray = useMemo(() => {
   //   const selection = pageProps.home?.selection || [];
@@ -70,57 +72,59 @@ export default function App({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href={site.faviconUrl} />
       </Head>
-      <ViewportProvider>
-        <DeviceProvider>
-          <LenisProvider>
-            <div className="controls">
-              {/* {filterArray.length ? (
+      <ThemeProvider attribute="data-theme" enableSystem={false} forcedTheme={forcedTheme}>
+        <ViewportProvider>
+          <DeviceProvider>
+            <LenisProvider>
+              <div className="controls">
+                {/* {filterArray.length ? (
                 <FilterMenu activeFilter={activeFilter} array={filterArray} onFilterChange={setActiveFilter} />
               ) : null} */}
-              <Menu />
-              {isIndexPage ? (
-                <div className="viewToggle" typo="fineprint" aria-label="View options">
-                  <button
-                    className={indexView === "list" ? "viewToggleButtonActive" : "viewToggleButton"}
-                    onClick={() => setIndexView("list")}
-                    type="button"
+                <Menu />
+                {isIndexPage ? (
+                  <div className="viewToggle" typo="fineprint" aria-label="View options">
+                    <button
+                      className={indexView === "list" ? "viewToggleButtonActive" : "viewToggleButton"}
+                      onClick={() => setIndexView("list")}
+                      type="button"
+                    >
+                      List
+                    </button>
+                    <button
+                      className={indexView === "image" ? "viewToggleButtonActive" : "viewToggleButton"}
+                      onClick={() => setIndexView("image")}
+                      type="button"
+                    >
+                      Image
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <div className="pageTransitionRoot">
+                <AnimatePresence custom={exitingScrollY} initial={false}>
+                  <motion.div
+                    animate="animate"
+                    className="pageTransition"
+                    custom={exitingScrollY}
+                    exit="exit"
+                    initial="initial"
+                    key={router.asPath}
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    variants={pageTransitionVariants}
                   >
-                    List
-                  </button>
-                  <button
-                    className={indexView === "image" ? "viewToggleButtonActive" : "viewToggleButton"}
-                    onClick={() => setIndexView("image")}
-                    type="button"
-                  >
-                    Image
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <div className="pageTransitionRoot">
-              <AnimatePresence custom={exitingScrollY} initial={false}>
-                <motion.div
-                  animate="animate"
-                  className="pageTransition"
-                  custom={exitingScrollY}
-                  exit="exit"
-                  initial="initial"
-                  key={router.asPath}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                  variants={pageTransitionVariants}
-                >
-                  <Component
-                    {...pageProps}
-                    indexView={indexView}
-                    setIndexView={setIndexView}
-                    // activeFilter={activeFilter}
-                  />
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </LenisProvider>
-        </DeviceProvider>
-      </ViewportProvider>
+                    <Component
+                      {...pageProps}
+                      indexView={indexView}
+                      setIndexView={setIndexView}
+                      // activeFilter={activeFilter}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </LenisProvider>
+          </DeviceProvider>
+        </ViewportProvider>
+      </ThemeProvider>
     </>
   );
 }

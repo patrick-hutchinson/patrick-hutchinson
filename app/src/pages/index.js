@@ -36,11 +36,12 @@ export default function Home({ activeFilter, home, indexView = "list" }) {
   if (!home || home.length === 0) return null;
 
   return (
-    <div className={`page ${indexView === "image" ? styles.imagePage : styles.page}`}>
+    <div className={`page ${styles.page}`}>
       <main className="main">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             animate={{ opacity: 1 }}
+            className={[styles.view, indexView === "list" ? styles.listView : styles.imageView].join(" ")}
             exit={{ opacity: 0 }}
             initial={{ opacity: 0 }}
             key={indexView}

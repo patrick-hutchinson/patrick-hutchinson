@@ -8,6 +8,19 @@
   width: calc(100vw);
 }
 
+.imageViewClickable {
+  cursor: pointer;
+}
+
+.canvasFrame {
+  height: 100%;
+  left: calc(var(--margin) + 40px + var(--margin));
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
 .canvas {
   display: block;
   height: 100%;
@@ -16,13 +29,46 @@
   width: 100%;
 }
 
+.metadataLayer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.metadata {
+  align-items: baseline;
+  display: flex;
+  gap: 0.35em;
+  left: 0;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.metadataTitle {
+  color: var(--foreground);
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metadataYear,
+.metadataLocation {
+  color: #9c9c9d;
+  flex: 0 0 auto;
+}
+
 .positionIndicator {
   display: flex;
   flex-direction: column;
   gap: 4px;
   pointer-events: auto;
   position: fixed;
-  right: var(--margin);
+  left: var(--margin);
   top: 50%;
   transform: translateY(-50%);
   width: 40px;
@@ -52,12 +98,8 @@
   opacity: 1;
 }
 
-.positionThumbnailMobile {
-  aspect-ratio: 1080 / 1920;
-}
-
 .fallback {
-  align-items: center;
+  align-items: flex-start;
   display: flex;
   flex-direction: column;
   gap: 15vh;
@@ -68,14 +110,41 @@
   width: 100%;
 }
 
+.fallbackItem {
+  width: 80%;
+}
+
 .fallbackImage {
   aspect-ratio: 1920 / 1080;
   display: block;
   object-fit: cover;
-  width: 80%;
+  width: 100%;
+}
+
+.fallbackMetadata {
+  align-items: baseline;
+  display: flex;
+  gap: 0.35em;
+  margin-top: calc(var(--margin) * 0.4);
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
 }
 
 @media screen and (max-width: 749px) {
+  .canvasFrame {
+    left: 0;
+  }
+
+  .metadata {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .fallback {
+    align-items: center;
+  }
+
   .fallbackImage {
     aspect-ratio: 1080 / 1920;
   }

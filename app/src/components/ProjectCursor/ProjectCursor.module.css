@@ -1,17 +1,22 @@
 .cursor {
+  align-items: center;
+  display: flex;
+  gap: var(--margin);
   position: relative;
 }
 
 .title {
-  display: inline-block;
+  display: block;
+  flex: 0 0 auto;
   max-width: 60vw;
+  min-width: min(500px, 60vw);
+  width: var(--project-cursor-title-width, auto);
 }
 
 .preview {
   display: block;
-  left: calc(var(--project-cursor-title-width, 100%) + var(--margin));
-  position: absolute;
-  top: 50%;
+  flex: 0 0 auto;
+  position: relative;
   width: 300px;
   aspect-ratio: 16 / 9;
   transform-origin: center;
@@ -24,7 +29,6 @@
 
 .staticCursor {
   align-items: center;
-  display: flex;
   flex-direction: column;
   gap: var(--margin);
   text-align: center;
@@ -33,6 +37,8 @@
 
 .staticCursor .title {
   max-width: 100%;
+  min-width: 0;
+  width: auto;
 }
 
 .staticPreview {

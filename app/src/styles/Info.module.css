@@ -5,20 +5,29 @@
 
 .thumbnailSlot {
   align-items: center;
+  aspect-ratio: 16 / 9;
   display: inline-flex;
-  flex: 0 0 20px;
+  flex: 0 0 auto;
   height: 1em;
   justify-content: center;
-  width: 20px;
+  overflow: hidden;
+  width: auto;
+  margin-right: 5px;
 }
 
 .thumbnail {
   height: 100% !important;
+  object-fit: cover;
   width: 100% !important;
 }
 
 .listEntry {
   display: block;
+  margin-bottom: 2px;
+}
+
+.details section {
+  margin-bottom: 20px;
 }
 
 .listEntryButton {
@@ -33,8 +42,13 @@
   text-align: left;
 }
 
-.listEntryButton .title {
-  opacity: var(--opacity);
+.date {
+  position: relative;
+  width: 25px;
+}
+.date,
+.location {
+  color: #9c9c9d;
 }
 
 .lastUpdated {
@@ -114,8 +128,7 @@
   }
 
   .thumbnailSlot {
-    flex-basis: 24px;
-    width: 24px;
+    height: 1em;
   }
 
   .footer {

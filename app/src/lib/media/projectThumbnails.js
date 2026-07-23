@@ -1,5 +1,15 @@
 const DEFAULT_RENDITION = "highest.mp4";
 
+export function isGifMedium(medium) {
+  if (!medium || medium.type !== "image") return false;
+
+  return (
+    medium.extension === "gif" ||
+    medium.mimeType === "image/gif" ||
+    Boolean(medium.url?.split("?")[0]?.toLowerCase().endsWith(".gif"))
+  );
+}
+
 export function getProjectThumbnailMedia(project, isMobile = false) {
   const mobileThumbnail = project?.thumbnail_mobile?.medium;
   const desktopThumbnail = project?.thumbnail?.medium;
@@ -26,6 +36,8 @@ export function getMediumPreviewImageUrl(medium, width = 160) {
   if (!medium) return null;
 
   if (medium.type === "image" && medium.url) {
+    if (isGifMedium(medium)) return medium.url;
+
     const separator = medium.url.includes("?") ? "&" : "?";
     return `${medium.url}${separator}w=${width}&fit=crop&auto=format`;
   }

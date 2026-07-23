@@ -53,10 +53,14 @@ function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
               <span className={styles.thumbnailSlot}>
                 <CyclingMedia className={styles.thumbnail} gallery={entry.gallery} medium={entry.thumbnail?.medium} />
               </span>
-              <span className={styles.title}>
-                {entry.title}
-                {/* {getEntryDate(entry) ? `, ${getEntryDate(entry)}` : null} */}
-                {entry.scheduling?.location || entry.location ? `, ${entry.scheduling?.location || entry.location}` : null}
+
+              <span className={styles.date} typo="fineprint">
+                {getEntryDate(entry) ? `‘${getEntryDate(entry).slice(2)}` : null}
+              </span>
+
+              <span className={styles.title}>{entry.title}</span>
+              <span className={styles.location} typo="fineprint">
+                {entry.scheduling?.location || entry.location ? `${entry.scheduling?.location || entry.location}` : null}
               </span>
             </div>
           </li>
@@ -190,7 +194,7 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
         <div className={styles.infoContainer}>
           <div className={styles.intro}>
             <SectionSmall>
-              <Text text={info.description} typo="fineprint" />
+              <Text text={info.description} typo="h4" />
             </SectionSmall>
             <InfoList
               entries={experience}
@@ -208,44 +212,57 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
             />
 
             <Text
-              text="Patrick has lived and worked in Germany, Ireland, The Netherlands, Finland, Italy and Austria for extended periods."
-              typo="fineprint"
+              text="Patrick has lived and worked in Germany, Ireland, Switzerland, The Netherlands, Finland, Austria and Italy for extended periods."
+              typo="h4"
             />
           </div>
 
           <div className={styles.details} typo="fineprint">
+            <section>
+              <h2 typo="fineprint">Contact</h2>
+              <a href="mailto:hutchinsonpatrick@icloud.com">hutchinsonpatrick@icloud.com</a> <br />
+              <a>+49 (0) 159 01297272</a>
+            </section>
+
             {info.socials && (
-              <div className={styles.socialAccount}>
+              <section>
+                <h2 typo="fineprint">Socials</h2>
                 {info.socials.map((social) => (
                   <>
-                    <a href={social.link}>{social.platform}</a> <br />
+                    <a href={social.link} target="_blank">
+                      {social.platform}
+                    </a>
+                    <br />
                   </>
                 ))}
-              </div>
+              </section>
             )}
 
-            {info.VATNumber && <div>{info.VATNumber}</div>}
+            {/* {info.VATNumber && <div>{info.VATNumber}</div>} */}
 
-            {info.CV?.asset?.url ? (
-              <div>
-                <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
-                  Download CV
-                </a>
-              </div>
-            ) : null}
+            <section>
+              <h2 typo="fineprint">Downloads</h2>
+              {info.CV?.asset?.url ? (
+                <div>
+                  <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
+                    Download CV
+                  </a>
+                </div>
+              ) : null}
 
-            {recommendations?.asset?.url ? (
-              <div>
-                <a href={recommendations.asset.url} download={recommendations.asset.originalFilename || undefined}>
-                  Download Recommendations
-                </a>
-              </div>
-            ) : null}
+              {recommendations?.asset?.url ? (
+                <div>
+                  <a href={recommendations.asset.url} download={recommendations.asset.originalFilename || undefined}>
+                    Download Recommendations
+                  </a>
+                </div>
+              ) : null}
+            </section>
 
-            <div>
+            {/* <div>
               Commissions and General Enquiries:
               <a href="mailto:hutchinsonpatrick@icloud.com">hutchinsonpatrick@icloud.com</a>
-            </div>
+            </div> */}
           </div>
         </div>
       </main>

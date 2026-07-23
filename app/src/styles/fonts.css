@@ -46,10 +46,10 @@
   --letter-spacing-longcopy: 0.01rem;
   --paragraph-spacing-longcopy: 0rem;
 
-  --font-size-4: 2rem;
-  --line-height-4: 1.9rem;
-  --letter-spacing-4: 0.01rem;
-  --paragraph-spacing-4: 0rem;
+  --font-size-4: 1.75rem;
+  --line-height-4: 1.75rem;
+  --letter-spacing-4: -0.02rem;
+  --paragraph-spacing-4: 0.75rem;
 
   --font-size-fineprint: 1.25rem;
   --line-height-fineprint: 1.35rem;

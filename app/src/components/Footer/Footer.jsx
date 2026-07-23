@@ -20,13 +20,17 @@ const Footer = ({ className, lastUpdatedAt }) => {
   return (
     <footer className={[className, styles.footer].filter(Boolean).join(" ")}>
       <div className={styles.copyright}>
-        <div typo="h2">PH</div>
         <div typo="fineprint" className={styles.copyrightNotice}>
           © {currentYear}, Patrick Hutchinson. All rights reserved.
         </div>
         <div typo="h5" className={styles.legalNotice}>
           Patrick Hutchinson. This website and all of its content, including all text, graphics, video, and photos, are the
           copyrighted works of PH.
+        </div>
+
+        <div typo="h5" className={styles.legalNotice}>
+          Font in Use: Neue Haas Grotesk, via CommercialType. <br />
+          Hosten via Vercel.
         </div>
       </div>
 

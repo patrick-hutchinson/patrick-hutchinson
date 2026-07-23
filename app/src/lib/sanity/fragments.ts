@@ -9,6 +9,8 @@ export const mediaAssetFragment = `{
     ),
 
     "url": select(_type == "imageAsset" => file.asset->url, true => null),
+    "extension": select(_type == "imageAsset" => file.asset->extension, true => null),
+    "mimeType": select(_type == "imageAsset" => file.asset->mimeType, true => null),
     
     "lqip": select(_type == "imageAsset" => file.asset->metadata.lqip, true => null),
     "width": select(_type == "imageAsset" => file.asset->metadata.dimensions.width, true => null),
