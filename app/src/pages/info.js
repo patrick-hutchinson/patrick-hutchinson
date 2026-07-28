@@ -8,6 +8,7 @@ import Text from "@/components/Text/Text";
 import CyclingMedia from "@/components/Media/CyclingMedia";
 
 import SectionSmall from "@/components/Section/SectionSmall";
+import Section from "@/components/Section/Section";
 
 import Footer from "@/components/Footer/Footer";
 import ProjectCursor from "@/components/ProjectCursor/ProjectCursor";
@@ -211,58 +212,56 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
               title="Publicity"
             />
 
-            <Text
-              text="Patrick has lived and worked in Germany, Ireland, Switzerland, The Netherlands, Finland, Austria and Italy for extended periods."
-              typo="h4"
-            />
-          </div>
+            <Section>
+              <Text
+                text="Patrick has lived and worked in Germany, Ireland, Switzerland, The Netherlands, Finland, Austria and Italy for extended periods."
+                typo="h4"
+              />
+            </Section>
 
-          <div className={styles.details} typo="fineprint">
-            <section>
-              <h2 typo="fineprint">Contact</h2>
-              <a href="mailto:hutchinsonpatrick@icloud.com">hutchinsonpatrick@icloud.com</a> <br />
-              <a>+49 (0) 159 01297272</a>
-            </section>
-
-            {info.socials && (
-              <section>
-                <h2 typo="fineprint">Socials</h2>
-                {info.socials.map((social) => (
-                  <>
-                    <a href={social.link} target="_blank">
-                      {social.platform}
-                    </a>
-                    <br />
-                  </>
-                ))}
+            <section className={styles.details}>
+              <section typo="fineprint">
+                <h4 typo="fineprint">Contact</h4>
+                <a typo="fineprint" href="mailto:hutchinsonpatrick@icloud.com">
+                  hutchinsonpatrick@icloud.com
+                </a>{" "}
+                <br />
+                <a>+49 (0) 159 01297272</a>
               </section>
-            )}
 
-            {/* {info.VATNumber && <div>{info.VATNumber}</div>} */}
+              {info.socials && (
+                <section typo="fineprint">
+                  <h4 typo="fineprint">Socials</h4>
+                  {info.socials.map((social) => (
+                    <>
+                      <a href={social.link} target="_blank">
+                        {social.platform}
+                      </a>
+                      <br />
+                    </>
+                  ))}
+                </section>
+              )}
 
-            <section>
-              <h2 typo="fineprint">Downloads</h2>
-              {info.CV?.asset?.url ? (
-                <div>
-                  <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
-                    Download CV
-                  </a>
-                </div>
-              ) : null}
+              <section typo="fineprint">
+                <h4 typo="fineprint">Downloads</h4>
+                {info.CV?.asset?.url ? (
+                  <div>
+                    <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
+                      Download CV
+                    </a>
+                  </div>
+                ) : null}
 
-              {recommendations?.asset?.url ? (
-                <div>
-                  <a href={recommendations.asset.url} download={recommendations.asset.originalFilename || undefined}>
-                    Download Recommendations
-                  </a>
-                </div>
-              ) : null}
+                {recommendations?.asset?.url ? (
+                  <div>
+                    <a href={recommendations.asset.url} download={recommendations.asset.originalFilename || undefined}>
+                      Download Recommendations
+                    </a>
+                  </div>
+                ) : null}
+              </section>
             </section>
-
-            {/* <div>
-              Commissions and General Enquiries:
-              <a href="mailto:hutchinsonpatrick@icloud.com">hutchinsonpatrick@icloud.com</a>
-            </div> */}
           </div>
         </div>
       </main>

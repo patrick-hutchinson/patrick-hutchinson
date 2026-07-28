@@ -7,73 +7,69 @@ import { getMouseDistance } from "./utils/utils";
 
 const IMAGE_BASE_WIDTH = 180;
 const IMAGE_RATIO = 1.59;
-const MOVEMENT_THRESHOLD = 80;
+const MOVEMENT_THRESHOLD = 40;
 const SCALE_RANGE = { min: 1.8, max: 2.2 };
 const ROTATION_RANGE = { min: -10, max: 10 };
 const TRAIL_ENTER_DURATION = 0.2;
 const TRAIL_EXIT_DURATION = 0.3;
 const TRAIL_EXIT_DURATION_MS = TRAIL_EXIT_DURATION * 1000;
+const TRAIL_COPIES_PER_MEDIA = 2;
+const TRAIL_POOL_COPIES_PER_MEDIA = TRAIL_COPIES_PER_MEDIA + 1;
 
 function getRandomInRange(range) {
   return Math.random() * (range.max - range.min) + range.min;
 }
 
-function getSlotKey(medium, index) {
-  const mediaKey = medium?._id || medium?.url || medium?.playbackId || "trail-media";
-  return `${mediaKey}-${index}`;
-}
-
-function createSlots(mediaItems) {
-  return mediaItems.map((medium, index) => ({
-    activationId: 0,
-    index,
-    medium,
-    phase: "hidden",
-    randomRotation: 0,
-    randomScale: 1,
-    x: 0,
-    y: 0,
-    zIndex: 0,
-  }));
+function createTrailItems(mediaItems) {
+  return mediaItems.flatMap((medium, mediaIndex) =>
+    Array.from({ length: TRAIL_POOL_COPIES_PER_MEDIA }, (_, copyIndex) => ({
+      activationId: 0,
+      copyIndex,
+      id: `${mediaIndex}-${copyIndex}`,
+      mediaIndex,
+      medium,
+      phase: "hidden",
+      randomRotation: 0,
+      randomScale: 1,
+      x: 0,
+      y: 0,
+      zIndex: 0,
+    })),
+  );
 }
 
 const ImageTrail = ({ isActive = true, media }) => {
   const containerRef = useRef(null);
   const pointerClientPosition = useRef(null);
   const lastLocalPosition = useRef(null);
-  const slotActivationIds = useRef([]);
-  const slotCounter = useRef(0);
-  const slotHideTimeouts = useRef(new Map());
-  const slotReuseTimeouts = useRef(new Map());
-  const slotsRef = useRef([]);
+  const activationCounter = useRef(0);
+  const itemHideTimeouts = useRef(new Map());
+  const mediaCounter = useRef(0);
+  const trailItemsRef = useRef([]);
   const zCounter = useRef(0);
   const mediaItems = useMemo(() => (Array.isArray(media) ? media.filter(Boolean) : []), [media]);
-  const [slots, setSlots] = useState(() => createSlots(mediaItems));
+  const [trailItems, setTrailItems] = useState(() => createTrailItems(mediaItems));
 
   useEffect(() => {
-    slotsRef.current = slots;
-  }, [slots]);
+    trailItemsRef.current = trailItems;
+  }, [trailItems]);
 
   useEffect(() => {
-    slotHideTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-    slotHideTimeouts.current.clear();
-    slotReuseTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-    slotReuseTimeouts.current.clear();
-    slotCounter.current = 0;
+    itemHideTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    itemHideTimeouts.current.clear();
+    activationCounter.current = 0;
+    mediaCounter.current = 0;
     zCounter.current = 0;
-    slotActivationIds.current = mediaItems.map(() => 0);
     lastLocalPosition.current = null;
-    const nextSlots = createSlots(mediaItems);
-    slotsRef.current = nextSlots;
-    setSlots(nextSlots);
+    const nextItems = createTrailItems(mediaItems);
+    trailItemsRef.current = nextItems;
+    setTrailItems(nextItems);
   }, [mediaItems]);
 
   useEffect(
     () => () => {
-      slotHideTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      slotHideTimeouts.current.clear();
-      slotReuseTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-      slotReuseTimeouts.current.clear();
+      itemHideTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      itemHideTimeouts.current.clear();
     },
     [],
   );
@@ -100,89 +96,96 @@ const ImageTrail = ({ isActive = true, media }) => {
     };
   }, []);
 
-  const updateSlots = (updater) => {
-    setSlots((currentSlots) => {
-      const nextSlots = updater(currentSlots);
-      slotsRef.current = nextSlots;
-      return nextSlots;
+  const updateTrailItems = (updater) => {
+    setTrailItems((currentItems) => {
+      const nextItems = updater(currentItems);
+      trailItemsRef.current = nextItems;
+      return nextItems;
     });
   };
 
-  const startSlotExit = (slotIndex, activationId) => {
-    updateSlots((currentSlots) =>
-      currentSlots.map((slot, index) =>
-        index === slotIndex && slot.activationId === activationId && slot.phase !== "hidden"
-          ? { ...slot, phase: "exiting" }
-          : slot,
+  const startItemExit = (itemId, activationId) => {
+    updateTrailItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId && item.activationId === activationId && item.phase !== "hidden"
+          ? { ...item, phase: "exiting" }
+          : item,
       ),
     );
 
-    window.clearTimeout(slotHideTimeouts.current.get(slotIndex));
+    window.clearTimeout(itemHideTimeouts.current.get(itemId));
     const hideTimeoutId = window.setTimeout(() => {
-      updateSlots((currentSlots) =>
-        currentSlots.map((slot, index) =>
-          index === slotIndex && slot.activationId === activationId && slot.phase === "exiting"
-            ? { ...slot, phase: "hidden" }
-            : slot,
+      updateTrailItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === itemId && item.activationId === activationId && item.phase === "exiting"
+            ? { ...item, phase: "hidden" }
+            : item,
         ),
       );
-      slotHideTimeouts.current.delete(slotIndex);
+      itemHideTimeouts.current.delete(itemId);
     }, TRAIL_EXIT_DURATION_MS);
 
-    slotHideTimeouts.current.set(slotIndex, hideTimeoutId);
+    itemHideTimeouts.current.set(itemId, hideTimeoutId);
   };
 
-  const activateSlot = (slotIndex, x, y) => {
-    const randomScale = getRandomInRange(SCALE_RANGE);
-    const randomRotation = getRandomInRange(ROTATION_RANGE);
-    const nextActivationId = (slotActivationIds.current[slotIndex] || 0) + 1;
+  const getReusableItem = (mediaIndex) => {
+    const mediaPool = trailItemsRef.current.filter((item) => item.mediaIndex === mediaIndex);
+    const hiddenItem = mediaPool.find((item) => item.phase === "hidden");
 
-    zCounter.current += 1;
-    slotActivationIds.current[slotIndex] = nextActivationId;
-    window.clearTimeout(slotHideTimeouts.current.get(slotIndex));
-    window.clearTimeout(slotReuseTimeouts.current.get(slotIndex));
-    slotHideTimeouts.current.delete(slotIndex);
-    slotReuseTimeouts.current.delete(slotIndex);
+    if (hiddenItem) return hiddenItem;
 
-    updateSlots((currentSlots) =>
-      currentSlots.map((slot, index) =>
-        index === slotIndex
-          ? {
-              ...slot,
-              activationId: nextActivationId,
-              phase: "visible",
-              randomRotation,
-              randomScale,
-              x,
-              y,
-              zIndex: zCounter.current,
-            }
-          : slot,
-      ),
+    return mediaPool.reduce(
+      (oldestItem, item) => (item.zIndex < oldestItem.zIndex ? item : oldestItem),
+      mediaPool[0],
     );
   };
 
-  const showNextSlot = (x, y) => {
+  const addTrailItem = (mediaIndex, x, y) => {
+    const reusableItem = getReusableItem(mediaIndex);
+    if (!reusableItem) return;
+
+    const randomScale = getRandomInRange(SCALE_RANGE);
+    const randomRotation = getRandomInRange(ROTATION_RANGE);
+
+    activationCounter.current += 1;
+    zCounter.current += 1;
+    window.clearTimeout(itemHideTimeouts.current.get(reusableItem.id));
+    itemHideTimeouts.current.delete(reusableItem.id);
+
+    const nextActivationId = activationCounter.current;
+    const nextItems = trailItemsRef.current.map((item) =>
+      item.id === reusableItem.id
+        ? {
+            ...item,
+            activationId: nextActivationId,
+            phase: "visible",
+            randomRotation,
+            randomScale,
+            x,
+            y,
+            zIndex: zCounter.current,
+          }
+        : item,
+    );
+
+    trailItemsRef.current = nextItems;
+    setTrailItems(nextItems);
+
+    const visibleMediaItems = nextItems
+      .filter((item) => item.mediaIndex === mediaIndex && item.phase === "visible")
+      .sort((a, b) => a.zIndex - b.zIndex);
+    const overflowingItems = visibleMediaItems.slice(0, Math.max(0, visibleMediaItems.length - TRAIL_COPIES_PER_MEDIA));
+
+    overflowingItems.forEach((item) => startItemExit(item.id, item.activationId));
+  };
+
+  const showNextItem = (x, y) => {
     if (!mediaItems.length) return;
 
-    const activeSlotIndex = slotCounter.current;
-    const activeSlot = slotsRef.current[activeSlotIndex];
+    const mediaIndex = mediaCounter.current;
 
-    slotCounter.current = (slotCounter.current + 1) % mediaItems.length;
-
-    if (!activeSlot || activeSlot.phase === "hidden") {
-      activateSlot(activeSlotIndex, x, y);
-      return;
-    }
-
-    startSlotExit(activeSlotIndex, activeSlot.activationId);
-
-    window.clearTimeout(slotReuseTimeouts.current.get(activeSlotIndex));
-    const reuseTimeoutId = window.setTimeout(() => {
-      activateSlot(activeSlotIndex, x, y);
-    }, TRAIL_EXIT_DURATION_MS);
-
-    slotReuseTimeouts.current.set(activeSlotIndex, reuseTimeoutId);
+    mediaCounter.current = (mediaCounter.current + 1) % mediaItems.length;
+    addTrailItem(mediaIndex, x, y);
   };
 
   useEffect(() => {
@@ -190,11 +193,9 @@ const ImageTrail = ({ isActive = true, media }) => {
 
     pointerClientPosition.current = null;
     lastLocalPosition.current = null;
-    slotReuseTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
-    slotReuseTimeouts.current.clear();
 
-    slotsRef.current.forEach((slot, index) => {
-      if (slot.phase !== "hidden") startSlotExit(index, slot.activationId);
+    trailItemsRef.current.forEach((item) => {
+      if (item.phase !== "hidden") startItemExit(item.id, item.activationId);
     });
   }, [isActive]);
 
@@ -205,8 +206,7 @@ const ImageTrail = ({ isActive = true, media }) => {
     if (!isActive || !container || !pointer || !mediaItems.length) return;
 
     const rect = container.getBoundingClientRect();
-    const isInside =
-      pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
+    const isInside = pointer.x >= rect.left && pointer.x <= rect.right && pointer.y >= rect.top && pointer.y <= rect.bottom;
 
     if (!isInside) {
       lastLocalPosition.current = null;
@@ -227,36 +227,36 @@ const ImageTrail = ({ isActive = true, media }) => {
     if (distance <= MOVEMENT_THRESHOLD) return;
 
     lastLocalPosition.current = localPosition;
-    showNextSlot(localPosition.x, localPosition.y);
+    showNextItem(localPosition.x, localPosition.y);
   });
 
   if (!mediaItems.length) return null;
 
   return (
     <div className={styles.container} ref={containerRef}>
-      {slots.map((slot) => {
-        const isVisible = slot.phase === "visible";
-        const isHidden = slot.phase === "hidden";
+      {trailItems.map((item) => {
+        const isVisible = item.phase === "visible";
+        const isHidden = item.phase === "hidden";
 
         return (
           <motion.div
             animate={{
               opacity: isVisible ? 1 : 0,
-              rotateZ: isVisible ? slot.randomRotation : -1,
-              scale: isVisible ? slot.randomScale : 0,
+              rotateZ: isVisible ? item.randomRotation : -1,
+              scale: isVisible ? item.randomScale : 0,
             }}
             className={styles["content__img"]}
             initial={{ opacity: 0, rotateZ: -1, scale: 0 }}
-            key={getSlotKey(slot.medium, slot.index)}
+            key={item.id}
             style={{
-              x: slot.x - (IMAGE_BASE_WIDTH * slot.randomScale) / 2,
-              y: slot.y - ((IMAGE_BASE_WIDTH / IMAGE_RATIO) * slot.randomScale) / 2,
-              zIndex: slot.zIndex,
+              x: item.x - (IMAGE_BASE_WIDTH * item.randomScale) / 2,
+              y: item.y - ((IMAGE_BASE_WIDTH / IMAGE_RATIO) * item.randomScale) / 2,
+              zIndex: item.zIndex,
             }}
             transition={{ duration: isVisible ? TRAIL_ENTER_DURATION : TRAIL_EXIT_DURATION, ease: "easeInOut" }}
           >
             <div className={styles["content__img-inner"]}>
-              <Media medium={slot.medium} paused={isHidden} />
+              <Media medium={item.medium} paused={isHidden} />
             </div>
           </motion.div>
         );

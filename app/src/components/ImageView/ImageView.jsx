@@ -388,6 +388,7 @@ function drawTextureRect(state, texture, rect, sourceRect, uv, velocity, drawPad
 const ImageView = ({ array }) => {
   const { isMobile } = useContext(DeviceContext);
   const router = useRouter();
+  const imageViewRef = useRef(null);
   const canvasRef = useRef(null);
   const frameRef = useRef(null);
   const glState = useRef(null);
@@ -702,17 +703,17 @@ const ImageView = ({ array }) => {
     };
   }, [isMobile, items.length, updateActiveIndex]);
 
-  const handleWheel = (event) => {
+  const handleWheel = useCallback((event) => {
     event.preventDefault();
     programmaticScroll.current = null;
     scrollTarget.current += event.deltaY * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
-  };
+  }, [isMobile]);
 
   const handleTouchStart = (event) => {
     touchY.current = event.touches[0]?.clientY ?? null;
   };
 
-  const handleTouchMove = (event) => {
+  const handleTouchMove = useCallback((event) => {
     if (touchY.current === null) return;
 
     event.preventDefault();
@@ -723,7 +724,7 @@ const ImageView = ({ array }) => {
     programmaticScroll.current = null;
     scrollTarget.current += (touchY.current - nextTouchY) * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
     touchY.current = nextTouchY;
-  };
+  }, [isMobile]);
 
   const handleTouchEnd = () => {
     touchY.current = null;
@@ -838,6 +839,19 @@ const ImageView = ({ array }) => {
     navigateToActiveProject();
   };
 
+  useEffect(() => {
+    const node = imageViewRef.current;
+    if (!node) return undefined;
+
+    node.addEventListener("wheel", handleWheel, { passive: false });
+    node.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+    return () => {
+      node.removeEventListener("wheel", handleWheel);
+      node.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [handleTouchMove, handleWheel]);
+
   if (!projects.length) return null;
 
   return (
@@ -848,9 +862,8 @@ const ImageView = ({ array }) => {
       onPointerLeave={handlePointerLeave}
       onPointerMove={handlePointerMove}
       onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
-      onWheel={handleWheel}
+      ref={imageViewRef}
       role="link"
       tabIndex={0}
     >
