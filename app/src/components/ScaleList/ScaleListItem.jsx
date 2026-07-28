@@ -11,7 +11,8 @@ const ScaleListItem = ({ baseHeight, entry, maxVisualScale, playVideo, scale, th
   const shouldPlayThumbnailVideo = playVideo && thumbnailMedium?.type === "video";
 
   const Wrapper = entry._type === "project" ? Link : "div";
-  const wrapperProps = entry._type === "project" ? { href: `/projects/${entry.slug.current}`, scroll: false } : {};
+  const wrapperProps =
+    entry._type === "project" ? { draggable: false, href: `/projects/${entry.slug.current}`, scroll: false } : {};
 
   return (
     <motion.li className={styles.scaleListItem} style={{ height }}>
@@ -27,8 +28,9 @@ const ScaleListItem = ({ baseHeight, entry, maxVisualScale, playVideo, scale, th
               </span>
             ) : null}
             <span className={styles.scaleListItemText}>
+              <span className={styles.releaseDate}>{`${entry.scheduling?.month} ‘${entry.scheduling?.year.slice(2)}`}</span>
               {entry.title}
-              <span className={styles.releaseDate}>{`${entry.scheduling?.month}/${entry.scheduling?.year}`}</span>
+              <span className={styles.location}>{entry.scheduling?.location}</span>
             </span>
           </div>
         </Wrapper>

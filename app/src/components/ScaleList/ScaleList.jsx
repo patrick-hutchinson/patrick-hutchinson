@@ -4,11 +4,7 @@ import ScaleListItem from "./ScaleListItem";
 import { motion } from "motion/react";
 
 import { DeviceContext } from "@/context/DeviceContext";
-import {
-  getMediumPreviewImageUrl,
-  getProjectThumbnailMedia,
-  preloadImageUrl,
-} from "@/lib/media/projectThumbnails";
+import { getMediumPreviewImageUrl, getProjectThumbnailMedia, preloadImageUrl } from "@/lib/media/projectThumbnails";
 import styles from "./ScaleList.module.css";
 
 const BASE_HEIGHT = 64;
@@ -18,15 +14,19 @@ const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 100;
 const MOBILE_DISTANCE_MULTIPLIER = 1.2;
 const SOLVE_PASSES = 8;
-const POINTER_SMOOTHING = 1;
-const POINTER_SETTLE_THRESHOLD = 0.25;
+const VIRTUAL_SCROLL_SMOOTHING = 1;
+const VIRTUAL_SCROLL_SETTLE_THRESHOLD = 0.25;
 const SCALE_SMOOTHING = 0.2;
 const SCALE_SETTLE_THRESHOLD = 0.002;
-const TRACKPAD_SENSITIVITY = 1;
+const TRACKPAD_SENSITIVITY = 0.05;
 const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
-const DESKTOP_REPEAT_COUNT = 10;
+const DRAG_RESISTANCE = 10;
+const DRAG_INERTIA = 0.92;
+const DRAG_INERTIA_STOP_VELOCITY = 0.01;
+const DRAG_CLICK_THRESHOLD = 4;
+const DESKTOP_REPEAT_COUNT = 8;
 const MOBILE_REPEAT_COUNT = 30;
-const ACTIVE_VIDEO_COUNT = 10;
+const ACTIVE_VIDEO_COUNT = 6;
 const ACTIVE_VIDEO_SCALE_THRESHOLD = MIN_SCALE + 0.001;
 
 function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
@@ -36,23 +36,23 @@ function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   return Math.max(maxVisualScale * Math.exp(-mirroredDistance / DISTANCE_FALLOFF), MIN_SCALE);
 }
 
-function getScaleForItem(cursorY, itemTop, maxVisualScale, distanceMultiplier) {
+function getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier) {
   let scale = 1;
 
   for (let i = 0; i < SOLVE_PASSES; i += 1) {
     const itemCenter = itemTop + (BASE_HEIGHT * scale) / 2;
-    scale = getScaleFromDistance(Math.abs(cursorY - itemCenter), maxVisualScale, distanceMultiplier);
+    scale = getScaleFromDistance(Math.abs(focusY - itemCenter), maxVisualScale, distanceMultiplier);
   }
 
   return scale;
 }
 
-function getScales(cursorY, listTop, itemCount, maxVisualScale, distanceMultiplier) {
+function getScales(focusY, listTop, itemCount, maxVisualScale, distanceMultiplier) {
   const scales = [];
   let itemTop = listTop;
 
   for (let index = 0; index < itemCount; index += 1) {
-    const scale = getScaleForItem(cursorY, itemTop, maxVisualScale, distanceMultiplier);
+    const scale = getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier);
 
     scales.push(scale);
     itemTop += BASE_HEIGHT * scale;
@@ -65,9 +65,7 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, isPointerActive) {
-  if (!isPointerActive) return [];
-
+function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId) {
   return scales
     .map((scale, index) => ({ index, scale, medium: thumbnailMediaByProjectId[mappedArray[index]?._id] }))
     .filter(({ scale, medium }) => scale > ACTIVE_VIDEO_SCALE_THRESHOLD && medium?.type === "video")
@@ -80,16 +78,18 @@ const ScaleList = ({ array }) => {
   const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
   const animationFrame = useRef(null);
+  const dragInertiaFrame = useRef(null);
   const updateFrame = useRef(null);
-  const renderedPointerY = useRef(-1000);
+  const dragState = useRef(null);
+  const renderedVirtualY = useRef(null);
   const renderedScales = useRef([]);
   const targetScales = useRef([]);
-  const targetPointerY = useRef(-1000);
-  const trackpadPointerY = useRef(null);
-  const touchPointerY = useRef(null);
+  const scrollVirtualY = useRef(null);
+  const targetVirtualY = useRef(null);
+  const touchVirtualY = useRef(null);
   const touchStartY = useRef(null);
   const preloadedThumbnails = useRef([]);
-  const isPointerActive = useRef(false);
+  const suppressNextClick = useRef(false);
   const [scales, setScales] = useState([]);
   const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
@@ -129,12 +129,7 @@ const ScaleList = ({ array }) => {
 
   const updateActiveVideoIndexes = useCallback(
     (nextScales) => {
-      const nextIndexes = getClosestVideoIndexes(
-        nextScales,
-        mappedArray,
-        thumbnailMediaByProjectId,
-        isPointerActive.current,
-      );
+      const nextIndexes = getClosestVideoIndexes(nextScales, mappedArray, thumbnailMediaByProjectId);
 
       setActiveVideoIndexes((currentIndexes) => {
         if (
@@ -157,15 +152,17 @@ const ScaleList = ({ array }) => {
     }
 
     const rect = containerRef.current.getBoundingClientRect();
-    const pointerDifference = targetPointerY.current - renderedPointerY.current;
-    let nextPointerY = targetPointerY.current;
+    const targetY = targetVirtualY.current ?? rect.top + rect.height / 2;
+    const renderedY = renderedVirtualY.current ?? targetY;
+    const virtualDifference = targetY - renderedY;
+    let nextVirtualY = targetY;
 
-    if (Math.abs(pointerDifference) > POINTER_SETTLE_THRESHOLD) {
-      nextPointerY = renderedPointerY.current + pointerDifference * POINTER_SMOOTHING;
+    if (Math.abs(virtualDifference) > VIRTUAL_SCROLL_SETTLE_THRESHOLD) {
+      nextVirtualY = renderedY + virtualDifference * VIRTUAL_SCROLL_SMOOTHING;
     }
 
-    renderedPointerY.current = nextPointerY;
-    targetScales.current = getScales(nextPointerY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
+    renderedVirtualY.current = nextVirtualY;
+    targetScales.current = getScales(nextVirtualY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
 
     const targets = targetScales.current;
     const current = renderedScales.current.length === targets.length ? renderedScales.current : targets;
@@ -186,7 +183,7 @@ const ScaleList = ({ array }) => {
     updateActiveVideoIndexes(nextScales);
 
     animationFrame.current =
-      areScalesSettled && Math.abs(pointerDifference) <= POINTER_SETTLE_THRESHOLD
+      areScalesSettled && Math.abs(virtualDifference) <= VIRTUAL_SCROLL_SETTLE_THRESHOLD
         ? null
         : requestAnimationFrame(animateScales);
   }, [distanceMultiplier, mappedArray.length, maxVisualScale, updateActiveVideoIndexes]);
@@ -201,18 +198,15 @@ const ScaleList = ({ array }) => {
     if (!containerRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const nextTargetScales = getScales(
-      targetPointerY.current,
-      rect.top,
-      mappedArray.length,
-      maxVisualScale,
-      distanceMultiplier,
-    );
+    const targetY = targetVirtualY.current ?? rect.top + rect.height / 2;
+    const nextTargetScales = getScales(targetY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
 
     targetScales.current = nextTargetScales;
 
     if (renderedScales.current.length !== nextTargetScales.length) {
-      renderedPointerY.current = targetPointerY.current;
+      targetVirtualY.current = targetY;
+      scrollVirtualY.current = targetY;
+      renderedVirtualY.current = targetY;
       renderedScales.current = nextTargetScales;
       setScales(nextTargetScales);
       updateActiveVideoIndexes(nextTargetScales);
@@ -231,86 +225,213 @@ const ScaleList = ({ array }) => {
     });
   }, [updateScales]);
 
-  const updateVirtualPointer = useCallback(
-    (deltaY) => {
-      if (!containerRef.current) return;
+  const cancelDragInertia = useCallback(() => {
+    if (!dragInertiaFrame.current) return;
+
+    cancelAnimationFrame(dragInertiaFrame.current);
+    dragInertiaFrame.current = null;
+  }, []);
+
+  const updateVirtualScrollPosition = useCallback(
+    (deltaY, sensitivity = trackpadSensitivity) => {
+      if (!containerRef.current) return false;
 
       const rect = containerRef.current.getBoundingClientRect();
-      const currentPointerY =
-        trackpadPointerY.current ??
-        touchPointerY.current ??
-        (targetPointerY.current >= rect.top && targetPointerY.current <= rect.bottom
-          ? targetPointerY.current
+      const currentVirtualY =
+        scrollVirtualY.current ??
+        touchVirtualY.current ??
+        (targetVirtualY.current !== null && targetVirtualY.current >= rect.top && targetVirtualY.current <= rect.bottom
+          ? targetVirtualY.current
           : rect.top + rect.height / 2);
-      const nextPointerY = clamp(currentPointerY + deltaY * trackpadSensitivity, rect.top, rect.bottom);
+      const nextVirtualY = clamp(currentVirtualY + deltaY * sensitivity, rect.top, rect.bottom);
 
-      trackpadPointerY.current = nextPointerY;
-      touchPointerY.current = nextPointerY;
-      isPointerActive.current = true;
-      targetPointerY.current = nextPointerY;
+      scrollVirtualY.current = nextVirtualY;
+      touchVirtualY.current = nextVirtualY;
+      targetVirtualY.current = nextVirtualY;
       scheduleScaleUpdate();
+
+      return nextVirtualY !== currentVirtualY;
     },
     [scheduleScaleUpdate, trackpadSensitivity],
   );
 
-  useEffect(() => {
-    const handlePointerMove = (event) => {
-      if (event.pointerType === "touch") return;
+  const handleWheel = useCallback(
+    (event) => {
+      cancelDragInertia();
+      event.preventDefault();
+      updateVirtualScrollPosition(event.deltaY);
+    },
+    [cancelDragInertia, updateVirtualScrollPosition],
+  );
 
-      trackpadPointerY.current = null;
-      touchPointerY.current = null;
-      isPointerActive.current = true;
-      targetPointerY.current = event.clientY;
-      scheduleScaleUpdate();
-    };
+  const handleTouchStart = useCallback(
+    (event) => {
+      cancelDragInertia();
+      touchStartY.current = event.touches[0]?.clientY ?? null;
+    },
+    [cancelDragInertia],
+  );
+
+  const handleTouchMove = useCallback(
+    (event) => {
+      if (touchStartY.current === null) return;
+
+      event.preventDefault();
+
+      const nextTouchY = event.touches[0]?.clientY;
+      if (typeof nextTouchY !== "number") return;
+
+      updateVirtualScrollPosition(touchStartY.current - nextTouchY);
+      touchStartY.current = nextTouchY;
+    },
+    [updateVirtualScrollPosition],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    touchStartY.current = null;
+  }, []);
+
+  const startDragInertia = useCallback(
+    (initialVelocity) => {
+      let velocity = initialVelocity;
+
+      const animateDragInertia = () => {
+        velocity *= DRAG_INERTIA;
+
+        if (Math.abs(velocity) <= DRAG_INERTIA_STOP_VELOCITY) {
+          dragInertiaFrame.current = null;
+          return;
+        }
+
+        const moved = updateVirtualScrollPosition(velocity, 1 / DRAG_RESISTANCE);
+
+        if (!moved) {
+          dragInertiaFrame.current = null;
+          return;
+        }
+
+        dragInertiaFrame.current = requestAnimationFrame(animateDragInertia);
+      };
+
+      cancelDragInertia();
+
+      if (Math.abs(velocity) > DRAG_INERTIA_STOP_VELOCITY) {
+        dragInertiaFrame.current = requestAnimationFrame(animateDragInertia);
+      }
+    },
+    [cancelDragInertia, updateVirtualScrollPosition],
+  );
+
+  const handleDragPointerDown = useCallback(
+    (event) => {
+      if (event.pointerType === "touch" || event.button !== 0) return;
+
+      cancelDragInertia();
+      dragState.current = {
+        hasDragged: false,
+        lastTime: event.timeStamp,
+        lastY: event.clientY,
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        velocity: 0,
+      };
+    },
+    [cancelDragInertia],
+  );
+
+  const handleDragPointerMove = useCallback(
+    (event) => {
+      const drag = dragState.current;
+
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      const totalDistance = Math.abs(event.clientY - drag.startY);
+      const deltaY = drag.lastY - event.clientY;
+      const elapsed = Math.max(event.timeStamp - drag.lastTime, 1);
+
+      if (totalDistance > DRAG_CLICK_THRESHOLD) {
+        drag.hasDragged = true;
+      }
+
+      if (drag.hasDragged) {
+        event.preventDefault();
+        updateVirtualScrollPosition(deltaY, 1 / DRAG_RESISTANCE);
+      }
+
+      drag.velocity = (deltaY / elapsed) * 16.67;
+      drag.lastY = event.clientY;
+      drag.lastTime = event.timeStamp;
+    },
+    [updateVirtualScrollPosition],
+  );
+
+  const handleDragPointerEnd = useCallback(
+    (event) => {
+      const drag = dragState.current;
+
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      dragState.current = null;
+
+      if (!drag.hasDragged) return;
+
+      suppressNextClick.current = true;
+      window.setTimeout(() => {
+        suppressNextClick.current = false;
+      }, 120);
+      startDragInertia(drag.velocity);
+    },
+    [startDragInertia],
+  );
+
+  const handleClickCapture = useCallback((event) => {
+    if (!suppressNextClick.current) return;
+
+    suppressNextClick.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleNativeDragStart = useCallback((event) => {
+    event.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    const element = containerRef.current;
 
     updateScales();
-    window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("resize", scheduleScaleUpdate);
+    element?.addEventListener("wheel", handleWheel, { passive: false });
+    element?.addEventListener("touchmove", handleTouchMove, { passive: false });
+    element?.addEventListener("dragstart", handleNativeDragStart, { capture: true });
+    element?.addEventListener("pointerdown", handleDragPointerDown, { capture: true });
+    window.addEventListener("pointermove", handleDragPointerMove, { capture: true });
+    window.addEventListener("pointerup", handleDragPointerEnd, { capture: true });
+    window.addEventListener("pointercancel", handleDragPointerEnd, { capture: true });
 
     return () => {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
+      if (dragInertiaFrame.current) cancelAnimationFrame(dragInertiaFrame.current);
       if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
-      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", scheduleScaleUpdate);
+      element?.removeEventListener("wheel", handleWheel);
+      element?.removeEventListener("touchmove", handleTouchMove);
+      element?.removeEventListener("dragstart", handleNativeDragStart, { capture: true });
+      element?.removeEventListener("pointerdown", handleDragPointerDown, { capture: true });
+      window.removeEventListener("pointermove", handleDragPointerMove, { capture: true });
+      window.removeEventListener("pointerup", handleDragPointerEnd, { capture: true });
+      window.removeEventListener("pointercancel", handleDragPointerEnd, { capture: true });
     };
-  }, [scheduleScaleUpdate, updateScales]);
-
-  const handlePointerLeave = (event) => {
-    if (event.pointerType === "touch") return;
-
-    trackpadPointerY.current = null;
-    touchPointerY.current = null;
-    isPointerActive.current = false;
-    setActiveVideoIndexes([]);
-    targetPointerY.current = -1000;
-    scheduleScaleUpdate();
-  };
-
-  const handleWheel = (event) => {
-    event.preventDefault();
-    updateVirtualPointer(event.deltaY);
-  };
-
-  const handleTouchStart = (event) => {
-    touchStartY.current = event.touches[0]?.clientY ?? null;
-  };
-
-  const handleTouchMove = (event) => {
-    if (touchStartY.current === null) return;
-
-    event.preventDefault();
-
-    const nextTouchY = event.touches[0]?.clientY;
-    if (typeof nextTouchY !== "number") return;
-
-    updateVirtualPointer(touchStartY.current - nextTouchY);
-    touchStartY.current = nextTouchY;
-  };
-
-  const handleTouchEnd = () => {
-    touchStartY.current = null;
-  };
+  }, [
+    handleDragPointerDown,
+    handleDragPointerEnd,
+    handleDragPointerMove,
+    handleNativeDragStart,
+    handleTouchMove,
+    handleWheel,
+    scheduleScaleUpdate,
+    updateScales,
+  ]);
 
   if (!array.length) return null;
 
@@ -318,11 +439,9 @@ const ScaleList = ({ array }) => {
     <motion.ul
       className={styles.scaleList}
       ref={containerRef}
-      onPointerLeave={handlePointerLeave}
+      onClickCapture={handleClickCapture}
       onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
-      onWheel={handleWheel}
     >
       {mappedArray.map((entry, index) => (
         <ScaleListItem
