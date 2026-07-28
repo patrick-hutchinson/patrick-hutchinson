@@ -3,7 +3,7 @@ ul.scaleList {
 
   width: calc(100vw - (var(--margin) * 2));
   height: calc(100vh - (var(--margin) * 2));
-  overflow: visible;
+  overflow: hidden;
   overscroll-behavior: none;
   padding-top: var(--glyph-top-overshoot-compensation);
   touch-action: none;
@@ -75,67 +75,10 @@ li.scaleListItem {
 }
 
 .thumbnailMedia {
-  display: block;
   z-index: 1;
 }
 
-.releaseDate,
-.location {
+.releaseDate {
   font-size: 25px;
   color: #9c9c9d;
-}
-
-@media screen and (max-width: 749px) {
-  ul.scaleList {
-    --glyph-top-overshoot-compensation: 0px;
-  }
-
-  .scaleListItemLink:hover .scaleListItemText {
-    opacity: 1;
-  }
-
-  .mobileText {
-    align-items: center;
-    display: flex;
-    height: 0.8em;
-    line-height: 0.8;
-    overflow-x: clip;
-    overflow-y: visible;
-    width: calc((100vw - (var(--margin) * 2)) / var(--mobile-visual-scale, 1));
-  }
-
-  .mobileTextMarquee {
-    align-items: center;
-    backface-visibility: hidden;
-    column-gap: var(--margin);
-    display: flex;
-    min-width: max-content;
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
-  }
-
-  .mobileTextMarqueeSegment {
-    align-items: center;
-    display: flex;
-    flex: 0 0 auto;
-    gap: 0.12em;
-  }
-
-  .mobileTextSelected .mobileTitle {
-    color: #9c9c9d;
-  }
-
-  .mobileTextSelected .mobileTextMarquee {
-    animation: mobileSelectedMarquee var(--mobile-marquee-duration, 6s) linear infinite;
-  }
-}
-
-@keyframes mobileSelectedMarquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(calc(var(--mobile-marquee-distance, 0px) * -1), 0, 0);
-  }
 }
