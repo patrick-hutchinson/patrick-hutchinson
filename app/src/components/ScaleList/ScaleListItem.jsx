@@ -24,8 +24,8 @@ const ScaleListItem = ({
   const mobileMarqueeRef = useRef(null);
   const mobileMarqueeSegmentRef = useRef(null);
   const [mobileMarqueeDistance, setMobileMarqueeDistance] = useState(0);
-  const height = `${baseHeight * scale}px`;
   const visualScale = Math.min(scale, maxVisualScale);
+  const height = `${baseHeight * visualScale}px`;
   const shouldMountThumbnailVideo = !isMobile && mountVideo && thumbnailMedium?.type === "video";
   const releaseDate = entry.scheduling?.year
     ? `${entry.scheduling?.month} ‘${entry.scheduling.year.slice(2)}`
@@ -56,28 +56,29 @@ const ScaleListItem = ({
     return () => {
       window.removeEventListener("resize", updateMarqueeDistance);
     };
-  }, [entry.title, entry.scheduling?.location, isMobile, isSelected, releaseDate, thumbnailUrl, visualScale]);
+  }, [entry.title, entry.scheduling?.location, isMobile, isSelected, releaseDate, thumbnailUrl]);
 
-  const thumbnail = thumbnailUrl ? (
-    <span className={styles.thumbnail} aria-hidden="true">
-      <img alt="" className={styles.thumbnailImage} draggable={false} loading="eager" src={thumbnailUrl} />
-      {shouldMountThumbnailVideo ? (
-        <Media
-          className={[
-            styles.thumbnailMedia,
-            playVideo ? styles.thumbnailMediaActive : styles.thumbnailMediaInactive,
-          ].join(" ")}
-          medium={thumbnailMedium}
-          eager
-          paused={!playVideo}
-          showPlaceholder={false}
-        />
-      ) : null}
-    </span>
-  ) : null;
-  const mobileMarqueeContent = (
+  const renderThumbnail = () =>
+    thumbnailUrl ? (
+      <span className={styles.thumbnail} aria-hidden="true">
+        <img alt="" className={styles.thumbnailImage} draggable={false} loading="eager" src={thumbnailUrl} />
+        {shouldMountThumbnailVideo ? (
+          <Media
+            className={[
+              styles.thumbnailMedia,
+              playVideo ? styles.thumbnailMediaActive : styles.thumbnailMediaInactive,
+            ].join(" ")}
+            medium={thumbnailMedium}
+            eager
+            paused={!playVideo}
+            showPlaceholder={false}
+          />
+        ) : null}
+      </span>
+    ) : null;
+  const renderMobileMarqueeContent = () => (
     <>
-      {thumbnail}
+      {renderThumbnail()}
       <span className={styles.releaseDate}>{releaseDate}</span>
       <span className={styles.mobileTitle}>{entry.title}</span>
       <span className={styles.location}>{entry.scheduling?.location}</span>
@@ -107,18 +108,18 @@ const ScaleListItem = ({
               >
                 <span className={styles.mobileTextMarquee} ref={mobileMarqueeRef}>
                   <span className={styles.mobileTextMarqueeSegment} ref={mobileMarqueeSegmentRef}>
-                    {mobileMarqueeContent}
+                    {renderMobileMarqueeContent()}
                   </span>
                   {isSelected && mobileMarqueeDistance > 0 ? (
                     <span aria-hidden="true" className={styles.mobileTextMarqueeSegment}>
-                      {mobileMarqueeContent}
+                      {renderMobileMarqueeContent()}
                     </span>
                   ) : null}
                 </span>
               </span>
             ) : (
               <>
-                {thumbnail}
+                {renderThumbnail()}
                 <span className={styles.scaleListItemText}>
                   <span className={styles.releaseDate}>{releaseDate}</span>
                   <span className={styles.scaleListTitle}>{entry.title}</span>

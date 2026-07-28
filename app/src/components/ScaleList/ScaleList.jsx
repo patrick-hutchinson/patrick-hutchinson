@@ -31,6 +31,7 @@ const DRAG_INERTIA_STOP_VELOCITY = 0.01;
 const DRAG_CLICK_THRESHOLD = 4;
 const DESKTOP_REPEAT_COUNT = 8;
 const MOBILE_REPEAT_COUNT = 6;
+const MOBILE_SELECTION_HYSTERESIS = 0.04;
 const ACTIVE_VIDEO_COUNT = 6;
 const ACTIVE_VIDEO_SCALE_THRESHOLD = MIN_SCALE + 0.001;
 
@@ -41,10 +42,10 @@ function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   return Math.max(maxVisualScale * Math.exp(-mirroredDistance / DISTANCE_FALLOFF), MIN_SCALE);
 }
 
-function getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier) {
+function getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier, solvePasses) {
   let scale = 1;
 
-  for (let i = 0; i < SOLVE_PASSES; i += 1) {
+  for (let i = 0; i < solvePasses; i += 1) {
     const itemCenter = itemTop + (BASE_HEIGHT * scale) / 2;
     scale = getScaleFromDistance(Math.abs(focusY - itemCenter), maxVisualScale, distanceMultiplier);
   }
@@ -52,12 +53,12 @@ function getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier) {
   return scale;
 }
 
-function getScales(focusY, listTop, itemCount, maxVisualScale, distanceMultiplier) {
+function getScales(focusY, listTop, itemCount, maxVisualScale, distanceMultiplier, solvePasses = SOLVE_PASSES) {
   const scales = [];
   let itemTop = listTop;
 
   for (let index = 0; index < itemCount; index += 1) {
-    const scale = getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier);
+    const scale = getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier, solvePasses);
 
     scales.push(scale);
     itemTop += BASE_HEIGHT * scale;
@@ -99,17 +100,14 @@ const ScaleList = ({ array }) => {
   const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
   const [mountedVideoIndexes, setMountedVideoIndexes] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedMobileIndex, setSelectedMobileIndex] = useState(null);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
   const distanceMultiplier = isMobile ? MOBILE_DISTANCE_MULTIPLIER : 1;
+  const solvePasses = isMobile ? 1 : SOLVE_PASSES;
   const trackpadSensitivity = isMobile ? MOBILE_TRACKPAD_SENSITIVITY : TRACKPAD_SENSITIVITY;
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
   const mappedArray = useMemo(() => Array.from({ length: repeatCount }, () => array).flat(), [array, repeatCount]);
-  const selectedMobileIndex = useMemo(() => {
-    if (!isMobile || !scales.length) return null;
-
-    return scales.reduce((selectedIndex, scale, index) => (scale > scales[selectedIndex] ? index : selectedIndex), 0);
-  }, [isMobile, scales]);
   const thumbnailMediaByProjectId = useMemo(() => {
     const media = {};
 
@@ -190,6 +188,28 @@ const ScaleList = ({ array }) => {
     [isMobile, mappedArray, thumbnailMediaByProjectId],
   );
 
+  const updateSelectedMobileIndex = useCallback(
+    (nextScales) => {
+      if (!isMobile || !nextScales.length) return;
+
+      const largestIndex = nextScales.reduce(
+        (selectedIndex, scale, index) => (scale > nextScales[selectedIndex] ? index : selectedIndex),
+        0,
+      );
+
+      setSelectedMobileIndex((currentIndex) => {
+        if (currentIndex === null || currentIndex >= nextScales.length) return largestIndex;
+        if (currentIndex === largestIndex) return currentIndex;
+
+        const currentScale = nextScales[currentIndex] ?? -Infinity;
+        const largestScale = nextScales[largestIndex] ?? -Infinity;
+
+        return largestScale > currentScale + MOBILE_SELECTION_HYSTERESIS ? largestIndex : currentIndex;
+      });
+    },
+    [isMobile],
+  );
+
   const animateScales = useCallback(() => {
     if (!containerRef.current) {
       animationFrame.current = null;
@@ -207,7 +227,14 @@ const ScaleList = ({ array }) => {
     }
 
     renderedVirtualY.current = nextVirtualY;
-    targetScales.current = getScales(nextVirtualY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
+    targetScales.current = getScales(
+      nextVirtualY,
+      rect.top,
+      mappedArray.length,
+      maxVisualScale,
+      distanceMultiplier,
+      solvePasses,
+    );
 
     const targets = targetScales.current;
     const current = renderedScales.current.length === targets.length ? renderedScales.current : targets;
@@ -225,13 +252,21 @@ const ScaleList = ({ array }) => {
 
     renderedScales.current = nextScales;
     setScales(nextScales);
+    updateSelectedMobileIndex(nextScales);
     updateActiveVideoIndexes(nextScales);
 
     animationFrame.current =
       areScalesSettled && Math.abs(virtualDifference) <= VIRTUAL_SCROLL_SETTLE_THRESHOLD
         ? null
         : requestAnimationFrame(animateScales);
-  }, [distanceMultiplier, mappedArray.length, maxVisualScale, updateActiveVideoIndexes]);
+  }, [
+    distanceMultiplier,
+    mappedArray.length,
+    maxVisualScale,
+    solvePasses,
+    updateActiveVideoIndexes,
+    updateSelectedMobileIndex,
+  ]);
 
   const startScaleAnimation = useCallback(() => {
     if (animationFrame.current) return;
@@ -244,7 +279,14 @@ const ScaleList = ({ array }) => {
 
     const rect = containerRef.current.getBoundingClientRect();
     const targetY = targetVirtualY.current ?? rect.top + rect.height / 2;
-    const nextTargetScales = getScales(targetY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
+    const nextTargetScales = getScales(
+      targetY,
+      rect.top,
+      mappedArray.length,
+      maxVisualScale,
+      distanceMultiplier,
+      solvePasses,
+    );
 
     targetScales.current = nextTargetScales;
 
@@ -254,12 +296,21 @@ const ScaleList = ({ array }) => {
       renderedVirtualY.current = targetY;
       renderedScales.current = nextTargetScales;
       setScales(nextTargetScales);
+      updateSelectedMobileIndex(nextTargetScales);
       updateActiveVideoIndexes(nextTargetScales);
       return;
     }
 
     startScaleAnimation();
-  }, [distanceMultiplier, mappedArray.length, maxVisualScale, startScaleAnimation, updateActiveVideoIndexes]);
+  }, [
+    distanceMultiplier,
+    mappedArray.length,
+    maxVisualScale,
+    solvePasses,
+    startScaleAnimation,
+    updateActiveVideoIndexes,
+    updateSelectedMobileIndex,
+  ]);
 
   const scheduleScaleUpdate = useCallback(() => {
     if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
@@ -479,6 +530,12 @@ const ScaleList = ({ array }) => {
     scheduleScaleUpdate,
     updateScales,
   ]);
+
+  useEffect(() => {
+    if (isMobile) return;
+
+    setSelectedMobileIndex(null);
+  }, [isMobile]);
 
   if (!array.length) return null;
 
