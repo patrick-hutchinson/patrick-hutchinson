@@ -1,4 +1,4 @@
-ul.scaleList {
+ul.listView {
   --glyph-top-overshoot-compensation: 0.1em;
 
   width: calc(100vw - (var(--margin) * 2));
@@ -9,7 +9,7 @@ ul.scaleList {
   touch-action: none;
 }
 
-li.scaleListItem {
+li.listViewItem {
   --base-height: 64px;
 
   display: flex;
@@ -21,37 +21,57 @@ li.scaleListItem {
   list-style: none;
 }
 
-.scaleListItemContent {
+.listViewItemContent {
   font-size: 80px;
   font-family: NeueHaasGroteskDisplay;
   font-weight: bold;
   line-height: 0.8;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 
   transform-origin: left center;
-  will-change: transform;
   white-space: nowrap;
 }
 
-.scaleListItem_inner {
+.listViewItemInner {
   align-items: center;
   display: flex;
   gap: 0.12em;
   white-space: nowrap;
 }
 
-.scaleListItemLink:hover {
+.listViewItemLink:hover {
   opacity: 1;
 }
 
-.scaleListItemText {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.12em;
-  transition: opacity 0.3s ease-in-out;
+.listViewItemLink {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
-.scaleListItemLink:hover .scaleListItemText {
-  opacity: var(--opacity);
+.listViewItemLink * {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.listViewItemText {
+  align-items: center;
+  color: #0a0a0a;
+  display: inline-flex;
+  gap: 0.12em;
+}
+
+.listViewTitle,
+.mobileTitle,
+.releaseDate {
+  color: #0a0a0a;
+  transition: color 0.3s ease-in-out;
+}
+
+.listViewItemLink:hover .listViewTitle,
+.listViewItemLink:hover .mobileTitle,
+.listViewItemLink:hover .releaseDate {
+  color: var(--accent);
 }
 
 .thumbnail {
@@ -60,7 +80,6 @@ li.scaleListItem {
   flex: 0 0 auto;
   height: 0.8em;
   overflow: hidden;
-  pointer-events: none;
   position: relative;
   width: auto;
 }
@@ -79,19 +98,18 @@ li.scaleListItem {
   z-index: 1;
 }
 
-.releaseDate,
 .location {
   font-size: 25px;
   color: #9c9c9d;
 }
 
-@media screen and (max-width: 749px) {
-  ul.scaleList {
-    --glyph-top-overshoot-compensation: 0px;
-  }
+.releaseDate {
+  font-size: 25px;
+}
 
-  .scaleListItemLink:hover .scaleListItemText {
-    opacity: 1;
+@media screen and (max-width: 749px) {
+  ul.listView {
+    --glyph-top-overshoot-compensation: 0px;
   }
 
   .mobileText {
@@ -119,10 +137,6 @@ li.scaleListItem {
     display: flex;
     flex: 0 0 auto;
     gap: 0.12em;
-  }
-
-  .mobileTextSelected .mobileTitle {
-    color: #9c9c9d;
   }
 
   .mobileTextSelected .mobileTextMarquee {

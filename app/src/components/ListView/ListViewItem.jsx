@@ -1,4 +1,4 @@
-import styles from "./ScaleList.module.css";
+import styles from "./ListView.module.css";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -8,7 +8,7 @@ import Media from "@/components/Media/Media";
 
 const MOBILE_MARQUEE_SPEED = 0.0095;
 
-const ScaleListItem = ({
+const ListViewItem = ({
   baseHeight,
   entry,
   gap = 0,
@@ -29,8 +29,16 @@ const ScaleListItem = ({
   const shouldPlayThumbnailVideo = playVideo && thumbnailMedium?.type === "video";
   const releaseYear = entry.scheduling?.year ? `‘${entry.scheduling.year.slice(2)}` : "";
 
-  const Wrapper = entry._type === "project" ? Link : "div";
-  const wrapperProps = entry._type === "project" ? { href: `/projects/${entry.slug.current}`, scroll: false } : {};
+  const useLink = entry._type === "project";
+  const Wrapper = useLink ? Link : "div";
+  const wrapperProps = useLink
+    ? {
+        draggable: false,
+        href: `/projects/${entry.slug.current}`,
+        onDragStart: (event) => event.preventDefault(),
+        scroll: false,
+      }
+    : {};
 
   useEffect(() => {
     if (!isMobile || !isSelected) {
@@ -72,13 +80,13 @@ const ScaleListItem = ({
   );
 
   return (
-    <motion.li className={styles.scaleListItem} style={{ height }}>
-      <motion.div className={styles.scaleListItemContent} style={{ scale: visualScale }}>
-        <Wrapper className={styles.scaleListItemLink} {...wrapperProps}>
-          <div className={styles.scaleListItem_inner}>
+    <motion.li className={styles.listViewItem} style={{ height }}>
+      <motion.div className={styles.listViewItemContent} style={{ scale: visualScale }}>
+        <Wrapper className={styles.listViewItemLink} {...wrapperProps}>
+          <div className={styles.listViewItemInner}>
             {isMobile ? (
               <span
-                className={[styles.scaleListItemText, styles.mobileText, isSelected ? styles.mobileTextSelected : null]
+                className={[styles.listViewItemText, styles.mobileText, isSelected ? styles.mobileTextSelected : null]
                   .filter(Boolean)
                   .join(" ")}
                 ref={mobileTextRef}
@@ -110,8 +118,8 @@ const ScaleListItem = ({
                   </span>
                 ) : null}{" "}
                 <span className={styles.releaseDate}>{releaseYear}</span>
-                <span className={styles.scaleListItemText}>
-                  {entry.title}
+                <span className={styles.listViewItemText}>
+                  <span className={styles.listViewTitle}>{entry.title}</span>
                   <span className={styles.location}>{entry.scheduling?.location}</span>
                 </span>
               </>
@@ -123,4 +131,4 @@ const ScaleListItem = ({
   );
 };
 
-export default ScaleListItem;
+export default ListViewItem;

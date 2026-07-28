@@ -38,7 +38,6 @@ export default function App({ Component, pageProps }) {
   const [exitingScrollY, setExitingScrollY] = useState(0);
   const [indexView, setIndexView] = useState("list");
   const isIndexPage = router.pathname === "/";
-  const forcedTheme = router.pathname.startsWith("/projects/") ? "dark" : "light";
   // const [activeFilter, setActiveFilter] = useState(null);
   // const filterArray = useMemo(() => {
   //   const selection = pageProps.home?.selection || [];
@@ -51,16 +50,10 @@ export default function App({ Component, pageProps }) {
       setExitingScrollY(window.scrollY);
     };
 
-    const handleRouteChangeComplete = () => {
-      window.scrollTo(0, 0);
-    };
-
     router.events.on("routeChangeStart", handleRouteChangeStart);
-    router.events.on("routeChangeComplete", handleRouteChangeComplete);
 
     return () => {
       router.events.off("routeChangeStart", handleRouteChangeStart);
-      router.events.off("routeChangeComplete", handleRouteChangeComplete);
     };
   }, [router.events]);
 
@@ -72,7 +65,7 @@ export default function App({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href={site.faviconUrl} />
       </Head>
-      <ThemeProvider attribute="data-theme" enableSystem={false} forcedTheme={forcedTheme}>
+      <ThemeProvider attribute="data-theme" enableSystem={false} forcedTheme="light">
         <ViewportProvider>
           <DeviceProvider>
             <LenisProvider>

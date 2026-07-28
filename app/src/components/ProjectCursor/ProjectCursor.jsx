@@ -62,6 +62,7 @@ function clampToRange(value, min, max) {
 const ProjectCursor = ({
   isActive = false,
   boundsRef,
+  activeOpacity = 1,
   className,
   inactiveOpacity = "var(--opacity)",
   project,
@@ -199,7 +200,7 @@ const ProjectCursor = ({
 
   if (!project || (!showWhenInactive && !isActive)) return null;
 
-  const cursorOpacity = !isReady || isNearMenu ? 0 : isActive ? 1 : inactiveOpacity;
+  const cursorOpacity = !isReady || isNearMenu ? 0 : isActive ? activeOpacity : inactiveOpacity;
 
   return (
     <motion.div

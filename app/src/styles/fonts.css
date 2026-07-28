@@ -17,21 +17,8 @@
   font-style: italic;
 }
 
-@font-face {
-  font-family: NeueHaasGroteskText;
-  src: url("../../public/fonts/NeueHaasGrotText-65Medium-Trial.otf");
-  font-weight: medium;
-}
-
-@font-face {
-  font-family: NeueHaasGroteskText;
-  src: url("../../public/fonts/NeueHaasGrotText-66MediumItalic-Trial.otf");
-  font-weight: medium;
-  font-style: italic;
-}
-
 :root {
-  --font-size-1: clamp(48px, 12vw, 160px);
+  --font-size-1: clamp(48px, 24vw, 320px);
   --line-height-1: 0.9;
   --letter-spacing-1: 0rem;
   --paragraph-spacing-1: 0rem;
@@ -66,7 +53,7 @@
 
 h1,
 [typo="h1"] {
-  font-family: NeueHaasGroteskDisplay, Arial, Helvetica, sans-serif;
+  font-family: "NeueHaasGroteskDisplay", Arial, Helvetica, sans-serif;
 
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
@@ -79,7 +66,7 @@ h1 p,
 
 h2,
 [typo="h2"] {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskDisplay", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
   font-size: var(--font-size-2);
@@ -88,7 +75,7 @@ h2,
 }
 h2 p,
 [typo="h2"] p {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
   margin-bottom: var(--paragraph-spacing-1);
@@ -97,7 +84,7 @@ h2 p,
 [typo="longcopy"],
 [typo="longcopy"] p,
 p[typo="longcopy"] {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
   font-size: var(--font-size-longcopy);
   line-height: var(--line-height-longcopy);
@@ -106,8 +93,8 @@ p[typo="longcopy"] {
 
 [typo="fineprint"],
 [typo="fineprint"] p {
-  font-family: "NeueHaasGroteskText";
-  font-weight: medium;
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
+  font-weight: bold;
   font-size: var(--font-size-fineprint);
   line-height: var(--line-height-fineprint);
   letter-spacing: var(--letter-spacing-fineprint);
@@ -117,7 +104,7 @@ p[typo="longcopy"] {
 
 h4,
 [typo="h4"] {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
   font-size: var(--font-size-4);
@@ -126,7 +113,7 @@ h4,
 }
 h4 p,
 [typo="h4"] p {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
   margin-bottom: var(--paragraph-spacing-4);
@@ -134,7 +121,7 @@ h4 p,
 
 h5,
 [typo="h5"] {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
   font-size: var(--font-size-5);
@@ -143,7 +130,7 @@ h5,
 }
 h5 p,
 [typo="h5"] p {
-  font-family: "NeueHaasGroteskText";
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
   margin-bottom: var(--paragraph-spacing-5);

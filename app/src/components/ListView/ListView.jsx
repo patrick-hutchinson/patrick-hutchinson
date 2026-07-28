@@ -1,37 +1,41 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import ScaleListItem from "./ScaleListItem";
+import ListViewItem from "./ListViewItem";
 
 import { motion } from "motion/react";
-import { useRouter } from "next/router";
 
 import { DeviceContext } from "@/context/DeviceContext";
 import { getMediumPreviewImageUrl, getProjectThumbnailMedia, preloadImageUrl } from "@/lib/media/projectThumbnails";
-import styles from "./ScaleList.module.css";
+import styles from "./ListView.module.css";
 
 const BASE_HEIGHT = 64;
 const ITEM_GAP = 0;
-const MAX_VISUAL_SCALE = 2.5;
+const MAX_VISUAL_SCALE = 2.6;
 const MOBILE_SCALE_MULTIPLIER = 1.1;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 120;
-const SCALE_FALLOFF_STRENGTH = 0.85;
+const SCALE_FALLOFF_STRENGTH = 0.8;
 const MOBILE_DISTANCE_MULTIPLIER = 0.8;
-const SOLVE_PASSES = 8;
-const DESKTOP_CURSOR_SENSITIVITY = 1;
-const DESKTOP_POINTER_SMOOTHING = 0.75;
-const MOBILE_POINTER_SMOOTHING = 1;
-const POINTER_SETTLE_THRESHOLD = 0.25;
+const SOLVE_PASSES = 1;
+const DESKTOP_FOCUS_SMOOTHING = 0.75;
+const MOBILE_FOCUS_SMOOTHING = 1;
+const FOCUS_SETTLE_THRESHOLD = 0.25;
 const DESKTOP_SCALE_SMOOTHING = 0.15;
 const MOBILE_SCALE_SMOOTHING = 0.2;
 const DESKTOP_LARGE_SCALE_INERTIA_START = 0.3;
 const DESKTOP_LARGE_SCALE_SMOOTHING = 0.02;
 const SCALE_SETTLE_THRESHOLD = 0.01;
-const TRACKPAD_SENSITIVITY = 0.025;
-const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
-const DESKTOP_REPEAT_COUNT = 8;
+const WHEEL_SCROLL_SENSITIVITY = 0.045;
+const MOBILE_SCROLL_SENSITIVITY = 0.45;
+
+const DRAG_CLICK_THRESHOLD = 6;
+const DRAG_MOMENTUM_MULTIPLIER = 0.05;
+const DRAG_MOMENTUM_DECAY = 0.92;
+const DRAG_MOMENTUM_STOP_THRESHOLD = 0.4;
+
+const DESKTOP_REPEAT_COUNT = 4;
 const MOBILE_REPEAT_COUNT = 5;
 const ACTIVE_VIDEO_COUNT = 3;
-const ACTIVE_VIDEO_CURSOR_RADIUS = 220;
+const ACTIVE_VIDEO_FOCUS_RADIUS = 150;
 
 function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   const minScaleDistance = -Math.log(MIN_SCALE / maxVisualScale) * DISTANCE_FALLOFF * distanceMultiplier;
@@ -40,23 +44,23 @@ function getScaleFromDistance(distance, maxVisualScale, distanceMultiplier) {
   return Math.max(maxVisualScale * Math.exp((-mirroredDistance * SCALE_FALLOFF_STRENGTH) / DISTANCE_FALLOFF), MIN_SCALE);
 }
 
-function getScaleForItem(cursorY, itemTop, maxVisualScale, distanceMultiplier) {
+function getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier) {
   let scale = 1;
 
   for (let i = 0; i < SOLVE_PASSES; i += 1) {
     const itemCenter = itemTop + (BASE_HEIGHT * scale) / 2;
-    scale = getScaleFromDistance(Math.abs(cursorY - itemCenter), maxVisualScale, distanceMultiplier);
+    scale = getScaleFromDistance(Math.abs(focusY - itemCenter), maxVisualScale, distanceMultiplier);
   }
 
   return scale;
 }
 
-function getScales(cursorY, listTop, itemCount, maxVisualScale, distanceMultiplier) {
+function getScales(focusY, listTop, itemCount, maxVisualScale, distanceMultiplier) {
   const scales = [];
   let itemTop = listTop;
 
   for (let index = 0; index < itemCount; index += 1) {
-    const scale = getScaleForItem(cursorY, itemTop, maxVisualScale, distanceMultiplier);
+    const scale = getScaleForItem(focusY, itemTop, maxVisualScale, distanceMultiplier);
 
     scales.push(scale);
     itemTop += BASE_HEIGHT * scale + ITEM_GAP;
@@ -82,15 +86,15 @@ function getScaleSmoothing(currentScale, targetScale, maxVisualScale, isMobile) 
   return DESKTOP_SCALE_SMOOTHING + (DESKTOP_LARGE_SCALE_SMOOTHING - DESKTOP_SCALE_SMOOTHING) * largeScaleProgress;
 }
 
-function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, isPointerActive, listTop, cursorY) {
-  if (!isPointerActive || typeof cursorY !== "number") return [];
+function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, listTop, focusY) {
+  if (typeof focusY !== "number") return [];
 
   let itemTop = listTop;
 
   return scales
     .map((scale, index) => {
       const center = itemTop + (BASE_HEIGHT * scale) / 2;
-      const distance = Math.abs(center - cursorY);
+      const distance = Math.abs(center - focusY);
 
       itemTop += BASE_HEIGHT * scale + ITEM_GAP;
 
@@ -100,46 +104,35 @@ function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId, 
         medium: thumbnailMediaByProjectId[mappedArray[index]?._id],
       };
     })
-    .filter(({ distance, medium }) => distance <= ACTIVE_VIDEO_CURSOR_RADIUS && medium?.type === "video")
+    .filter(({ distance, medium }) => distance <= ACTIVE_VIDEO_FOCUS_RADIUS && medium?.type === "video")
     .sort((a, b) => a.distance - b.distance)
     .slice(0, ACTIVE_VIDEO_COUNT)
     .map(({ index }) => index);
 }
 
-function getLargestScaledProjectIndex(scales, mappedArray) {
-  if (!scales.length) return null;
-
-  return scales.reduce((selectedIndex, scale, index) => {
-    if (mappedArray[index]?._type !== "project") return selectedIndex;
-    if (selectedIndex === null) return index;
-
-    return scale > scales[selectedIndex] ? index : selectedIndex;
-  }, null);
-}
-
-const ScaleList = ({ array }) => {
+const ListView = ({ array }) => {
   const { isMobile } = useContext(DeviceContext);
-  const router = useRouter();
   const containerRef = useRef(null);
   const animationFrame = useRef(null);
   const updateFrame = useRef(null);
-  const renderedPointerY = useRef(-1000);
+  const renderedFocusY = useRef(-1000);
   const renderedScales = useRef([]);
   const targetScales = useRef([]);
-  const targetPointerY = useRef(-1000);
-  const lastCursorY = useRef(null);
-  const trackpadPointerY = useRef(null);
-  const touchPointerY = useRef(null);
+  const targetFocusY = useRef(-1000);
+  const wheelFocusY = useRef(null);
+  const touchFocusY = useRef(null);
   const touchStartY = useRef(null);
+  const dragDistance = useRef(0);
+  const dragMomentumFrame = useRef(null);
+  const dragVelocityY = useRef(0);
+  const shouldSuppressClick = useRef(false);
   const preloadedThumbnails = useRef([]);
-  const isPointerActive = useRef(false);
-  const isWindowFocused = useRef(true);
   const [scales, setScales] = useState([]);
   const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
   const distanceMultiplier = isMobile ? MOBILE_DISTANCE_MULTIPLIER : 1;
-  const pointerSmoothing = isMobile ? MOBILE_POINTER_SMOOTHING : DESKTOP_POINTER_SMOOTHING;
-  const trackpadSensitivity = isMobile ? MOBILE_TRACKPAD_SENSITIVITY : TRACKPAD_SENSITIVITY;
+  const focusSmoothing = isMobile ? MOBILE_FOCUS_SMOOTHING : DESKTOP_FOCUS_SMOOTHING;
+  const scrollSensitivity = isMobile ? MOBILE_SCROLL_SENSITIVITY : WHEEL_SCROLL_SENSITIVITY;
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
   const mappedArray = useMemo(() => Array.from({ length: repeatCount }, () => array).flat(), [array, repeatCount]);
@@ -188,9 +181,8 @@ const ScaleList = ({ array }) => {
         nextScales,
         mappedArray,
         thumbnailMediaByProjectId,
-        isPointerActive.current,
         listTop,
-        lastCursorY.current,
+        targetFocusY.current,
       );
 
       setActiveVideoIndexes((currentIndexes) => {
@@ -214,15 +206,15 @@ const ScaleList = ({ array }) => {
     }
 
     const rect = containerRef.current.getBoundingClientRect();
-    const pointerDifference = targetPointerY.current - renderedPointerY.current;
-    let nextPointerY = targetPointerY.current;
+    const focusDifference = targetFocusY.current - renderedFocusY.current;
+    let nextFocusY = targetFocusY.current;
 
-    if (Math.abs(pointerDifference) > POINTER_SETTLE_THRESHOLD) {
-      nextPointerY = renderedPointerY.current + pointerDifference * pointerSmoothing;
+    if (Math.abs(focusDifference) > FOCUS_SETTLE_THRESHOLD) {
+      nextFocusY = renderedFocusY.current + focusDifference * focusSmoothing;
     }
 
-    renderedPointerY.current = nextPointerY;
-    targetScales.current = getScales(nextPointerY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
+    renderedFocusY.current = nextFocusY;
+    targetScales.current = getScales(nextFocusY, rect.top, mappedArray.length, maxVisualScale, distanceMultiplier);
 
     const targets = targetScales.current;
     const current = renderedScales.current.length === targets.length ? renderedScales.current : targets;
@@ -243,10 +235,8 @@ const ScaleList = ({ array }) => {
     updateActiveVideoIndexes(nextScales, rect.top);
 
     animationFrame.current =
-      areScalesSettled && Math.abs(pointerDifference) <= POINTER_SETTLE_THRESHOLD
-        ? null
-        : requestAnimationFrame(animateScales);
-  }, [distanceMultiplier, isMobile, mappedArray.length, maxVisualScale, pointerSmoothing, updateActiveVideoIndexes]);
+      areScalesSettled && Math.abs(focusDifference) <= FOCUS_SETTLE_THRESHOLD ? null : requestAnimationFrame(animateScales);
+  }, [distanceMultiplier, focusSmoothing, isMobile, mappedArray.length, maxVisualScale, updateActiveVideoIndexes]);
 
   const startScaleAnimation = useCallback(() => {
     if (animationFrame.current) return;
@@ -259,7 +249,7 @@ const ScaleList = ({ array }) => {
 
     const rect = containerRef.current.getBoundingClientRect();
     const nextTargetScales = getScales(
-      targetPointerY.current,
+      targetFocusY.current,
       rect.top,
       mappedArray.length,
       maxVisualScale,
@@ -269,7 +259,7 @@ const ScaleList = ({ array }) => {
     targetScales.current = nextTargetScales;
 
     if (renderedScales.current.length !== nextTargetScales.length) {
-      renderedPointerY.current = targetPointerY.current;
+      renderedFocusY.current = targetFocusY.current;
       renderedScales.current = nextTargetScales;
       setScales(nextTargetScales);
       updateActiveVideoIndexes(nextTargetScales, rect.top);
@@ -288,121 +278,87 @@ const ScaleList = ({ array }) => {
     });
   }, [updateScales]);
 
-  const updateVirtualPointer = useCallback(
+  const updateScrollFocus = useCallback(
     (deltaY) => {
       if (!containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
-      const currentPointerY =
-        trackpadPointerY.current ??
-        touchPointerY.current ??
-        (targetPointerY.current >= rect.top && targetPointerY.current <= rect.bottom
-          ? targetPointerY.current
+      const currentFocusY =
+        wheelFocusY.current ??
+        touchFocusY.current ??
+        (targetFocusY.current >= rect.top && targetFocusY.current <= rect.bottom
+          ? targetFocusY.current
           : rect.top + rect.height / 2);
-      const nextPointerY = clamp(currentPointerY + deltaY * trackpadSensitivity, rect.top, rect.bottom);
+      const nextFocusY = clamp(currentFocusY + deltaY * scrollSensitivity, rect.top, rect.bottom);
 
-      trackpadPointerY.current = nextPointerY;
-      touchPointerY.current = nextPointerY;
-      isPointerActive.current = true;
-      targetPointerY.current = nextPointerY;
+      wheelFocusY.current = nextFocusY;
+      touchFocusY.current = nextFocusY;
+      targetFocusY.current = nextFocusY;
       scheduleScaleUpdate();
     },
-    [scheduleScaleUpdate, trackpadSensitivity],
+    [scheduleScaleUpdate, scrollSensitivity],
   );
 
-  useEffect(() => {
-    const handleWindowBlur = () => {
-      isWindowFocused.current = false;
-    };
+  const stopDragMomentum = useCallback(() => {
+    if (dragMomentumFrame.current) {
+      cancelAnimationFrame(dragMomentumFrame.current);
+      dragMomentumFrame.current = null;
+    }
 
-    const handleWindowFocus = () => {
-      isWindowFocused.current = true;
-    };
+    dragVelocityY.current = 0;
+  }, []);
 
-    const handleVisibilityChange = () => {
-      isWindowFocused.current = document.visibilityState === "visible" && document.hasFocus();
-    };
+  const startDragMomentum = useCallback(() => {
+    if (Math.abs(dragVelocityY.current) <= DRAG_MOMENTUM_STOP_THRESHOLD) return;
 
-    const handlePointerMove = (event) => {
-      if (event.pointerType === "touch") return;
-      if (!containerRef.current) return;
+    if (dragMomentumFrame.current) cancelAnimationFrame(dragMomentumFrame.current);
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const cursorX = event.clientX;
-      const cursorY = event.clientY;
-      const isInsideScaleList =
-        cursorX >= rect.left && cursorX <= rect.right && cursorY >= rect.top && cursorY <= rect.bottom;
+    const step = () => {
+      dragVelocityY.current *= DRAG_MOMENTUM_DECAY;
 
-      if (!isInsideScaleList) {
-        trackpadPointerY.current = null;
-        touchPointerY.current = null;
-        lastCursorY.current = null;
-        isPointerActive.current = false;
-        setActiveVideoIndexes([]);
-
-        if (isWindowFocused.current && document.visibilityState === "visible" && document.hasFocus()) {
-          targetPointerY.current = -1000;
-          scheduleScaleUpdate();
-        }
-
+      if (Math.abs(dragVelocityY.current) <= DRAG_MOMENTUM_STOP_THRESHOLD) {
+        dragMomentumFrame.current = null;
+        dragVelocityY.current = 0;
         return;
       }
 
-      const currentPointerY =
-        targetPointerY.current >= rect.top && targetPointerY.current <= rect.bottom ? targetPointerY.current : cursorY;
-      const cursorDelta = lastCursorY.current === null ? 0 : cursorY - lastCursorY.current;
-      const nextPointerY =
-        lastCursorY.current === null
-          ? cursorY
-          : clamp(currentPointerY + cursorDelta * DESKTOP_CURSOR_SENSITIVITY, rect.top, rect.bottom);
-
-      lastCursorY.current = cursorY;
-      trackpadPointerY.current = null;
-      touchPointerY.current = null;
-      isPointerActive.current = true;
-      targetPointerY.current = nextPointerY;
-      scheduleScaleUpdate();
+      updateScrollFocus(-dragVelocityY.current * DRAG_MOMENTUM_MULTIPLIER);
+      dragMomentumFrame.current = requestAnimationFrame(step);
     };
 
-    isWindowFocused.current = document.visibilityState === "visible" && document.hasFocus();
+    dragMomentumFrame.current = requestAnimationFrame(step);
+  }, [updateScrollFocus]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const initialFocusY = rect.top + rect.height / 2;
+
+      renderedFocusY.current = initialFocusY;
+      targetFocusY.current = initialFocusY;
+      wheelFocusY.current = initialFocusY;
+      touchFocusY.current = initialFocusY;
+    }
+
     updateScales();
-    window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("resize", scheduleScaleUpdate);
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("focus", handleWindowFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
       if (updateFrame.current) cancelAnimationFrame(updateFrame.current);
-      window.removeEventListener("pointermove", handlePointerMove);
+      if (dragMomentumFrame.current) cancelAnimationFrame(dragMomentumFrame.current);
       window.removeEventListener("resize", scheduleScaleUpdate);
-      window.removeEventListener("blur", handleWindowBlur);
-      window.removeEventListener("focus", handleWindowFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [scheduleScaleUpdate, updateScales]);
 
   const handleWheel = (event) => {
     event.preventDefault();
-    updateVirtualPointer(event.deltaY);
-  };
-
-  const handleClick = (event) => {
-    if (isMobile) return;
-
-    event.preventDefault();
-
-    const currentScales = renderedScales.current.length === mappedArray.length ? renderedScales.current : scales;
-    const selectedIndex = getLargestScaledProjectIndex(currentScales, mappedArray);
-    const selectedEntry = selectedIndex === null ? null : mappedArray[selectedIndex];
-
-    if (selectedEntry?._type !== "project" || !selectedEntry.slug?.current) return;
-
-    router.push(`/projects/${selectedEntry.slug.current}`, undefined, { scroll: false });
+    stopDragMomentum();
+    updateScrollFocus(event.deltaY);
   };
 
   const handleTouchStart = (event) => {
+    stopDragMomentum();
     touchStartY.current = event.touches[0]?.clientY ?? null;
   };
 
@@ -414,7 +370,7 @@ const ScaleList = ({ array }) => {
     const nextTouchY = event.touches[0]?.clientY;
     if (typeof nextTouchY !== "number") return;
 
-    updateVirtualPointer(touchStartY.current - nextTouchY);
+    updateScrollFocus(touchStartY.current - nextTouchY);
     touchStartY.current = nextTouchY;
   };
 
@@ -422,20 +378,55 @@ const ScaleList = ({ array }) => {
     touchStartY.current = null;
   };
 
+  const handlePanStart = () => {
+    stopDragMomentum();
+    dragDistance.current = 0;
+    dragVelocityY.current = 0;
+    shouldSuppressClick.current = false;
+  };
+
+  const handlePan = (event, info) => {
+    event.preventDefault?.();
+
+    dragDistance.current += Math.abs(info.delta.y);
+    if (dragDistance.current > DRAG_CLICK_THRESHOLD) {
+      shouldSuppressClick.current = true;
+    }
+
+    dragVelocityY.current = info.velocity.y;
+    updateScrollFocus(-info.delta.y);
+  };
+
+  const handlePanEnd = () => {
+    dragDistance.current = 0;
+    startDragMomentum();
+  };
+
+  const handleClickCapture = (event) => {
+    if (!shouldSuppressClick.current) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    shouldSuppressClick.current = false;
+  };
+
   if (!array.length) return null;
 
   return (
     <motion.ul
-      className={styles.scaleList}
+      className={styles.listView}
       ref={containerRef}
+      onClickCapture={handleClickCapture}
+      onPan={handlePan}
+      onPanEnd={handlePanEnd}
+      onPanStart={handlePanStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
       onTouchStart={handleTouchStart}
       onWheel={handleWheel}
-      onClick={handleClick}
     >
       {mappedArray.map((entry, index) => (
-        <ScaleListItem
+        <ListViewItem
           baseHeight={BASE_HEIGHT}
           entry={entry}
           gap={ITEM_GAP}
@@ -453,4 +444,4 @@ const ScaleList = ({ array }) => {
   );
 };
 
-export default ScaleList;
+export default ListView;

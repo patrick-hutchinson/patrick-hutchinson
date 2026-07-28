@@ -26,6 +26,12 @@
   margin-bottom: 2px;
 }
 
+.details {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
 .details section {
   margin-bottom: 20px;
 }
@@ -46,9 +52,9 @@
   position: relative;
   width: 25px;
 }
-.date,
+
 .location {
-  color: #9c9c9d;
+  color: var(--accent);
 }
 
 .lastUpdated {

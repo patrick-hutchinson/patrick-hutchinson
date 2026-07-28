@@ -5,7 +5,7 @@ import { getHomeStaticProps } from "@/lib/sanity/fetch";
 import { preloadMedium } from "@/lib/media/projectThumbnails";
 
 import ImageView from "@/components/ImageView/ImageView";
-import ScaleList from "@/components/ScaleList/ScaleList";
+import ListView from "@/components/ListView/ListView";
 
 import styles from "@/styles/Index.module.css";
 
@@ -18,10 +18,10 @@ export default function Home({ activeFilter, home, indexView = "list" }) {
   );
 
   useEffect(() => {
-    document.documentElement.dataset.scaleListPage = "true";
+    document.documentElement.dataset.listViewPage = "true";
 
     return () => {
-      delete document.documentElement.dataset.scaleListPage;
+      delete document.documentElement.dataset.listViewPage;
     };
   }, []);
 
@@ -47,7 +47,7 @@ export default function Home({ activeFilter, home, indexView = "list" }) {
             key={indexView}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            {indexView === "list" ? <ScaleList array={filteredSelection} /> : <ImageView array={filteredSelection} />}
+            {indexView === "list" ? <ListView array={filteredSelection} /> : <ImageView array={filteredSelection} />}
           </motion.div>
         </AnimatePresence>
       </main>
