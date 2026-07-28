@@ -4,7 +4,7 @@ import { useRef } from "react";
 import Media from "@/components/Media/Media";
 import styles from "./FullscreenMedium.module.css";
 
-const FullscreenMedium = ({ block, fallbackSubcaption }) => {
+const FullscreenMedium = ({ block, fallbackSubcaption, isMobile = false }) => {
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { amount: 0.45 });
 
@@ -14,12 +14,13 @@ const FullscreenMedium = ({ block, fallbackSubcaption }) => {
   const caption = block?.caption || medium?.caption;
   const subcaption = block?.subcaption || medium?.subcaption || fallbackSubcaption;
   const copyright = block?.copyright || medium?.copyright;
+  const figureClassName = [styles.figure, isMobile ? styles.mobileFigure : null].filter(Boolean).join(" ");
 
   return (
     <div className={styles.container} ref={containerRef}>
       <motion.figure
-        animate={{ "--media-scale": isInView ? 0.9 : 0.8 }}
-        className={styles.figure}
+        animate={{ "--media-scale": isMobile ? 1 : isInView ? 0.9 : 0.8 }}
+        className={figureClassName}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <div className={styles.mediaFrame}>

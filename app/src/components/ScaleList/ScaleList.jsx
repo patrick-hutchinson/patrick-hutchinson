@@ -4,12 +4,17 @@ import ScaleListItem from "./ScaleListItem";
 import { motion } from "motion/react";
 
 import { DeviceContext } from "@/context/DeviceContext";
-import { getMediumPreviewImageUrl, getProjectThumbnailMedia, preloadImageUrl } from "@/lib/media/projectThumbnails";
+import {
+  getMediumPreviewImageUrl,
+  getProjectThumbnailMedia,
+  preloadImageUrl,
+  preloadMedium,
+} from "@/lib/media/projectThumbnails";
 import styles from "./ScaleList.module.css";
 
 const BASE_HEIGHT = 64;
 const MAX_VISUAL_SCALE = 2.2;
-const MOBILE_SCALE_MULTIPLIER = 0.33;
+const MOBILE_SCALE_MULTIPLIER = 1.5;
 const MIN_SCALE = 0.05;
 const DISTANCE_FALLOFF = 100;
 const MOBILE_DISTANCE_MULTIPLIER = 1.2;
@@ -19,13 +24,13 @@ const VIRTUAL_SCROLL_SETTLE_THRESHOLD = 0.25;
 const SCALE_SMOOTHING = 0.2;
 const SCALE_SETTLE_THRESHOLD = 0.002;
 const TRACKPAD_SENSITIVITY = 0.05;
-const MOBILE_TRACKPAD_SENSITIVITY = 0.45;
+const MOBILE_TRACKPAD_SENSITIVITY = 0.25;
 const DRAG_RESISTANCE = 10;
 const DRAG_INERTIA = 0.92;
 const DRAG_INERTIA_STOP_VELOCITY = 0.01;
 const DRAG_CLICK_THRESHOLD = 4;
 const DESKTOP_REPEAT_COUNT = 8;
-const MOBILE_REPEAT_COUNT = 30;
+const MOBILE_REPEAT_COUNT = 6;
 const ACTIVE_VIDEO_COUNT = 6;
 const ACTIVE_VIDEO_SCALE_THRESHOLD = MIN_SCALE + 0.001;
 
@@ -92,12 +97,19 @@ const ScaleList = ({ array }) => {
   const suppressNextClick = useRef(false);
   const [scales, setScales] = useState([]);
   const [activeVideoIndexes, setActiveVideoIndexes] = useState([]);
+  const [mountedVideoIndexes, setMountedVideoIndexes] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const maxVisualScale = isMobile ? MAX_VISUAL_SCALE * MOBILE_SCALE_MULTIPLIER : MAX_VISUAL_SCALE;
   const distanceMultiplier = isMobile ? MOBILE_DISTANCE_MULTIPLIER : 1;
   const trackpadSensitivity = isMobile ? MOBILE_TRACKPAD_SENSITIVITY : TRACKPAD_SENSITIVITY;
   const repeatCount = isMobile ? MOBILE_REPEAT_COUNT : DESKTOP_REPEAT_COUNT;
 
   const mappedArray = useMemo(() => Array.from({ length: repeatCount }, () => array).flat(), [array, repeatCount]);
+  const selectedMobileIndex = useMemo(() => {
+    if (!isMobile || !scales.length) return null;
+
+    return scales.reduce((selectedIndex, scale, index) => (scale > scales[selectedIndex] ? index : selectedIndex), 0);
+  }, [isMobile, scales]);
   const thumbnailMediaByProjectId = useMemo(() => {
     const media = {};
 
@@ -123,12 +135,29 @@ const ScaleList = ({ array }) => {
 
   useEffect(() => {
     const uniqueUrls = [...new Set(Object.values(thumbnailUrlsByProjectId).filter(Boolean))];
+    const uniqueMedia = [
+      ...new Map(
+        Object.values(thumbnailMediaByProjectId).map((medium) => [
+          medium?._key || medium?.url || medium?.playbackId,
+          medium,
+        ]),
+      ).values(),
+    ].filter(Boolean);
 
-    preloadedThumbnails.current = uniqueUrls.map((url) => preloadImageUrl(url)).filter(Boolean);
-  }, [thumbnailUrlsByProjectId]);
+    preloadedThumbnails.current = [
+      ...uniqueUrls.map((url) => preloadImageUrl(url)),
+      ...(isMobile ? [] : uniqueMedia.map((medium) => preloadMedium(medium))),
+    ].filter(Boolean);
+  }, [isMobile, thumbnailMediaByProjectId, thumbnailUrlsByProjectId]);
 
   const updateActiveVideoIndexes = useCallback(
     (nextScales) => {
+      if (isMobile) {
+        setActiveVideoIndexes((currentIndexes) => (currentIndexes.length ? [] : currentIndexes));
+        setMountedVideoIndexes((currentIndexes) => (currentIndexes.length ? [] : currentIndexes));
+        return;
+      }
+
       const nextIndexes = getClosestVideoIndexes(nextScales, mappedArray, thumbnailMediaByProjectId);
 
       setActiveVideoIndexes((currentIndexes) => {
@@ -141,8 +170,24 @@ const ScaleList = ({ array }) => {
 
         return nextIndexes;
       });
+
+      if (nextIndexes.length) {
+        setMountedVideoIndexes((currentIndexes) => {
+          const mountedIndexes = new Set(currentIndexes);
+          let hasChanged = false;
+
+          nextIndexes.forEach((index) => {
+            if (mountedIndexes.has(index)) return;
+
+            mountedIndexes.add(index);
+            hasChanged = true;
+          });
+
+          return hasChanged ? [...mountedIndexes] : currentIndexes;
+        });
+      }
     },
-    [mappedArray, thumbnailMediaByProjectId],
+    [isMobile, mappedArray, thumbnailMediaByProjectId],
   );
 
   const animateScales = useCallback(() => {
@@ -349,8 +394,9 @@ const ScaleList = ({ array }) => {
       const deltaY = drag.lastY - event.clientY;
       const elapsed = Math.max(event.timeStamp - drag.lastTime, 1);
 
-      if (totalDistance > DRAG_CLICK_THRESHOLD) {
+      if (!drag.hasDragged && totalDistance > DRAG_CLICK_THRESHOLD) {
         drag.hasDragged = true;
+        setIsDragging(true);
       }
 
       if (drag.hasDragged) {
@@ -372,6 +418,7 @@ const ScaleList = ({ array }) => {
       if (!drag || drag.pointerId !== event.pointerId) return;
 
       dragState.current = null;
+      setIsDragging(false);
 
       if (!drag.hasDragged) return;
 
@@ -437,7 +484,7 @@ const ScaleList = ({ array }) => {
 
   return (
     <motion.ul
-      className={styles.scaleList}
+      className={[styles.scaleList, isDragging ? styles.scaleListDragging : ""].join(" ")}
       ref={containerRef}
       onClickCapture={handleClickCapture}
       onTouchEnd={handleTouchEnd}
@@ -449,8 +496,11 @@ const ScaleList = ({ array }) => {
           entry={entry}
           key={`${entry._id}-${index}`}
           maxVisualScale={maxVisualScale}
-          playVideo={activeVideoIndexes.includes(index)}
+          mountVideo={!isMobile && mountedVideoIndexes.includes(index)}
+          playVideo={!isMobile && activeVideoIndexes.includes(index)}
           scale={scales[index] ?? MIN_SCALE}
+          isMobile={isMobile}
+          isSelected={isMobile && index === selectedMobileIndex}
           thumbnailMedium={thumbnailMediaByProjectId[entry._id]}
           thumbnailUrl={thumbnailUrlsByProjectId[entry._id]}
         />

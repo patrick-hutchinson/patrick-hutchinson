@@ -74,6 +74,31 @@ figure.figure {
 }
 
 @media screen and (max-width: 749px) {
+  .container {
+    align-items: flex-start;
+    min-height: auto;
+  }
+
+  figure.mobileFigure {
+    --media-scale: 1;
+
+    width: 100%;
+    will-change: auto;
+  }
+
+  .mobileFigure .mediaFrame {
+    width: 100%;
+  }
+
+  .mobileFigure .medium {
+    height: auto;
+    width: 100%;
+  }
+
+  .mobileFigure .caption {
+    max-width: 100%;
+  }
+
   .subcaptionWrapper {
     width: 100%;
   }

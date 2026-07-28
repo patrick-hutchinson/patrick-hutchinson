@@ -1,4 +1,6 @@
 const DEFAULT_RENDITION = "highest.mp4";
+const imagePreloadCache = new Map();
+const mediumPreloadCache = new Map();
 
 export function isGifMedium(medium) {
   if (!medium || medium.type !== "image") return false;
@@ -51,10 +53,12 @@ export function getMediumPreviewImageUrl(medium, width = 160) {
 
 export function preloadImageUrl(url) {
   if (typeof window === "undefined" || !url) return;
+  if (imagePreloadCache.has(url)) return imagePreloadCache.get(url);
 
   const image = new Image();
   image.decoding = "async";
   image.src = url;
+  imagePreloadCache.set(url, image);
   return image;
 }
 
@@ -68,6 +72,7 @@ export function preloadMedium(medium) {
   if (medium.type === "video") {
     const src = getVideoRenditionUrl(medium);
     if (!src) return;
+    if (mediumPreloadCache.has(src)) return mediumPreloadCache.get(src);
 
     const video = document.createElement("video");
     video.preload = "auto";
@@ -75,6 +80,7 @@ export function preloadMedium(medium) {
     video.playsInline = true;
     video.src = src;
     video.load();
+    mediumPreloadCache.set(src, video);
     return video;
   }
 }

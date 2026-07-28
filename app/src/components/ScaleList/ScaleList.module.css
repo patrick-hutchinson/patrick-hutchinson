@@ -9,6 +9,11 @@ ul.scaleList {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  cursor: grab;
+}
+
+ul.scaleListDragging {
+  cursor: grabbing;
 }
 
 li.scaleListItem {
@@ -28,6 +33,8 @@ li.scaleListItem {
   font-family: NeueHaasGroteskDisplay;
   font-weight: bold;
   line-height: 0.8;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 
   transform-origin: left center;
   will-change: transform;
@@ -43,9 +50,14 @@ li.scaleListItem {
 
 .scaleListItemLink {
   color: #000;
+  cursor: pointer;
   user-select: none;
   -webkit-user-drag: none;
   -webkit-user-select: none;
+}
+
+.scaleListDragging .scaleListItemLink {
+  cursor: grabbing;
 }
 
 .scaleListItemLink:hover {
@@ -85,14 +97,74 @@ li.scaleListItem {
 }
 
 .thumbnailMedia {
+  transition: opacity 0.15s ease-in-out;
   z-index: 1;
+}
+
+.thumbnailMediaActive {
+  opacity: 1;
+}
+
+.thumbnailMediaInactive {
+  opacity: 0;
 }
 
 .releaseDate,
 .location {
+  backface-visibility: hidden;
   font-size: 25px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  transform: translateZ(0);
 }
 
 .location {
   color: #9c9c9d;
+}
+
+@media screen and (max-width: 749px) {
+  ul.scaleList {
+    --glyph-top-overshoot-compensation: 0px;
+  }
+
+  .mobileText {
+    align-items: center;
+    display: flex;
+    height: 0.8em;
+    line-height: 0.8;
+    overflow-x: clip;
+    overflow-y: visible;
+    width: calc((100vw - (var(--margin) * 2)) / var(--mobile-visual-scale, 1));
+  }
+
+  .mobileTextMarquee {
+    align-items: center;
+    backface-visibility: hidden;
+    column-gap: var(--margin);
+    display: flex;
+    min-width: max-content;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+  }
+
+  .mobileTextMarqueeSegment {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.12em;
+  }
+
+  .mobileTextSelected .mobileTextMarquee {
+    animation: mobileSelectedMarquee var(--mobile-marquee-duration, 6s) linear infinite;
+  }
+}
+
+@keyframes mobileSelectedMarquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(calc(var(--mobile-marquee-distance, 0px) * -1), 0, 0);
+  }
 }

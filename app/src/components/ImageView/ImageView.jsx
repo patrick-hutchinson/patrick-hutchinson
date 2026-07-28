@@ -16,10 +16,9 @@ const ASPECT_MOBILE = 1080 / 1920;
 const DPR_CAP = 1.5;
 const IMAGE_WIDTH_RATIO = 0.66;
 const INERTIA = 0.08;
-const INDICATOR_WIDTH = 40;
 const ITEM_GAP_RATIO = 0.04;
-const ENTRY_SCROLL_OFFSET_ITEMS = 4;
-const PROGRAMMATIC_SCROLL_DURATION = 2400;
+const ENTRY_SCROLL_OFFSET_ITEMS = 13;
+const PROGRAMMATIC_SCROLL_DURATION = 1100;
 const SCROLL_SENSITIVITY = 1;
 const MOBILE_SCROLL_SENSITIVITY = 4;
 const SCREEN_EDGE_SCALE = 1;
@@ -58,7 +57,7 @@ uniform float u_velocity;
 varying vec2 v_screenPixel;
 
 void main() {
-  float speed = clamp(abs(u_velocity) / 115.0, 0.0, 1.0);
+  float speed = clamp(abs(u_velocity) / 300.0, 0.0, 1.0);
   float direction = sign(u_velocity);
   vec2 centered = v_screenPixel / u_resolution - 0.5;
   float aspect = u_resolution.x / u_resolution.y;
@@ -703,28 +702,34 @@ const ImageView = ({ array }) => {
     };
   }, [isMobile, items.length, updateActiveIndex]);
 
-  const handleWheel = useCallback((event) => {
-    event.preventDefault();
-    programmaticScroll.current = null;
-    scrollTarget.current += event.deltaY * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
-  }, [isMobile]);
+  const handleWheel = useCallback(
+    (event) => {
+      event.preventDefault();
+      programmaticScroll.current = null;
+      scrollTarget.current += event.deltaY * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
+    },
+    [isMobile],
+  );
 
   const handleTouchStart = (event) => {
     touchY.current = event.touches[0]?.clientY ?? null;
   };
 
-  const handleTouchMove = useCallback((event) => {
-    if (touchY.current === null) return;
+  const handleTouchMove = useCallback(
+    (event) => {
+      if (touchY.current === null) return;
 
-    event.preventDefault();
+      event.preventDefault();
 
-    const nextTouchY = event.touches[0]?.clientY;
-    if (typeof nextTouchY !== "number") return;
+      const nextTouchY = event.touches[0]?.clientY;
+      if (typeof nextTouchY !== "number") return;
 
-    programmaticScroll.current = null;
-    scrollTarget.current += (touchY.current - nextTouchY) * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
-    touchY.current = nextTouchY;
-  }, [isMobile]);
+      programmaticScroll.current = null;
+      scrollTarget.current += (touchY.current - nextTouchY) * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
+      touchY.current = nextTouchY;
+    },
+    [isMobile],
+  );
 
   const handleTouchEnd = () => {
     touchY.current = null;

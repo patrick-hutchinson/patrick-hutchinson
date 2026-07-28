@@ -1,12 +1,19 @@
 @font-face {
   font-family: NeueHaasGroteskDisplay;
-  src: url("../../public/fonts/NeueHaasGrotDisp-75Bold-Trial.otf");
+  src: url("../../public/fonts/NeueHaasDisplay-Bold.ttf");
   font-weight: bold;
 }
 
 @font-face {
+  font-family: NeueHaasGroteskDisplay;
+  src: url("../../public/fonts/NeueHaasDisplay-Bold-Italic.ttf");
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
   font-family: NeueHaasGroteskText;
-  src: url("../../public/fonts/NeueHaasGrotText-75Bold-Trial.otf");
+  src: url("../../public/fonts/NeueHaasText-Bold.ttf");
   font-weight: bold;
 }
 

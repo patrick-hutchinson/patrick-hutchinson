@@ -9,7 +9,7 @@ export const buildPage = (block, options = {}) => {
 
   switch (type) {
     case "projectFullscreenMedium":
-      return <FullscreenMedium block={block} fallbackSubcaption={fallbackSubcaption} />;
+      return <FullscreenMedium block={block} fallbackSubcaption={fallbackSubcaption} isMobile={isMobile} />;
     case "projectScaleGallery":
       return <ScaleGallery block={block} fallbackSubcaption={fallbackSubcaption} isMobile={isMobile} />;
     default:
