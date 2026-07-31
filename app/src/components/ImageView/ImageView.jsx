@@ -21,6 +21,12 @@ const ENTRY_SCROLL_OFFSET_ITEMS = 13;
 const PROGRAMMATIC_SCROLL_DURATION = 1100;
 const SCROLL_SENSITIVITY = 1;
 const MOBILE_SCROLL_SENSITIVITY = 4;
+const DRAG_SENSITIVITY = 10;
+const MOBILE_DRAG_SENSITIVITY = 4;
+const DRAG_RESISTANCE = 4;
+const DRAG_INERTIA = 0.95;
+const DRAG_INERTIA_STOP_VELOCITY = 0.08;
+const DRAG_CLICK_THRESHOLD = 4;
 const SCREEN_EDGE_SCALE = 1;
 const TEXTURE_TEXT_SCALE = 2;
 const VELOCITY_DECAY = 0.92;
@@ -393,6 +399,9 @@ const ImageView = ({ array }) => {
   const glState = useRef(null);
   const preloadedImages = useRef([]);
   const rafRef = useRef(null);
+  const dragInertiaFrame = useRef(null);
+  const dragState = useRef(null);
+  const suppressNextClick = useRef(false);
   const activeIndexRef = useRef(0);
   const activeImageRect = useRef(null);
   const listMetrics = useRef(null);
@@ -404,6 +413,8 @@ const ImageView = ({ array }) => {
   const velocity = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [hasWebGl, setHasWebGl] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPointerDown, setIsPointerDown] = useState(false);
   const [isImageHovered, setIsImageHovered] = useState(false);
 
   const projects = useMemo(
@@ -452,6 +463,46 @@ const ImageView = ({ array }) => {
     activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
   }, []);
+
+  const cancelDragInertia = useCallback(() => {
+    if (!dragInertiaFrame.current) return;
+
+    cancelAnimationFrame(dragInertiaFrame.current);
+    dragInertiaFrame.current = null;
+  }, []);
+
+  const updateScrollTarget = useCallback(
+    (deltaY, sensitivity = isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY) => {
+      programmaticScroll.current = null;
+      scrollTarget.current += deltaY * sensitivity;
+    },
+    [isMobile],
+  );
+
+  const startDragInertia = useCallback(
+    (initialVelocity) => {
+      cancelDragInertia();
+
+      let dragVelocity = initialVelocity;
+
+      const animateDragInertia = () => {
+        dragVelocity *= DRAG_INERTIA;
+
+        if (Math.abs(dragVelocity) <= DRAG_INERTIA_STOP_VELOCITY) {
+          dragInertiaFrame.current = null;
+          return;
+        }
+
+        updateScrollTarget(dragVelocity / DRAG_RESISTANCE, 1);
+        dragInertiaFrame.current = requestAnimationFrame(animateDragInertia);
+      };
+
+      if (Math.abs(dragVelocity) > DRAG_INERTIA_STOP_VELOCITY) {
+        dragInertiaFrame.current = requestAnimationFrame(animateDragInertia);
+      }
+    },
+    [cancelDragInertia, updateScrollTarget],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -519,6 +570,7 @@ const ImageView = ({ array }) => {
     return () => {
       isDisposed = true;
       window.cancelAnimationFrame(rafRef.current);
+      cancelDragInertia();
       textures.forEach((entry) => {
         entry?.source?.pause?.();
         if (entry?.texture) gl.deleteTexture(entry.texture);
@@ -528,7 +580,7 @@ const ImageView = ({ array }) => {
       gl.deleteProgram(program);
       glState.current = null;
     };
-  }, [items]);
+  }, [cancelDragInertia, items]);
 
   useEffect(() => {
     if (!items.length) return undefined;
@@ -705,10 +757,10 @@ const ImageView = ({ array }) => {
   const handleWheel = useCallback(
     (event) => {
       event.preventDefault();
-      programmaticScroll.current = null;
-      scrollTarget.current += event.deltaY * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
+      cancelDragInertia();
+      updateScrollTarget(event.deltaY);
     },
-    [isMobile],
+    [cancelDragInertia, updateScrollTarget],
   );
 
   const handleTouchStart = (event) => {
@@ -724,11 +776,11 @@ const ImageView = ({ array }) => {
       const nextTouchY = event.touches[0]?.clientY;
       if (typeof nextTouchY !== "number") return;
 
-      programmaticScroll.current = null;
-      scrollTarget.current += (touchY.current - nextTouchY) * (isMobile ? MOBILE_SCROLL_SENSITIVITY : SCROLL_SENSITIVITY);
+      cancelDragInertia();
+      updateScrollTarget(touchY.current - nextTouchY);
       touchY.current = nextTouchY;
     },
-    [isMobile],
+    [cancelDragInertia, updateScrollTarget],
   );
 
   const handleTouchEnd = () => {
@@ -736,6 +788,13 @@ const ImageView = ({ array }) => {
   };
 
   const handleClick = (event) => {
+    if (suppressNextClick.current) {
+      suppressNextClick.current = false;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
 
     const rect = activeImageRect.current;
@@ -754,6 +813,7 @@ const ImageView = ({ array }) => {
 
   const handlePointerMove = (event) => {
     if (event.pointerType === "touch") return;
+    if (dragState.current) return;
 
     const rect = activeImageRect.current;
     const nextIsImageHovered = Boolean(
@@ -771,9 +831,69 @@ const ImageView = ({ array }) => {
 
   const handlePointerLeave = (event) => {
     if (event.pointerType === "touch") return;
+    if (dragState.current) return;
 
     setIsImageHovered(false);
   };
+
+  const handlePointerDown = (event) => {
+    if (event.pointerType === "touch" || event.button !== 0 || event.target.closest("button")) return;
+
+    cancelDragInertia();
+    setIsPointerDown(true);
+    dragState.current = {
+      hasDragged: false,
+      lastTime: event.timeStamp,
+      lastY: event.clientY,
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      velocity: 0,
+    };
+  };
+
+  const handleDragPointerMove = useCallback(
+    (event) => {
+      const drag = dragState.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      const totalDistance = Math.abs(event.clientY - drag.startY);
+      const deltaY = drag.lastY - event.clientY;
+      const elapsed = Math.max(event.timeStamp - drag.lastTime, 1);
+
+      if (!drag.hasDragged && totalDistance > DRAG_CLICK_THRESHOLD) {
+        drag.hasDragged = true;
+        setIsDragging(true);
+      }
+
+      if (drag.hasDragged) {
+        event.preventDefault();
+        event.stopPropagation();
+        updateScrollTarget(deltaY / DRAG_RESISTANCE, isMobile ? MOBILE_DRAG_SENSITIVITY : DRAG_SENSITIVITY);
+      }
+
+      drag.velocity = (deltaY / elapsed) * 16.67 * (isMobile ? MOBILE_DRAG_SENSITIVITY : DRAG_SENSITIVITY);
+      drag.lastY = event.clientY;
+      drag.lastTime = event.timeStamp;
+    },
+    [isMobile, updateScrollTarget],
+  );
+
+  const handleDragPointerEnd = useCallback(
+    (event) => {
+      const drag = dragState.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      dragState.current = null;
+      setIsPointerDown(false);
+      setIsDragging(false);
+
+      if (!drag.hasDragged) return;
+
+      suppressNextClick.current = true;
+      startDragInertia(drag.velocity);
+    },
+    [startDragInertia],
+  );
 
   const scrollToIndex = (index) => {
     const metrics = listMetrics.current;
@@ -850,20 +970,33 @@ const ImageView = ({ array }) => {
 
     node.addEventListener("wheel", handleWheel, { passive: false });
     node.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("pointermove", handleDragPointerMove, { capture: true, passive: false });
+    window.addEventListener("pointerup", handleDragPointerEnd, { capture: true });
+    window.addEventListener("pointercancel", handleDragPointerEnd, { capture: true });
 
     return () => {
       node.removeEventListener("wheel", handleWheel);
       node.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("pointermove", handleDragPointerMove, { capture: true });
+      window.removeEventListener("pointerup", handleDragPointerEnd, { capture: true });
+      window.removeEventListener("pointercancel", handleDragPointerEnd, { capture: true });
     };
-  }, [handleTouchMove, handleWheel]);
+  }, [handleDragPointerEnd, handleDragPointerMove, handleTouchMove, handleWheel]);
 
   if (!projects.length) return null;
 
   return (
     <div
-      className={[styles.imageView, isImageHovered ? styles.imageViewClickable : null].filter(Boolean).join(" ")}
+      className={[
+        styles.imageView,
+        isImageHovered ? styles.imageViewClickable : null,
+        isPointerDown || isDragging ? styles.imageViewDragging : null,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
       onPointerLeave={handlePointerLeave}
       onPointerMove={handlePointerMove}
       onTouchEnd={handleTouchEnd}

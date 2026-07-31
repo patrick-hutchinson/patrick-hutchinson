@@ -16,6 +16,16 @@ import { DeviceContext } from "@/context/DeviceContext";
 
 const ENTRY_SCROLL_THRESHOLD = 80;
 
+const infoPortableTextComponents = {
+  marks: {
+    ammendum: ({ children }) => (
+      <span className={`${styles.location} ${styles.ammendum}`} typo="fineprint">
+        {children}
+      </span>
+    ),
+  },
+};
+
 function getEntryDate(entry) {
   return [entry?.scheduling?.month, entry?.scheduling?.year || entry?.year].filter(Boolean).join("/");
 }
@@ -25,7 +35,7 @@ function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
 
   return (
     <SectionSmall>
-      <h2 typo="fineprint">{title}</h2>
+      <h2 typo="fineprint">Selected {title}</h2>
       <ul>
         {entries.map((entry) => (
           <li key={entry._id} typo="h4" className={styles.listEntry}>
@@ -59,7 +69,7 @@ function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
                 {getEntryDate(entry) ? `‘${getEntryDate(entry).slice(2)}` : null}
               </span>
 
-              <span className={styles.title}>{entry.title}</span>
+              <span className={`${styles.title} link`}>{entry.title}</span>
               <span className={styles.location} typo="fineprint">
                 {entry.scheduling?.location || entry.location ? `${entry.scheduling?.location || entry.location}` : null}
               </span>
@@ -195,7 +205,7 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
         <div className={styles.infoContainer}>
           <div className={styles.intro}>
             <SectionSmall>
-              <Text text={info.description} typo="h4" />
+              <Text components={infoPortableTextComponents} text={info.description} typo="h4" />
             </SectionSmall>
             <InfoList
               entries={experience}

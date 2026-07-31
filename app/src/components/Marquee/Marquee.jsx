@@ -1,100 +1,77 @@
 import styles from "./Marquee.module.css";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useEmblaCarousel from "embla-carousel-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-const AUTO_SCROLL_SPEED = 1;
+const AUTO_SCROLL_SPEED = 60;
 const OVERFLOW_TOLERANCE = 1;
-const SCROLLING_SLIDE_COUNT = 3;
+const MIN_LOOP_SLIDE_COUNT = 3;
 
 const Marquee = ({ canDrag = true, reliableLoop = true, string, typo }) => {
   const [shouldScroll, setShouldScroll] = useState(false);
-  const [viewportNode, setViewportNode] = useState(null);
+  const [loopDistance, setLoopDistance] = useState(0);
+  const [slideCount, setSlideCount] = useState(MIN_LOOP_SLIDE_COUNT);
+  const containerRef = useRef(null);
   const measureRef = useRef(null);
-  const animationFrame = useRef(null);
-  const canLoop = shouldScroll && reliableLoop;
-  const options = useMemo(
-    () => ({
-      align: "start",
-      containScroll: false,
-      dragFree: shouldScroll && canDrag,
-      loop: canLoop,
-      skipSnaps: true,
-      watchDrag: shouldScroll && canDrag,
-    }),
-    [canDrag, canLoop, shouldScroll],
-  );
-  const [emblaRef, emblaApi] = useEmblaCarousel(options);
-  const slides = shouldScroll && reliableLoop ? Array.from({ length: SCROLLING_SLIDE_COUNT }, () => string) : [string];
+  const viewportRef = useRef(null);
+  const slides = shouldScroll && reliableLoop ? Array.from({ length: slideCount }, () => string) : [string];
 
-  const setRefs = useCallback(
-    (node) => {
-      emblaRef(node);
-      setViewportNode(node);
-    },
-    [emblaRef],
-  );
+  const measureLoop = useCallback(() => {
+    if (!viewportRef.current || !containerRef.current || !measureRef.current) return;
 
-  const measureOverflow = useCallback(() => {
-    if (!viewportNode || !measureRef.current) return;
+    const viewportWidth = viewportRef.current.clientWidth;
+    const slideWidth = measureRef.current.getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(containerRef.current).columnGap) || 0;
+    const distance = slideWidth + gap;
+    const nextShouldScroll = slideWidth > viewportWidth + OVERFLOW_TOLERANCE;
 
-    const nextShouldScroll = measureRef.current.scrollWidth > viewportNode.clientWidth + OVERFLOW_TOLERANCE;
+    setLoopDistance(distance);
     setShouldScroll(nextShouldScroll);
-  }, [viewportNode]);
+
+    if (nextShouldScroll && reliableLoop && distance > 0) {
+      setSlideCount(Math.max(MIN_LOOP_SLIDE_COUNT, Math.ceil(viewportWidth / distance) + 2));
+    }
+  }, [reliableLoop]);
 
   useEffect(() => {
-    measureOverflow();
+    measureLoop();
 
     const measureNode = measureRef.current;
+    const viewportNode = viewportRef.current;
     if (!viewportNode || !measureNode) return undefined;
 
-    const resizeObserver = new ResizeObserver(measureOverflow);
+    const resizeObserver = new ResizeObserver(measureLoop);
     resizeObserver.observe(viewportNode);
     resizeObserver.observe(measureNode);
 
-    document.fonts?.ready.then(measureOverflow);
+    document.fonts?.ready.then(measureLoop);
 
     return () => resizeObserver.disconnect();
-  }, [measureOverflow, string, viewportNode]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-
-    emblaApi.reInit(options);
-  }, [emblaApi, options, slides.length]);
-
-  useEffect(() => {
-    if (!emblaApi || !shouldScroll) return undefined;
-
-    const engine = emblaApi.internalEngine();
-
-    const scroll = () => {
-      if (!engine.dragHandler.pointerDown()) {
-        engine.location.add(-AUTO_SCROLL_SPEED);
-        engine.target.set(engine.location);
-        if (canLoop) {
-          engine.scrollLooper.loop(-1);
-          engine.slideLooper.loop();
-        }
-        engine.translate.to(engine.location.get());
-      }
-
-      animationFrame.current = requestAnimationFrame(scroll);
-    };
-
-    animationFrame.current = requestAnimationFrame(scroll);
-
-    return () => {
-      if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
-    };
-  }, [canLoop, emblaApi, shouldScroll]);
+  }, [measureLoop, string]);
 
   return (
     <div typo={typo}>
-      <div className={styles.viewport} ref={setRefs}>
-        <div className={[styles.container, canDrag ? null : styles.containerDragDisabled].filter(Boolean).join(" ")}>
+      <div className={styles.viewport} ref={viewportRef}>
+        <div
+          className={[
+            styles.container,
+            shouldScroll ? styles.containerScrolling : null,
+            canDrag ? null : styles.containerDragDisabled,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          ref={containerRef}
+          style={{
+            "--marquee-distance": `${loopDistance}px`,
+            "--marquee-duration": `${Math.max(1, loopDistance / AUTO_SCROLL_SPEED)}s`,
+          }}
+        >
           {slides.map((slide, index) => (
-            <div className={styles.slide} key={`${slide}-${index}`} ref={index === 0 ? measureRef : null}>
+            <div
+              aria-hidden={index > 0 ? "true" : undefined}
+              className={styles.slide}
+              key={`${slide}-${index}`}
+              ref={index === 0 ? measureRef : null}
+            >
               {slide}
             </div>
           ))}

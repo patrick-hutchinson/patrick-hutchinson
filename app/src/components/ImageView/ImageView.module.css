@@ -1,15 +1,22 @@
 .imageView {
-  cursor: default;
+  cursor: grab;
   height: calc(100vh);
   overflow: hidden;
   overscroll-behavior: none;
   position: relative;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   width: calc(100vw);
 }
 
 .imageViewClickable {
   cursor: pointer;
+}
+
+.imageViewDragging,
+.imageViewDragging.imageViewClickable {
+  cursor: grabbing;
 }
 
 .canvasFrame {

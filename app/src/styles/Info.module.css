@@ -23,7 +23,8 @@
 
 .listEntry {
   display: block;
-  margin-bottom: 2px;
+  /* margin-bottom: 2px; */
+  width: fit-content;
 }
 
 .details {
@@ -39,11 +40,12 @@
 .listEntryButton {
   color: inherit;
   cursor: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
   font: inherit;
   line-height: inherit;
+  max-width: 100%;
   padding: 0;
   text-align: left;
 }
@@ -51,10 +53,17 @@
 .date {
   position: relative;
   width: 25px;
+  min-width: 25px;
+  max-width: 25px;
 }
 
 .location {
   color: var(--accent);
+}
+
+.ammendum {
+  display: inline-block;
+  transform: translateY(-1.5 px);
 }
 
 .lastUpdated {
@@ -140,5 +149,17 @@
   .footer {
     position: relative;
     margin-top: var(--section-small-spacing);
+  }
+
+  .location {
+    display: none;
+  }
+
+  .location.ammendum {
+    display: inline-block;
+  }
+
+  .listEntry {
+    margin-bottom: calc(var(--section-small-spacing) / 4);
   }
 }

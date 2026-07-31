@@ -117,6 +117,13 @@ html[data-scale-list-page="true"] body {
     bottom: var(--margin);
     top: auto;
   }
+
+  a,
+  .link {
+    text-decoration: underline;
+    text-decoration-thickness: 0.5px;
+    text-underline-offset: 1.5px;
+  }
 }
 
 @media screen and (min-width: 749px) {

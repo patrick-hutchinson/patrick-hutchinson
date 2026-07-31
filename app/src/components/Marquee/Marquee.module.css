@@ -4,10 +4,13 @@
 }
 
 .container {
+  column-gap: 20px;
   display: flex;
   touch-action: pan-y pinch-zoom;
   user-select: none;
   cursor: grab;
+  width: max-content;
+  transform: translate3d(0, 0, 0);
 }
 
 .containerDragDisabled {
@@ -15,20 +18,35 @@
   touch-action: pan-y pinch-zoom;
 }
 
+.containerScrolling {
+  animation: marqueeLoop var(--marquee-duration, 8s) linear infinite;
+  will-change: transform;
+}
+
 .slide {
   flex: 0 0 auto;
   min-width: 0;
   white-space: nowrap;
   line-height: 1 !important;
-  padding-right: 20px;
 }
 
 .slide:first-child {
   min-width: max-content;
 }
 
+@keyframes marqueeLoop {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(calc(var(--marquee-distance, 0px) * -1), 0, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .container {
+    animation: none !important;
     transform: none !important;
   }
 
