@@ -135,8 +135,10 @@ export async function getProjectStaticPaths(context = {}) {
   const slugs = await getProjectSlugs();
   const includeLanguages = Boolean(context.includeLanguages);
 
+  const projectSlugs = (slugs || []).filter((entry) => entry?._type === "project" && entry?.slug);
+
   return {
-    paths: (slugs || []).flatMap((entry) =>
+    paths: projectSlugs.flatMap((entry) =>
       includeLanguages
         ? SUPPORTED_LANGUAGES.map((language) => ({ params: { language, slug: entry.slug } }))
         : [{ params: { slug: entry.slug } }],

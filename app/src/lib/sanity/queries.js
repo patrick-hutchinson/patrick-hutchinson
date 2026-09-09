@@ -79,30 +79,35 @@ export const homeQuery = `*[_type=="home"][0]{
   }
 }`;
 
-export const projectSlugsQuery = `*[_type=="project" && defined(slug.current)]{
-  "slug": slug.current
-}`;
-
-export const projectNavigationQuery = `*[_type=="home"][0].selection[]->{
-  _id,
-  _type,
-  title,
-  thumbnail[0] ${mediaAssetFragment},
-  thumbnail_mobile[0] ${mediaAssetFragment},
-  coverMedia[0] ${mediaAssetFragment},
-  coverMedia_mobile[0] ${mediaAssetFragment},
-  pageBuilder[]{
-    _key,
+export const projectSlugsQuery = `*[_type=="home"][0]{
+  "projects": selection[]->{
     _type,
-    _type == "projectFullscreenMedium" => {
-      medium[0] ${mediaAssetFragment}
+    "slug": slug.current
+  }
+}.projects`;
+
+export const projectNavigationQuery = `*[_type=="home"][0]{
+  "projects": selection[]->{
+    _id,
+    _type,
+    title,
+    thumbnail[0] ${mediaAssetFragment},
+    thumbnail_mobile[0] ${mediaAssetFragment},
+    coverMedia[0] ${mediaAssetFragment},
+    coverMedia_mobile[0] ${mediaAssetFragment},
+    pageBuilder[]{
+      _key,
+      _type,
+      _type == "projectFullscreenMedium" => {
+        medium[0] ${mediaAssetFragment}
+      },
+      _type == "projectScaleGallery" => {
+        media[] ${mediaAssetFragment}
+      }
     },
-    _type == "projectScaleGallery" => {
-      media[] ${mediaAssetFragment}
-    }
-  },
-  slug
-}`;
+    slug
+  }
+}.projects`;
 
 export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
   _id,
