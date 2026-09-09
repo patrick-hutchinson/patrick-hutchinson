@@ -9,6 +9,7 @@ import {
   publicityQuery,
   siteQuery,
 } from "./queries";
+import { DEFAULT_LANGUAGE, normalizeLanguage, SUPPORTED_LANGUAGES } from "@/lib/i18n";
 
 export const fallbackSiteData = {
   title: "Patrick Hutchinson",
@@ -66,52 +67,55 @@ export async function getSite() {
   return normalizeSite(site);
 }
 
-export async function getHome() {
-  return getSanityClient().fetch(homeQuery);
+export async function getHome(language = DEFAULT_LANGUAGE) {
+  return getSanityClient().fetch(homeQuery, { language: normalizeLanguage(language) });
 }
 
-export async function getInfo() {
-  return getSanityClient().fetch(infoQuery);
+export async function getInfo(language = DEFAULT_LANGUAGE) {
+  return getSanityClient().fetch(infoQuery, { language: normalizeLanguage(language) });
 }
 
-export async function getExperience() {
-  return getSanityClient().fetch(experienceQuery);
+export async function getExperience(language = DEFAULT_LANGUAGE) {
+  return getSanityClient().fetch(experienceQuery, { language: normalizeLanguage(language) });
 }
 
-export async function getPublicity() {
-  return getSanityClient().fetch(publicityQuery);
+export async function getPublicity(language = DEFAULT_LANGUAGE) {
+  return getSanityClient().fetch(publicityQuery, { language: normalizeLanguage(language) });
 }
 
-export async function getProject(slug) {
-  return getSanityClient().fetch(projectQuery, { slug });
+export async function getProject(slug, language = DEFAULT_LANGUAGE) {
+  return getSanityClient().fetch(projectQuery, { slug, language: normalizeLanguage(language) });
 }
 
-export async function getProjectNavigation() {
-  return getSanityClient().fetch(projectNavigationQuery);
+export async function getProjectNavigation(language = DEFAULT_LANGUAGE) {
+  return getSanityClient().fetch(projectNavigationQuery, { language: normalizeLanguage(language) });
 }
 
 export async function getProjectSlugs() {
   return getSanityClient().fetch(projectSlugsQuery);
 }
 
-export async function getHomeStaticProps() {
-  const [site, home] = await Promise.all([getSite(), getHome()]);
+export async function getHomeStaticProps(context = {}) {
+  const language = normalizeLanguage(context.params?.language);
+  const [site, home] = await Promise.all([getSite(), getHome(language)]);
 
   return {
     props: {
       site,
       home,
+      language,
     },
     revalidate,
   };
 }
 
-export async function getInfoStaticProps() {
+export async function getInfoStaticProps(context = {}) {
+  const language = normalizeLanguage(context.params?.language);
   const [site, info, experience, publicity] = await Promise.all([
     getSite(),
-    getInfo(),
-    getExperience(),
-    getPublicity(),
+    getInfo(language),
+    getExperience(language),
+    getPublicity(language),
   ]);
 
   return {
@@ -120,27 +124,34 @@ export async function getInfoStaticProps() {
       info,
       experience,
       publicity,
+      language,
       lastUpdatedAt: getLastUpdatedAt(),
     },
     revalidate,
   };
 }
 
-export async function getProjectStaticPaths() {
+export async function getProjectStaticPaths(context = {}) {
   const slugs = await getProjectSlugs();
+  const includeLanguages = Boolean(context.includeLanguages);
 
   return {
-    paths: (slugs || []).map((entry) => ({
-      params: {
-        slug: entry.slug,
-      },
-    })),
+    paths: (slugs || []).flatMap((entry) =>
+      includeLanguages
+        ? SUPPORTED_LANGUAGES.map((language) => ({ params: { language, slug: entry.slug } }))
+        : [{ params: { slug: entry.slug } }],
+    ),
     fallback: "blocking",
   };
 }
 
 export async function getProjectStaticProps({ params }) {
-  const [site, project, navigation] = await Promise.all([getSite(), getProject(params?.slug), getProjectNavigation()]);
+  const language = normalizeLanguage(params?.language);
+  const [site, project, navigation] = await Promise.all([
+    getSite(),
+    getProject(params?.slug, language),
+    getProjectNavigation(language),
+  ]);
 
   if (!project) {
     return {
@@ -158,6 +169,7 @@ export async function getProjectStaticProps({ params }) {
       site,
       project,
       nextProject,
+      language,
       lastUpdatedAt: getLastUpdatedAt(),
     },
     revalidate,

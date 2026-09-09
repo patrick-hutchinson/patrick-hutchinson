@@ -80,7 +80,7 @@ function getClosestVideoIndexes(scales, mappedArray, thumbnailMediaByProjectId) 
     .map(({ index }) => index);
 }
 
-const ScaleList = ({ array }) => {
+const ScaleList = ({ array, language = "en" }) => {
   const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
   const animationFrame = useRef(null);
@@ -558,6 +558,7 @@ const ScaleList = ({ array }) => {
           scale={scales[index] ?? MIN_SCALE}
           isMobile={isMobile}
           isSelected={isMobile && index === selectedMobileIndex}
+          language={language}
           thumbnailMedium={thumbnailMediaByProjectId[entry._id]}
           thumbnailUrl={thumbnailUrlsByProjectId[entry._id]}
         />

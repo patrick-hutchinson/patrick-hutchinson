@@ -1,75 +1,146 @@
-.menu {
-  display: block;
-  position: relative;
-  width: calc(var(--closed-width, 0px) + 16px);
+.menuButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
   overflow: hidden;
-  background: var(--foreground);
-  color: var(--background) !important;
-  border-radius: 25px;
   padding: 4px 8px;
-  opacity: var(--opacity);
-  transition:
-    width 0.35s ease-in-out,
-    opacity 0.4s ease-in-out;
-  z-index: 1001;
+  position: relative;
+  z-index: 1003;
 }
 
-.menuOpen {
-  width: calc(var(--open-width, 0px) + 16px);
-  opacity: 1;
+.menuButtonOpen {
+  background: transparent;
+  color: #fff !important;
 }
 
 .menuLabel {
-  display: block;
-  width: var(--closed-width, auto);
+  align-items: center;
+  display: flex;
+  height: 1em;
+  justify-content: center;
   overflow: hidden;
   white-space: nowrap;
-  text-transform: uppercase;
-  opacity: 1;
-  transition: opacity 0.2s ease-in-out;
 }
 
-.menuOpen .menuLabel {
+.burgerIcon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 25px;
+}
+
+.burgerIcon span {
+  background: #fff;
+  display: block;
+  height: 1.5px;
+
+  transform-origin: center;
+  transition:
+    transform 0.25s ease-in-out,
+    opacity 0.25s ease-in-out;
+  width: 100%;
+}
+
+.menuButtonOpen .burgerIcon span:nth-child(1) {
+  transform: translateY(5.5px) rotate(45deg);
+}
+
+.menuButtonOpen .burgerIcon span:nth-child(2) {
   opacity: 0;
+}
+
+.menuButtonOpen .burgerIcon span:nth-child(3) {
+  transform: translateY(-5.5px) rotate(-45deg);
+}
+
+.menuOverlay {
+  background: rgb(0 0 0 / 0.9);
+  color: #fff;
+  inset: 0;
+  pointer-events: auto;
+  position: fixed;
+  z-index: 1002;
+}
+
+.overlayHitArea {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: default;
+  inset: 0;
+  padding: 0;
+  position: absolute;
 }
 
 .menuList {
   display: flex;
-  align-items: center;
-  position: absolute;
-  top: 4px;
-  left: 8px;
-  width: var(--open-width, auto);
-  overflow: hidden;
+  flex-direction: column;
+  left: var(--margin);
   list-style: none;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease-in-out 0.08s;
-}
-
-.menuOpen .menuList {
-  opacity: 1;
-  pointer-events: auto;
+  position: absolute;
+  top: var(--margin);
+  z-index: 1;
+  font-size: 10vw !important;
 }
 
 .menuItem {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-right: 12px;
-  white-space: nowrap;
-}
-
-.menuItem:last-child {
-  margin-right: 0;
-}
-
-.menuItem::before {
-  content: "";
+  color: #fff;
   display: block;
-  flex: 0 0 auto;
-  width: 12px;
-  height: 12px;
-  background: var(--background);
-  border-radius: 12px;
+  line-height: 0.9;
+  text-decoration: underline;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 1px;
+}
+
+.menuItem a,
+.socialItem a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.menuItem a:hover,
+.socialItem a:hover {
+  color: var(--accent);
+}
+
+.socialList {
+  bottom: var(--margin);
+  display: flex;
+  gap: var(--margin);
+  list-style: none;
+  position: absolute;
+  right: var(--margin);
+  z-index: 1;
+}
+
+.socialItem {
+  color: #fff;
+}
+
+:global(html[data-menu-overlay-open="true"]),
+:global(html[data-menu-overlay-open="true"] body) {
+  overflow: hidden;
+}
+
+:global(html[data-menu-overlay-open="true"]) :global(.controls) {
+  backdrop-filter: none;
+}
+
+@media screen and (max-width: 748px) {
+  .menuList {
+    bottom: calc(var(--margin) * 4);
+    top: auto;
+  }
+
+  .socialList {
+    flex-direction: column;
+    gap: 0;
+    left: var(--margin);
+    right: auto;
+  }
 }

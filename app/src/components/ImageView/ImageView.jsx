@@ -8,6 +8,7 @@ import {
   getVideoRenditionUrl,
   preloadImageUrl,
 } from "@/lib/media/projectThumbnails";
+import { getLocalizedPath } from "@/lib/i18n";
 
 import styles from "./ImageView.module.css";
 
@@ -390,7 +391,7 @@ function drawTextureRect(state, texture, rect, sourceRect, uv, velocity, drawPad
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
-const ImageView = ({ array }) => {
+const ImageView = ({ array, language = "en" }) => {
   const { isMobile } = useContext(DeviceContext);
   const router = useRouter();
   const imageViewRef = useRef(null);
@@ -419,15 +420,17 @@ const ImageView = ({ array }) => {
 
   const projects = useMemo(
     () =>
-      array.filter(
-        (entry) =>
-          entry?._type === "project" &&
-          entry?.slug?.current &&
-          (entry?.thumbnail?.medium ||
-            entry?.thumbnail_mobile?.medium ||
-            entry?.coverMedia?.medium ||
-            entry?.coverMedia_mobile?.medium),
-      ),
+      array
+        .filter(
+          (entry) =>
+            entry?._type === "project" &&
+            entry?.slug?.current &&
+            (entry?.thumbnail?.medium ||
+              entry?.thumbnail_mobile?.medium ||
+              entry?.coverMedia?.medium ||
+              entry?.coverMedia_mobile?.medium),
+        )
+        .sort((a, b) => (a._homeOrder ?? 0) - (b._homeOrder ?? 0)),
     [array],
   );
 
@@ -454,8 +457,8 @@ const ImageView = ({ array }) => {
     const project = projects[activeIndex];
     if (!project?.slug?.current) return;
 
-    router.push(`/projects/${project.slug.current}`, undefined, { scroll: false });
-  }, [activeIndex, projects, router]);
+    router.push(getLocalizedPath(`/projects/${project.slug.current}`, language), undefined, { scroll: false });
+  }, [activeIndex, language, projects, router]);
 
   const updateActiveIndex = useCallback((nextIndex) => {
     if (activeIndexRef.current === nextIndex) return;

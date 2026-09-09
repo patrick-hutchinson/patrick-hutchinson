@@ -5,7 +5,7 @@
   width: 100vw;
   position: relative;
   left: calc(var(--margin) * -1);
-  bottom: calc(var(--margin) * -1);
+  /* bottom: calc(var(--margin) * -1); */
   background-color: #fff;
   background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
   background-size: 50px 50px;
@@ -20,6 +20,10 @@
   opacity: 0.05 !important;
   position: relative;
   z-index: 2;
+}
+
+.nextProjectCursor {
+  color: #000;
 }
 
 .nextProjectContainer:hover {

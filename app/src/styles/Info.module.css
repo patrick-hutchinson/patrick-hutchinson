@@ -52,9 +52,9 @@
 
 .date {
   position: relative;
-  width: 25px;
-  min-width: 25px;
-  max-width: 25px;
+  width: 35px;
+  min-width: 35px;
+  max-width: 35px;
 }
 
 .location {
@@ -63,7 +63,7 @@
 
 .ammendum {
   display: inline-block;
-  transform: translateY(-1.5 px);
+  transform: translateY(-1.5px);
 }
 
 .lastUpdated {

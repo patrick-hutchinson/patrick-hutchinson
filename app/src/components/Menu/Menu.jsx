@@ -1,114 +1,115 @@
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
+import { getLocalizedPath } from "@/lib/i18n";
 import styles from "./Menu.module.css";
-const Menu = ({ className }) => {
-  const menuRef = useRef(null);
-  const labelRef = useRef(null);
-  const listRef = useRef(null);
-  const hideTimeoutRef = useRef(null);
-  const isHoveredRef = useRef(false);
+const Menu = ({ className, language = "en", socials = [] }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [widths, setWidths] = useState({ closed: 0, open: 0 });
-
-  const clearHideTimeout = () => {
-    if (!hideTimeoutRef.current) return;
-
-    window.clearTimeout(hideTimeoutRef.current);
-    hideTimeoutRef.current = null;
-  };
-
-  const scheduleHide = () => {
-    clearHideTimeout();
-
-    hideTimeoutRef.current = window.setTimeout(() => {
-      if (isHoveredRef.current) return;
-
-      setIsOpen(false);
-      hideTimeoutRef.current = null;
-    }, 3000);
-  };
+  const [portalElement, setPortalElement] = useState(null);
+  const socialItems = Array.isArray(socials) ? socials : [];
 
   useEffect(() => {
-    const updateWidths = () => {
-      const labelWidth = labelRef.current?.scrollWidth || 0;
-      const listWidth = listRef.current?.scrollWidth || 0;
-
-      setWidths({ closed: labelWidth, open: listWidth });
-    };
-
-    updateWidths();
-    window.addEventListener("resize", updateWidths);
-    document.fonts?.ready.then(updateWidths);
-
-    return () => window.removeEventListener("resize", updateWidths);
+    setPortalElement(document.body);
   }, []);
 
   useEffect(() => {
     if (!isOpen) return undefined;
 
-    const handlePointerDown = (event) => {
-      if (menuRef.current?.contains(event.target)) return;
-
-      clearHideTimeout();
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
       setIsOpen(false);
     };
 
-    document.addEventListener("pointerdown", handlePointerDown);
+    document.documentElement.dataset.menuOverlayOpen = "true";
+    window.addEventListener("keydown", handleKeyDown);
 
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
   useEffect(() => {
-    return () => clearHideTimeout();
+    return () => {
+      delete document.documentElement.dataset.menuOverlayOpen;
+    };
   }, []);
 
+  const overlay = (
+      <AnimatePresence
+        onExitComplete={() => {
+          delete document.documentElement.dataset.menuOverlayOpen;
+        }}
+      >
+        {isOpen ? (
+          <motion.nav
+            animate={{ opacity: 1 }}
+            aria-label="Primary navigation"
+            className={styles.menuOverlay}
+            exit={{ opacity: 0 }}
+            id="primary-menu-overlay"
+            initial={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+          >
+            <button
+              aria-label="Close menu"
+              className={styles.overlayHitArea}
+              onClick={() => setIsOpen(false)}
+              type="button"
+            />
+            <ul className={styles.menuList} typo="h2">
+              <li className={styles.menuItem}>
+                <Link href={getLocalizedPath("/", language)} onClick={() => setIsOpen(false)} scroll={false}>
+                  Index
+                </Link>
+              </li>
+              <li className={styles.menuItem}>
+                <Link href={getLocalizedPath("/info", language)} onClick={() => setIsOpen(false)} scroll={false}>
+                  Info
+                </Link>
+              </li>
+              <li className={styles.menuItem}>
+                <a href="mailto:hutchinsonpatrick@icloud.com" onClick={() => setIsOpen(false)}>
+                  Contact
+                </a>
+              </li>
+            </ul>
+            {socialItems.length ? (
+              <ul className={styles.socialList} typo="fineprint">
+                {socialItems.map((social) => (
+                  <li className={styles.socialItem} key={social.platform}>
+                    <a href={social.link} onClick={() => setIsOpen(false)} target="_blank">
+                      {social.platform}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </motion.nav>
+        ) : null}
+      </AnimatePresence>
+  );
+
   return (
-    <nav
-      ref={menuRef}
-      data-menu-control
-      className={[className, styles.menu, isOpen ? styles.menuOpen : null].filter(Boolean).join(" ")}
-      typo="fineprint"
-      aria-label="Primary navigation"
-      aria-expanded={isOpen}
-      onPointerEnter={() => {
-        isHoveredRef.current = true;
-        clearHideTimeout();
-      }}
-      onPointerLeave={() => {
-        isHoveredRef.current = false;
-        if (isOpen) scheduleHide();
-      }}
-      onClick={() => {
-        clearHideTimeout();
-        setIsOpen(true);
-      }}
-      style={{
-        "--closed-width": `${widths.closed}px`,
-        "--open-width": `${widths.open}px`,
-      }}
-    >
-      <span className={styles.menuLabel} ref={labelRef}>
-        Menu
-      </span>
-      <ul className={styles.menuList} ref={listRef}>
-        <li className={styles.menuItem}>
-          <Link href="/" scroll={false}>
-            Index
-          </Link>
-        </li>
-        <li className={styles.menuItem} style={{ marginRight: "80px" }}>
-          <Link href="/info" scroll={false}>
-            Info
-          </Link>
-        </li>
-        <li className={styles.menuItem}>
-          <a href="mailto:hutchinsonpatrick@icloud.com">Contact</a>
-        </li>
-      </ul>
-    </nav>
+    <>
+      <button
+        aria-controls="primary-menu-overlay"
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Close menu" : "Open menu"}
+        className={[className, styles.menuButton, isOpen ? styles.menuButtonOpen : null].filter(Boolean).join(" ")}
+        data-menu-control
+        onClick={() => setIsOpen((currentIsOpen) => !currentIsOpen)}
+        type="button"
+      >
+        <span aria-hidden="true" className={styles.menuLabel}>
+          <span className={styles.burgerIcon}>
+            <span />
+            <span />
+            <span />
+          </span>
+        </span>
+      </button>
+      {portalElement ? createPortal(overlay, portalElement) : null}
+    </>
   );
 };
 

@@ -9,12 +9,19 @@ import ScaleList from "@/components/ScaleList/ScaleList";
 
 import styles from "@/styles/Index.module.css";
 
-export default function Home({ activeFilter, home, indexView = "list" }) {
+export default function Home({ activeFilter, home, indexView = "list", language = "en" }) {
   const preloadedMedia = useRef([]);
   const selection = home?.selection || [];
   const filteredSelection = useMemo(
     () => (activeFilter ? selection.filter((entry) => entry._type === activeFilter) : selection),
     [activeFilter, selection],
+  );
+  const imageViewSelection = useMemo(
+    () =>
+      selection
+        .map((entry, index) => (entry?._type === "project" ? { ...entry, _homeOrder: index } : entry))
+        .filter((entry) => entry?._type === "project"),
+    [selection],
   );
 
   useEffect(() => {
@@ -47,7 +54,11 @@ export default function Home({ activeFilter, home, indexView = "list" }) {
             key={indexView}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            {indexView === "list" ? <ScaleList array={filteredSelection} /> : <ImageView array={filteredSelection} />}
+            {indexView === "list" ? (
+              <ScaleList array={filteredSelection} language={language} />
+            ) : (
+              <ImageView array={imageViewSelection} language={language} />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

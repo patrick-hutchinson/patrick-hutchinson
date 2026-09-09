@@ -2,17 +2,17 @@ import { PortableText } from "@portabletext/react";
 
 import Link from "next/link";
 
-const Text = ({ text, typo, className, components }) => {
+const Text = ({ text, typo, className, components, style }) => {
   if (!Array.isArray(text)) {
     return text ? (
-      <p typo={typo} className={className}>
+      <p typo={typo} className={className} style={{ ...style }}>
         {text}
       </p>
     ) : null;
   }
 
   return (
-    <div className={className} typo={typo}>
+    <div className={className} typo={typo} style={{ ...style }}>
       <PortableText
         value={text}
         components={{

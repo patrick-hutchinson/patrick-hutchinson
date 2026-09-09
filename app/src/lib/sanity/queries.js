@@ -1,4 +1,16 @@
-import { mediaAssetFragment } from "./fragments";
+import { localizedString, mediaAssetFragment } from "./fragments";
+
+const localizedPortableText = (fieldName) => `"${fieldName}": coalesce(
+  ${fieldName}[_type == "internationalizedArrayPortableTextValue" && language == $language][0].value,
+  ${fieldName}[_type == "internationalizedArrayPortableTextValue" && language == "en"][0].value,
+  ${fieldName}[_type == "internationalizedArrayPortableTextValue" && language == "de"][0].value,
+  ${fieldName}[_type == "internationalizedArrayPortableTextValue"][0].value,
+  ${fieldName}[_key == $language][0].value,
+  ${fieldName}[_key == "en"][0].value,
+  ${fieldName}[_key == "de"][0].value,
+  ${fieldName}[0].value,
+  ${fieldName}
+)`;
 
 export const siteQuery = `*[_type=="site"][0]{
   title,
@@ -29,9 +41,9 @@ export const homeQuery = `*[_type=="home"][0]{
         name,
       },
       scheduling,
-      description,
+      ${localizedPortableText("description")},
       credits[]{
-        role,
+        "role": ${localizedString("role")},
         entries
       },
       thumbnail[0] ${mediaAssetFragment},
@@ -48,7 +60,7 @@ export const homeQuery = `*[_type=="home"][0]{
     _type == "experience" => {
       _id,
       _type,
-      title,
+      "title": ${localizedString("title")},
       scheduling,
       thumbnail[0] ${mediaAssetFragment},
       gallery[] ${mediaAssetFragment},
@@ -58,7 +70,7 @@ export const homeQuery = `*[_type=="home"][0]{
     _type == "publicity" => {
       _id,
       _type,
-      title,
+      "title": ${localizedString("title")},
       scheduling,
       thumbnail[0] ${mediaAssetFragment},
       gallery[] ${mediaAssetFragment},
@@ -102,9 +114,9 @@ export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
     name,
   },
   scheduling,
-  description,
+  ${localizedPortableText("description")},
   credits[]{
-    role,
+    "role": ${localizedString("role")},
     entries
   },
   thumbnail[0] ${mediaAssetFragment},
@@ -115,6 +127,8 @@ export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
     _key,
     _type,
     _type == "projectFullscreenMedium" => {
+      "caption": ${localizedString("caption")},
+      "subcaption": ${localizedString("subcaption")},
       medium[0] ${mediaAssetFragment}
     },
     _type == "projectScaleGallery" => {
@@ -130,7 +144,8 @@ export const projectQuery = `*[_type=="project" && slug.current == $slug][0]{
 }`;
 
 export const infoQuery = `*[_type=="info"][0]{
-  description,
+  ${localizedPortableText("description")},
+  ${localizedPortableText("selectedClients")},
   socials[]{
     platform,
     link
@@ -159,25 +174,25 @@ export const infoQuery = `*[_type=="info"][0]{
   }
 }`;
 
-export const experienceQuery = `*[_type=="experience"] | order(coalesce(scheduling.year, year) desc, title asc){
+export const experienceQuery = `*[_type=="experience"] | order(coalesce(scheduling.year, year) desc, ${localizedString("title")} asc){
   _id,
   _type,
-  title,
+  "title": ${localizedString("title")},
   scheduling,
   year,
-  location,
+  "location": ${localizedString("location")},
   thumbnail[0] ${mediaAssetFragment},
   gallery[] ${mediaAssetFragment},
   link,
 }`;
 
-export const publicityQuery = `*[_type=="publicity"] | order(coalesce(scheduling.year, year) desc, title asc){
+export const publicityQuery = `*[_type=="publicity"] | order(coalesce(scheduling.year, year) desc, ${localizedString("title")} asc){
   _id,
   _type,
-  title,
+  "title": ${localizedString("title")},
   scheduling,
   year,
-  location,
+  "location": ${localizedString("location")},
   thumbnail[0] ${mediaAssetFragment},
   gallery[] ${mediaAssetFragment},
   link,

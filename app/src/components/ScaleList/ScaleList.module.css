@@ -34,10 +34,9 @@ li.scaleListItem {
   font-weight: bold;
   line-height: 0.8;
   -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
 
   transform-origin: left center;
-  will-change: transform;
   white-space: nowrap;
 }
 
@@ -111,11 +110,10 @@ li.scaleListItem {
 
 .releaseDate,
 .location {
-  backface-visibility: hidden;
   font-size: 25px;
   -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
-  transform: translateZ(0);
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .location {
@@ -139,7 +137,6 @@ li.scaleListItem {
 
   .mobileTextMarquee {
     align-items: center;
-    backface-visibility: hidden;
     column-gap: var(--margin);
     display: flex;
     min-width: max-content;

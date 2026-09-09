@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { motion } from "motion/react";
 import Media from "@/components/Media/Media";
+import { getLocalizedPath } from "@/lib/i18n";
 
 const MOBILE_MARQUEE_SPEED = 0.0095;
 
@@ -13,6 +14,7 @@ const ScaleListItem = ({
   entry,
   isMobile,
   isSelected,
+  language,
   maxVisualScale,
   mountVideo,
   playVideo,
@@ -33,7 +35,9 @@ const ScaleListItem = ({
 
   const Wrapper = entry._type === "project" ? Link : "div";
   const wrapperProps =
-    entry._type === "project" ? { draggable: false, href: `/projects/${entry.slug.current}`, scroll: false } : {};
+    entry._type === "project"
+      ? { draggable: false, href: getLocalizedPath(`/projects/${entry.slug.current}`, language), scroll: false }
+      : {};
 
   useEffect(() => {
     if (!isMobile || !isSelected) {

@@ -10,6 +10,8 @@ export const projectFullscreenMedium = defineType({
       title: 'Medium',
       type: 'mediaAsset',
     }),
+    defineField({name: 'caption', type: 'internationalizedArrayString'}),
+    defineField({name: 'subcaption', type: 'internationalizedArrayString'}),
   ],
   preview: {
     prepare() {

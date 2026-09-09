@@ -34,7 +34,7 @@ function getLinkHref(link) {
   return link?.url || link?.href || link?.link || "";
 }
 
-export default function Project({ lastUpdatedAt, nextProject, project }) {
+export default function Project({ language = "en", lastUpdatedAt, nextProject, project }) {
   const { isMobile } = useContext(DeviceContext);
   const coverMediaRef = useRef(null);
   const [isCoverMediaHovered, setIsCoverMediaHovered] = useState(false);
@@ -71,56 +71,61 @@ export default function Project({ lastUpdatedAt, nextProject, project }) {
       ) : null}
       <main className="main">
         <article className={styles.project}>
-          <div
-            className={styles.coverCursorArea}
-            onMouseEnter={() => setIsCoverMediaHovered(true)}
-            onMouseLeave={() => setIsCoverMediaHovered(false)}
-            ref={coverMediaRef}
-          >
-            {coverMedia ? <Media className={styles.coverMedia} medium={coverMedia.medium} eager /> : null}
+          <div className={styles.coverStage}>
+            <div
+              className={styles.coverCursorArea}
+              onMouseEnter={() => setIsCoverMediaHovered(true)}
+              onMouseLeave={() => setIsCoverMediaHovered(false)}
+              ref={coverMediaRef}
+            >
+              {coverMedia ? <Media className={styles.coverMedia} medium={coverMedia.medium} eager /> : null}
+            </div>
           </div>
 
-          <Section>
-            {description ? (
-              <div className={styles.descriptionContainer}>
-                <DescriptionReveal className={styles.description} text={description} />
+          <div className={styles.content}>
+            <Section>
+              {description ? (
+                <div className={styles.descriptionContainer}>
+                  <DescriptionReveal className={styles.description} text={description} />
 
-                {subcaptionItems.length ? (
-                  <div typo="h5" className={styles.subcaption}>
-                    {subcaptionItems.map((item) => (
-                      <div key={item}>{item}</div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+                  {subcaptionItems.length ? (
+                    <div typo="h5" className={styles.subcaption}>
+                      {subcaptionItems.map((item) => (
+                        <div key={item}>{item}</div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </Section>
+
+            {pageBuilder.length ? (
+              <Section>
+                {pageBuilder.map((block) => buildPage(block, { fallbackSubcaption: schedulingSubcaption, isMobile }))}
+              </Section>
             ) : null}
-          </Section>
 
-          {pageBuilder.length ? (
-            <Section>
-              {pageBuilder.map((block) => buildPage(block, { fallbackSubcaption: schedulingSubcaption, isMobile }))}
-            </Section>
-          ) : null}
+            {credits.length ? (
+              <Section>
+                <Credits credits={credits} />
+              </Section>
+            ) : null}
 
-          {credits.length ? (
-            <Section>
-              <Credits credits={credits} />
-            </Section>
-          ) : null}
+            {projectLink ? (
+              <Section>
+                <div typo="h5">Link</div>
+                <a href={projectLink} target="_blank" rel="noreferrer">
+                  <Marquee canDrag={false} reliableLoop string={projectLink} typo="h1" />
+                </a>
+              </Section>
+            ) : null}
 
-          {projectLink ? (
-            <Section>
-              <div typo="h5">Link</div>
-              <a href={projectLink} target="_blank" rel="noreferrer">
-                <Marquee canDrag={false} reliableLoop string={projectLink} typo="h1" />
-              </a>
-            </Section>
-          ) : null}
-
-          <NextProject
-            lastUpdatedAt={lastUpdatedAt}
-            project={nextProject}
-          />
+            <NextProject
+              language={language}
+              lastUpdatedAt={lastUpdatedAt}
+              project={nextProject}
+            />
+          </div>
         </article>
       </main>
     </div>

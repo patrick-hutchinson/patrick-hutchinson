@@ -2,7 +2,7 @@
   --background: #fff;
   --foreground: #0a0a0a;
 
-  --accent: #9c9c9d;
+  --accent: #aeb0b1;
   --margin: 20px;
   --content-height: calc(100vh - 2 * var(--margin));
   --content-width: calc(100vw - 2 * var(--margin));
@@ -10,7 +10,7 @@
   --opacity: 0.4;
 
   --section-spacing: calc(var(--font-size-4) * 6);
-  --section-small-spacing: calc(var(--font-size-4) * 2);
+  --section-small-spacing: calc(var(--font-size-4) * 3);
 }
 
 html[data-theme="dark"] {
@@ -68,16 +68,16 @@ html[data-scale-list-page="true"] body {
   flex-direction: row-reverse;
   align-items: flex-start;
   gap: var(--margin);
+  isolation: auto;
   position: fixed;
   top: var(--margin);
   right: var(--margin);
-  z-index: 1001;
-
-  backdrop-filter: blur(10px);
-  border-radius: 25px;
+  z-index: 1004;
+  mix-blend-mode: difference;
 }
 
-.viewToggle {
+.viewToggle,
+.languageToggle {
   align-items: center;
   background: var(--foreground);
   border-radius: 25px;
@@ -90,12 +90,16 @@ html[data-scale-list-page="true"] body {
 }
 
 .viewToggle:hover,
-.viewToggle:focus-within {
+.viewToggle:focus-within,
+.languageToggle:hover,
+.languageToggle:focus-within {
   opacity: 1;
 }
 
 .viewToggleButton,
-.viewToggleButtonActive {
+.viewToggleButtonActive,
+.languageToggleButton,
+.languageToggleButtonActive {
   appearance: none;
   background: transparent;
   border: 0;
@@ -106,9 +110,11 @@ html[data-scale-list-page="true"] body {
   opacity: 0.45;
   padding: 0;
   text-transform: uppercase;
+  transition: opacity 0.3s ease-in-out;
 }
 
-.viewToggleButtonActive {
+.viewToggleButtonActive,
+.languageToggleButtonActive {
   opacity: 1;
 }
 

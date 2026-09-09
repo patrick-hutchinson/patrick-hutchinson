@@ -12,6 +12,12 @@ const formatMegabytes = (bytes?: number) => {
   return `${mb.toFixed(2)}MB`
 }
 
+const getPreviewString = (value?: string | {value?: string}[]) => {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.find((entry) => entry?.value)?.value || ''
+  return ''
+}
+
 export const imageAsset = defineType({
   name: 'imageAsset',
   title: 'Image',
@@ -23,8 +29,8 @@ export const imageAsset = defineType({
       type: 'image',
       options: {hotspot: true},
     }),
-    defineField({name: 'caption', type: 'string'}),
-    defineField({name: 'subcaption', type: 'string'}),
+    defineField({name: 'caption', type: 'internationalizedArrayString'}),
+    defineField({name: 'subcaption', type: 'internationalizedArrayString'}),
     defineField({name: 'copyright', type: 'string'}),
   ],
   preview: {
@@ -36,7 +42,7 @@ export const imageAsset = defineType({
       size: 'file.asset.size',
     },
     prepare({file, caption, copyright, uploadedAt, size}) {
-      const title = caption?.trim() || 'Image'
+      const title = getPreviewString(caption).trim() || 'Image'
       const subtitleParts = [copyright?.trim() || `Uploaded ${formatDate(uploadedAt)}`]
       const sizeLabel = formatMegabytes(size)
 

@@ -13,13 +13,26 @@
 
 @font-face {
   font-family: NeueHaasGroteskText;
+  src: url("../../public/fonts/NeueHaasText-Medium-Trail.ttf");
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: NeueHaasGroteskText;
+  src: url("../../public/fonts/NeueHaasText-Medium-Italic-Trail.ttf");
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: NeueHaasGroteskText;
   src: url("../../public/fonts/NeueHaasText-Bold.ttf");
   font-weight: bold;
 }
 
 @font-face {
   font-family: NeueHaasGroteskText;
-  src: url("../../public/fonts/NeueHaasGrotText-76BoldItalic-Trial.otf");
+  src: url("../../public/fonts/NeueHaasText-Bold-Italic.otf");
   font-weight: bold;
   font-style: italic;
 }
@@ -36,7 +49,7 @@
   --paragraph-spacing-2: 0rem;
 
   --font-size-longcopy: 3.2rem;
-  --line-height-longcopy: 3rem;
+  --line-height-longcopy: 3.2rem;
   --letter-spacing-longcopy: 0.01rem;
   --paragraph-spacing-longcopy: 0rem;
 
@@ -125,6 +138,14 @@ h4 p,
 
   margin-bottom: var(--paragraph-spacing-4);
 }
+
+/* a[typo="h4"],
+[typo="h4"] a,
+a [typo="h4"],
+.link [typo="h4"],
+[typo="h4"] .link {
+  font-weight: bold !important;
+} */
 
 h5,
 [typo="h5"] {

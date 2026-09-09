@@ -10,11 +10,39 @@ import CyclingMedia from "@/components/Media/CyclingMedia";
 import SectionSmall from "@/components/Section/SectionSmall";
 import Section from "@/components/Section/Section";
 
-import Footer from "@/components/Footer/Footer";
 import ProjectCursor from "@/components/ProjectCursor/ProjectCursor";
 import { DeviceContext } from "@/context/DeviceContext";
 
 const ENTRY_SCROLL_THRESHOLD = 80;
+
+const infoLabels = {
+  en: {
+    contact: "Contact",
+    currentLocation: "Freiburg im Breisgau, Germany",
+    currentlyIn: "Currently in",
+    downloadCV: "Download CV",
+    downloadRecommendations: "Download Recommendations",
+    downloads: "Downloads",
+    experience: "Experience",
+    publicity: "Publicity",
+    scrollNotice: "Scroll to see next",
+    selected: "Selected",
+    socials: "Socials",
+  },
+  de: {
+    contact: "Kontakt",
+    currentLocation: "Freiburg im Breisgau, Deutschland",
+    currentlyIn: "Aktuell in",
+    downloadCV: "CV herunterladen",
+    downloadRecommendations: "Empfehlungen herunterladen",
+    downloads: "Downloads",
+    experience: "Erfahrung",
+    publicity: "Publikationen",
+    scrollNotice: "Scrollen, um den nächsten Eintrag zu sehen",
+    selected: "Ausgewählte",
+    socials: "Soziale Medien",
+  },
+};
 
 const infoPortableTextComponents = {
   marks: {
@@ -30,12 +58,14 @@ function getEntryDate(entry) {
   return [entry?.scheduling?.month, entry?.scheduling?.year || entry?.year].filter(Boolean).join("/");
 }
 
-function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
+function InfoList({ entries, isMobile, labels, onEntryHover, onEntryTap, title }) {
   if (!entries?.length) return null;
 
   return (
     <SectionSmall>
-      <h2 typo="fineprint">Selected {title}</h2>
+      <h2 typo="fineprint">
+        {labels.selected} {title}
+      </h2>
       <ul>
         {entries.map((entry) => (
           <li key={entry._id} typo="h4" className={styles.listEntry}>
@@ -61,12 +91,12 @@ function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
               }}
               tabIndex={0}
             >
-              <span className={styles.thumbnailSlot}>
-                <CyclingMedia className={styles.thumbnail} gallery={entry.gallery} medium={entry.thumbnail?.medium} />
-              </span>
-
               <span className={styles.date} typo="fineprint">
                 {getEntryDate(entry) ? `‘${getEntryDate(entry).slice(2)}` : null}
+              </span>
+
+              <span className={styles.thumbnailSlot}>
+                <CyclingMedia className={styles.thumbnail} gallery={entry.gallery} medium={entry.thumbnail?.medium} />
               </span>
 
               <span className={`${styles.title} link`}>{entry.title}</span>
@@ -81,8 +111,9 @@ function InfoList({ entries, isMobile, onEntryHover, onEntryTap, title }) {
   );
 }
 
-export default function Info({ experience, info, lastUpdatedAt, publicity }) {
+export default function Info({ experience, info, language = "en", publicity }) {
   const { isMobile } = useContext(DeviceContext);
+  const labels = infoLabels[language] || infoLabels.en;
   const [hoveredEntry, setHoveredEntry] = useState(null);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [hasUsedMobileEntryScroll, setHasUsedMobileEntryScroll] = useState(false);
@@ -197,7 +228,7 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             typo="fineprint"
           >
-            Scroll to see next
+            {labels.scrollNotice}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -205,33 +236,40 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
         <div className={styles.infoContainer}>
           <div className={styles.intro}>
             <SectionSmall>
-              <Text components={infoPortableTextComponents} text={info.description} typo="h4" />
+              <Text
+                components={infoPortableTextComponents}
+                text={info.description}
+                typo="h4"
+                style={{ fontWeight: "normal" }}
+              />
             </SectionSmall>
             <InfoList
               entries={experience}
               isMobile={isMobile}
+              labels={labels}
               onEntryHover={setHoveredEntry}
               onEntryTap={handleEntryTap}
-              title="Experience"
+              title={labels.experience}
             />
             <InfoList
               entries={publicity}
               isMobile={isMobile}
+              labels={labels}
               onEntryHover={setHoveredEntry}
               onEntryTap={handleEntryTap}
-              title="Publicity"
+              title={labels.publicity}
             />
 
-            <Section>
+            {/* <Section>
               <Text
                 text="Patrick has lived and worked in Germany, Ireland, Switzerland, The Netherlands, Finland, Austria and Italy for extended periods."
                 typo="h4"
               />
-            </Section>
+            </Section> */}
 
             <section className={styles.details}>
               <section typo="fineprint">
-                <h4 typo="fineprint">Contact</h4>
+                <h4 typo="fineprint">{labels.contact}</h4>
                 <a typo="fineprint" href="mailto:hutchinsonpatrick@icloud.com">
                   hutchinsonpatrick@icloud.com
                 </a>{" "}
@@ -241,7 +279,7 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
 
               {info.socials && (
                 <section typo="fineprint">
-                  <h4 typo="fineprint">Socials</h4>
+                  <h4 typo="fineprint">{labels.socials}</h4>
                   {info.socials.map((social) => (
                     <>
                       <a href={social.link} target="_blank">
@@ -254,11 +292,11 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
               )}
 
               <section typo="fineprint">
-                <h4 typo="fineprint">Downloads</h4>
+                <h4 typo="fineprint">{labels.downloads}</h4>
                 {info.CV?.asset?.url ? (
                   <div>
                     <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
-                      Download CV
+                      {labels.downloadCV}
                     </a>
                   </div>
                 ) : null}
@@ -266,17 +304,26 @@ export default function Info({ experience, info, lastUpdatedAt, publicity }) {
                 {recommendations?.asset?.url ? (
                   <div>
                     <a href={recommendations.asset.url} download={recommendations.asset.originalFilename || undefined}>
-                      Download Recommendations
+                      {labels.downloadRecommendations}
                     </a>
                   </div>
                 ) : null}
+              </section>
+
+              <section typo="fineprint">
+                <h4 typo="fineprint">{labels.currentlyIn}</h4>
+                <a
+                  href="https://www.google.com/maps/place/Freiburg+im+Breisgau/@47.9873966,7.7140196,12z/data=!3m1!4b1!4m6!3m5!1s0x47911b26560bd665:0x41f6bb7a5df57b0!8m2!3d47.9990077!4d7.8421043!16zL20vMHB0ajI?entry=ttu&g_ep=EgoyMDI2MDcyOC4wIKXMDSoASAFQAw%3D%3D"
+                  target="_blank"
+                >
+                  {labels.currentLocation}
+                </a>
               </section>
             </section>
           </div>
         </div>
       </main>
 
-      <Footer className={`${styles.footer} ${activeEntry ? styles.contentDimmed : ""}`} lastUpdatedAt={lastUpdatedAt} />
     </div>
   );
 }

@@ -4,8 +4,8 @@ export const info = defineType({
   name: 'info',
   type: 'document',
   fields: [
-    defineField({name: 'description', type: 'portableText'}),
-    defineField({name: 'selectedClients', type: 'portableText'}),
+    defineField({name: 'description', type: 'internationalizedArrayPortableText'}),
+    defineField({name: 'selectedClients', type: 'internationalizedArrayPortableText'}),
     defineField({
       name: 'socials',
       title: 'Socials',

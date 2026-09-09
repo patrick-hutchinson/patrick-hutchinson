@@ -14,7 +14,7 @@ export const project = defineType({
     defineField({
       name: 'description',
       title: 'Project Description',
-      type: 'portableText',
+      type: 'internationalizedArrayPortableText',
     }),
 
     defineField({
@@ -70,7 +70,7 @@ export const project = defineType({
         {
           type: 'object',
           fields: [
-            defineField({name: 'role', title: 'Role', type: 'string'}),
+            defineField({name: 'role', title: 'Role', type: 'internationalizedArrayString'}),
             defineField({
               name: 'entries',
               title: 'Entries',

@@ -7,6 +7,7 @@ import Footer from "../Footer/Footer";
 import ImageTrail from "../ImageTrail/ImageTrail";
 import ProjectCursor from "../ProjectCursor/ProjectCursor";
 import { DeviceContext } from "@/context/DeviceContext";
+import { getLocalizedPath } from "@/lib/i18n";
 import { getProjectThumbnailMedia } from "@/lib/media/projectThumbnails";
 
 function getPageBuilderMedia(pageBuilder) {
@@ -22,7 +23,7 @@ function getPageBuilderMedia(pageBuilder) {
   });
 }
 
-const NextProject = ({ lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
+const NextProject = ({ language = "en", lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
   const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -50,6 +51,8 @@ const NextProject = ({ lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
       <AnimatePresence>
         {isMobile && isInView ? (
           <ProjectCursor
+            activeOpacity="var(--opacity)"
+            className={styles.nextProjectCursor}
             key={project._id || project.slug.current}
             isActive
             project={project}
@@ -60,7 +63,9 @@ const NextProject = ({ lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
       </AnimatePresence>
       {!isMobile ? (
         <ProjectCursor
+          activeOpacity="var(--opacity)"
           boundsRef={containerRef}
+          className={styles.nextProjectCursor}
           inactiveOpacity={0}
           isActive={isHovered}
           project={project}
@@ -70,7 +75,7 @@ const NextProject = ({ lastUpdatedAt, onHoverEnd, onHoverStart, project }) => {
       <Link
         aria-label={`Next project: ${project.title}`}
         className={styles.nextProjectContainer}
-        href={`/projects/${project.slug.current}`}
+        href={getLocalizedPath(`/projects/${project.slug.current}`, language)}
         onBlur={handleLeave}
         onFocus={handleEnter}
         onMouseEnter={handleEnter}

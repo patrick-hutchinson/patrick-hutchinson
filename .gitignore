@@ -10,6 +10,7 @@ out/
 # Sanity Studio
 dist/
 .sanity/
+studio/backups/
 
 # Environment files
 .env
