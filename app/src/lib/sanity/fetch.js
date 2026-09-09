@@ -17,7 +17,7 @@ export const fallbackSiteData = {
   faviconUrl: "/favicon.ico",
 };
 
-const revalidate = 60;
+const revalidate = 5;
 
 function getLastUpdatedAt() {
   if (process.env.SITE_LAST_UPDATED_AT) {
