@@ -51,12 +51,6 @@ export default function App({ Component, pageProps }) {
   const [exitingScrollY, setExitingScrollY] = useState(0);
   const [indexView, setIndexView] = useState("list");
   const isIndexPage = router.pathname === "/" || router.pathname === "/[language]";
-  // const [activeFilter, setActiveFilter] = useState(null);
-  // const filterArray = useMemo(() => {
-  //   const selection = pageProps.home?.selection || [];
-
-  //   return [...new Set(selection.map((entry) => entry._type))];
-  // }, [pageProps.home?.selection]);
 
   useEffect(() => {
     const handleRouteChangeStart = () => {
@@ -83,9 +77,6 @@ export default function App({ Component, pageProps }) {
           <DeviceProvider>
             <LenisProvider>
               <div className="controls">
-                {/* {filterArray.length ? (
-                <FilterMenu activeFilter={activeFilter} array={filterArray} onFilterChange={setActiveFilter} />
-              ) : null} */}
                 <Menu language={language} socials={site.socials} />
                 <div className="languageToggle" typo="fineprint" aria-label="Language options">
                   <Link
@@ -118,13 +109,6 @@ export default function App({ Component, pageProps }) {
                       type="button"
                     >
                       Image
-                    </button>
-                    <button
-                      className={indexView === "3d" ? "viewToggleButtonActive" : "viewToggleButton"}
-                      onClick={() => setIndexView("3d")}
-                      type="button"
-                    >
-                      3D
                     </button>
                   </div>
                 ) : null}

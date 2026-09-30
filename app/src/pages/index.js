@@ -6,7 +6,6 @@ import { getHomeStaticProps } from "@/lib/sanity/fetch";
 import { preloadMedium } from "@/lib/media/projectThumbnails";
 
 import ImageView from "@/components/ImageView/ImageView";
-import ScaleList from "@/components/ScaleList/ScaleList";
 
 import styles from "@/styles/Index.module.css";
 
@@ -45,30 +44,18 @@ export default function Home({ activeFilter, home, indexView = "list", language 
 
   if (!home || home.length === 0) return null;
 
-  const viewClassName = [
-    styles.view,
-    indexView === "list" ? styles.listView : indexView === "image" ? styles.imageView : styles.cylinderView,
-  ].join(" ");
-
   return (
     <div className={`page ${styles.page}`}>
       <main className="main">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             animate={{ opacity: 1 }}
-            className={viewClassName}
             exit={{ opacity: 0 }}
             initial={{ opacity: 0 }}
             key={indexView}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            {indexView === "list" ? (
-              <ScaleList array={filteredSelection} language={language} />
-            ) : indexView === "image" ? (
-              <ImageView array={imageViewSelection} language={language} />
-            ) : (
-              <CylinderView array={imageViewSelection} language={language} />
-            )}
+            <CylinderView array={imageViewSelection} language={language} />
           </motion.div>
         </AnimatePresence>
       </main>

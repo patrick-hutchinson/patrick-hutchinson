@@ -13,12 +13,12 @@ export const TITLE_KERNING = {
   "diagonale-23": {
     pairs: {
       DI: 6,
-      IA: 8,
+      IA: 6,
 
       GO: 6,
       ON: 6,
       NA: 4,
-      AL: 4,
+      AL: 6,
       LE: 4,
       "'2": 4,
       23: 4,
@@ -44,13 +44,14 @@ export const TITLE_KERNING = {
     pairs: {
       VA: -12,
       TI: 4,
-      EW: 4,
+      EW: 6,
       AR: 6,
       RI: 5,
-      IA: 5,
-      AB: 5,
-      BL: 3,
-      LE: 3,
+      IA: 6,
+      AB: 8,
+      BL: 5,
+      LE: 4,
+      ES: 3,
     },
   },
   "steim-23-magazine": {
@@ -62,14 +63,15 @@ export const TITLE_KERNING = {
   "enrico-gisana": {
     pairs: {
       RI: 6,
-      NR: -2,
+      NR: 0,
       IC: 3,
-      CO: 3,
+      CO: 6,
       IS: 4,
       SA: 3,
       GI: 3,
       AN: 3,
       NA: 3,
+      EN: 1,
     },
   },
   "gg-rugs": {
@@ -77,7 +79,9 @@ export const TITLE_KERNING = {
       GG: 4,
       "G–": 8,
       "–R": 5,
-      GS: 3,
+      GS: 4,
+      UG: 5,
+      RU: 4,
     },
   },
   "gg-office": {
@@ -88,8 +92,8 @@ export const TITLE_KERNING = {
       IC: 4,
       OF: 4,
       CE: 3,
-      FI: 2,
-      FF: 2,
+      FI: 4,
+      FF: 4,
     },
   },
 };

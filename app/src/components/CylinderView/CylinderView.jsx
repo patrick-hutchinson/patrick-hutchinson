@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import * as THREE from "three";
 
 import { getLocalizedPath } from "@/lib/i18n";
+import { getMediumPreviewImageUrl, getProjectThumbnailMedia, getVideoRenditionUrl } from "@/lib/media/projectThumbnails";
 
 import styles from "./CylinderView.module.css";
 import { TITLE_KERNING } from "./titleKerning";
@@ -10,6 +11,7 @@ import { TITLE_KERNING } from "./titleKerning";
 const CYLINDER_RADIUS = 2.15;
 const CYLINDER_BODY_RADIUS = CYLINDER_RADIUS - 0.035;
 const CYLINDER_WIDTH = 8.2;
+const IMAGE_CYLINDER_WIDTH = 5.2;
 const TEXT_HEIGHT = 0.75;
 const TEXT_CURVE_SEGMENTS = 16;
 const SCROLL_SPEED = 0.0032;
@@ -31,26 +33,33 @@ const TITLE_TEXTURE_FONT_FAMILY = "NeueHaasGroteskDisplay, Arial, Helvetica, san
 const META_TEXTURE_FONT_FAMILY = "NeueHaasGroteskText, Arial, Helvetica, sans-serif";
 const TITLE_HOVER_EASE = 0.14;
 const TITLE_HOVER_COLOR = new THREE.Color(META_TEXTURE_COLOR);
+const TITLE_HOVER_MIN_FRONTNESS = 0.54;
+const TITLE_HOVER_SWITCH_MARGIN = 0.08;
 const HIT_HEIGHT_MULTIPLIER = 0.72;
 const HIT_WIDTH_PADDING = 0.18;
 const ROW_POOL_BUFFER = 4;
 const VISIBLE_ANGLE_MIN = -Math.PI / 2;
 const VISIBLE_ANGLE_MAX = Math.PI / 2;
+const CYLINDER_MODES = {
+  IMAGES: "images",
+  TITLES: "titles",
+};
+const MEDIA_ATLAS_WIDTH = 2048;
 
 const BACKGROUND = "ffffff;";
 const FOREFROUND = "000000";
 const DEFAULT_LAYOUT = {
   letterSpacing: -5,
-  lineHeight: 0.68,
+  lineHeight: 0.66,
   position: {
     x: 0,
     y: 0,
-    z: 0,
+    z: -2.25,
   },
   rotation: {
-    x: 0,
+    x: -0.05,
     y: 0.487,
-    z: 3.141,
+    z: 0.096,
   },
 };
 
@@ -165,6 +174,62 @@ function makeTextTexture(project, letterSpacing) {
   };
 }
 
+function getMediumAspect(medium) {
+  if (medium?.width && medium?.height) return medium.width / medium.height;
+  if (medium?.aspect_ratio) {
+    const [width, height] = String(medium.aspect_ratio).split(":").map(Number);
+    if (width && height) return width / height;
+  }
+  return 16 / 9;
+}
+
+function drawImageCover(context, image, canvasWidth, canvasHeight) {
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const canvasRatio = canvasWidth / canvasHeight;
+  const drawHeight = imageRatio > canvasRatio ? canvasHeight : canvasWidth / imageRatio;
+  const drawWidth = imageRatio > canvasRatio ? canvasHeight * imageRatio : canvasWidth;
+  const drawX = (canvasWidth - drawWidth) / 2;
+  const drawY = (canvasHeight - drawHeight) / 2;
+
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+}
+
+function makeImageTexture(project, isMobile) {
+  const medium = getProjectThumbnailMedia(project, isMobile);
+  const src = getMediumPreviewImageUrl(medium, 1600);
+  const aspect = getMediumAspect(medium);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  canvas.height = 900;
+  canvas.width = Math.max(1, Math.round(canvas.height * aspect));
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+
+  if (src) {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.decoding = "async";
+    image.onload = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawImageCover(context, image, canvas.width, canvas.height);
+      texture.needsUpdate = true;
+    };
+    image.src = src;
+  }
+
+  return {
+    texture,
+    aspect,
+  };
+}
+
 function makeCurvedTextGeometry(width, height, options = {}) {
   const widthSegments = options.widthSegments ?? Math.max(8, Math.ceil(width * 5));
   const heightSegments = options.heightSegments ?? TEXT_CURVE_SEGMENTS;
@@ -213,7 +278,204 @@ function makeCurvedTextGeometry(width, height, options = {}) {
   return geometry;
 }
 
-function makeCylinderTextMaterial(texture) {
+function makeCylinderStripGeometry(width, thetaMin, thetaMax, options = {}) {
+  const widthSegments = options.widthSegments ?? 1;
+  const heightSegments = options.heightSegments ?? 96;
+  const positions = [];
+  const normals = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let yIndex = 0; yIndex <= heightSegments; yIndex += 1) {
+    const v = yIndex / heightSegments;
+    const theta = thetaMin + (thetaMax - thetaMin) * v;
+    const y = Math.sin(theta) * CYLINDER_RADIUS;
+    const z = Math.cos(theta) * CYLINDER_RADIUS;
+    const normalY = Math.sin(theta);
+    const normalZ = Math.cos(theta);
+
+    for (let xIndex = 0; xIndex <= widthSegments; xIndex += 1) {
+      const u = xIndex / widthSegments;
+      const x = (u - 0.5) * width;
+
+      positions.push(x, y, z);
+      normals.push(0, normalY, normalZ);
+      uvs.push(u, v);
+    }
+  }
+
+  for (let yIndex = 0; yIndex < heightSegments; yIndex += 1) {
+    for (let xIndex = 0; xIndex < widthSegments; xIndex += 1) {
+      const a = yIndex * (widthSegments + 1) + xIndex;
+      const b = a + widthSegments + 1;
+      const c = b + 1;
+      const d = a + 1;
+
+      indices.push(a, d, b, b, d, c);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeBoundingSphere();
+
+  return geometry;
+}
+
+function drawImageContain(context, image, x, y, width, height, aspect) {
+  const imageAspect = image?.naturalWidth && image?.naturalHeight ? image.naturalWidth / image.naturalHeight : aspect;
+  const drawWidth = Math.min(width, height * imageAspect);
+  const drawHeight = drawWidth / imageAspect;
+  const drawX = x + (width - drawWidth) / 2;
+  const drawY = y + (height - drawHeight) / 2;
+
+  context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+}
+
+function drawMediaAtlasRow(context, row, source) {
+  context.fillStyle = "#000000";
+  context.fillRect(0, row.startY, MEDIA_ATLAS_WIDTH, row.pixelHeight);
+  drawImageContain(context, source, 0, row.startY, MEDIA_ATLAS_WIDTH, row.pixelHeight, row.aspect);
+}
+
+function loadAtlasVideo(row, texture) {
+  if (!row.videoSrc) return null;
+
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.loop = true;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  row.video = video;
+
+  const handleLoaded = () => {
+    video.play().catch(() => {});
+    row.hasDrawnVideoFrame = false;
+    texture.needsUpdate = true;
+  };
+
+  video.addEventListener("loadeddata", handleLoaded, { once: true });
+  video.src = row.videoSrc;
+  video.load();
+
+  return video;
+}
+
+function updateMediaAtlasVideos(atlas) {
+  let hasUpdated = false;
+
+  atlas.rows.forEach((row) => {
+    const video = row.video;
+    if (!video || video.readyState < 2) return;
+    if (!row.hasDrawnVideoFrame && video.currentTime <= 0.03) return;
+
+    try {
+      drawMediaAtlasRow(atlas.context, row, video);
+      row.hasDrawnVideoFrame = true;
+      hasUpdated = true;
+    } catch {
+      row.video.pause();
+      row.video = null;
+    }
+  });
+
+  if (hasUpdated) atlas.texture.needsUpdate = true;
+}
+
+function disposeMediaAtlas(atlas) {
+  atlas.rows.forEach((row) => {
+    if (!row.video) return;
+    row.video.pause();
+    row.video.removeAttribute("src");
+    row.video.load();
+    row.video = null;
+  });
+}
+
+function getMediaWorldHeight(aspect) {
+  return IMAGE_CYLINDER_WIDTH / Math.max(aspect, 0.01);
+}
+
+function findMediaRowByUnit(rows, unitValue) {
+  if (!rows.length) return null;
+
+  const atlasY = wrapUnit(unitValue) * rows[rows.length - 1].endY;
+  return rows.find((row) => atlasY >= row.startY && atlasY < row.endY) || rows[rows.length - 1];
+}
+
+function makeMediaAtlas(projects, isMobile) {
+  const rows = projects.map((project) => {
+    const medium = getProjectThumbnailMedia(project, isMobile);
+    const aspect = getMediumAspect(medium);
+    const pixelHeight = Math.max(1, Math.round(MEDIA_ATLAS_WIDTH / aspect));
+    const worldHeight = getMediaWorldHeight(aspect);
+
+    return {
+      aspect,
+      hasDrawnVideoFrame: false,
+      pixelHeight,
+      project,
+      src: getMediumPreviewImageUrl(medium, 1600),
+      video: null,
+      videoSrc: medium?.type === "video" ? getVideoRenditionUrl(medium) : null,
+      worldHeight,
+    };
+  });
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  const totalPixelHeight = rows.reduce((height, row) => height + row.pixelHeight, 0);
+  const totalWorldHeight = rows.reduce((height, row) => height + row.worldHeight, 0);
+
+  canvas.width = MEDIA_ATLAS_WIDTH;
+  canvas.height = Math.max(1, totalPixelHeight);
+  context.fillStyle = "#000000";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+
+  let currentY = 0;
+  rows.forEach((row) => {
+    const y = currentY;
+    row.startY = y;
+    row.endY = y + row.pixelHeight;
+    currentY = row.endY;
+
+    context.fillStyle = "#000000";
+    context.fillRect(0, y, canvas.width, row.pixelHeight);
+
+    if (!row.src && !row.videoSrc) return;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.decoding = "async";
+    image.onload = () => {
+      drawMediaAtlasRow(context, row, image);
+      texture.needsUpdate = true;
+    };
+    if (row.src) image.src = row.src;
+
+    loadAtlasVideo(row, texture);
+  });
+
+  return {
+    context,
+    rows,
+    texture,
+    totalWorldHeight: Math.max(getMediaWorldHeight(16 / 9), totalWorldHeight),
+  };
+}
+
+function makeCylinderTextMaterial(texture, options = {}) {
   return new THREE.ShaderMaterial({
     alphaTest: 0.08,
     depthTest: false,
@@ -224,6 +486,7 @@ function makeCylinderTextMaterial(texture) {
       uniform float shadeBlackAt;
       uniform float shadePower;
       uniform float hoverAmount;
+      uniform float hoverEnabled;
       uniform vec3 hoverColor;
       varying vec2 vUv;
       varying vec3 vViewNormal;
@@ -236,7 +499,7 @@ function makeCylinderTextMaterial(texture) {
         float shade = smoothstep(shadeBlackAt, shadeWhiteAt, facing);
         shade = pow(shade, shadePower);
         float titleMask = smoothstep(0.72, 0.96, max(max(texel.r, texel.g), texel.b));
-        vec3 color = mix(texel.rgb, hoverColor, hoverAmount * titleMask);
+        vec3 color = mix(texel.rgb, hoverColor, hoverEnabled * hoverAmount * titleMask);
 
         gl_FragColor = vec4(color * shade, texel.a);
       }
@@ -246,11 +509,60 @@ function makeCylinderTextMaterial(texture) {
     transparent: true,
     uniforms: {
       map: { value: texture },
+      hoverEnabled: { value: options.hoverEnabled ? 1 : 0 },
       hoverAmount: { value: 0 },
       hoverColor: { value: TITLE_HOVER_COLOR },
       shadeBlackAt: { value: CYLINDER_SHADE_BLACK_AT },
       shadePower: { value: CYLINDER_SHADE_POWER },
       shadeWhiteAt: { value: CYLINDER_SHADE_WHITE_AT },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vViewNormal;
+
+      void main() {
+        vUv = uv;
+        vViewNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+  });
+}
+
+function makeCylinderMediaMaterial(texture) {
+  return new THREE.ShaderMaterial({
+    depthTest: false,
+    depthWrite: false,
+    fragmentShader: `
+      uniform sampler2D map;
+      uniform float shadeWhiteAt;
+      uniform float shadeBlackAt;
+      uniform float shadePower;
+      uniform float scrollOffset;
+      uniform float visibleRepeat;
+      varying vec2 vUv;
+      varying vec3 vViewNormal;
+
+      void main() {
+        vec2 uv = vec2(vUv.x, fract(vUv.y * visibleRepeat + scrollOffset));
+        vec4 texel = texture2D(map, uv);
+        float facing = clamp(vViewNormal.z, 0.0, 1.0);
+        float shade = smoothstep(shadeBlackAt, shadeWhiteAt, facing);
+        shade = pow(shade, shadePower);
+
+        gl_FragColor = vec4(texel.rgb * shade, 1.0);
+      }
+    `,
+    side: THREE.FrontSide,
+    toneMapped: false,
+    transparent: false,
+    uniforms: {
+      map: { value: texture },
+      scrollOffset: { value: 0 },
+      shadeBlackAt: { value: CYLINDER_SHADE_BLACK_AT },
+      shadePower: { value: CYLINDER_SHADE_POWER },
+      shadeWhiteAt: { value: CYLINDER_SHADE_WHITE_AT },
+      visibleRepeat: { value: 1 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -273,11 +585,68 @@ function getProjectForVirtualIndex(projects, virtualIndex) {
   return projects[getLoopIndex(virtualIndex, projects.length)];
 }
 
-function updateRowMesh({ hitHeight, hitMesh, letterSpacing, mesh, project, virtualIndex }) {
-  const { texture, aspect } = makeTextTexture(project, letterSpacing);
-  const width = Math.min(TEXT_HEIGHT * aspect, CYLINDER_WIDTH);
-  const geometry = makeCurvedTextGeometry(width, TEXT_HEIGHT);
-  const material = makeCylinderTextMaterial(texture);
+function wrapUnit(value) {
+  return ((value % 1) + 1) % 1;
+}
+
+function getModeMetrics(mode, layout) {
+  const height = TEXT_HEIGHT;
+  const lineHeight = mode === CYLINDER_MODES.IMAGES ? 1 : layout.lineHeight;
+
+  return {
+    angleStep: (height * lineHeight) / CYLINDER_RADIUS,
+    height,
+    hitHeight: Math.max(0.08, height * lineHeight * HIT_HEIGHT_MULTIPLIER),
+  };
+}
+
+function makeProjectTexture(project, { isMobile, letterSpacing, mode }) {
+  return mode === CYLINDER_MODES.IMAGES ? makeImageTexture(project, isMobile) : makeTextTexture(project, letterSpacing);
+}
+
+function setTitleRowRotation(mesh, angle, mode) {
+  mesh.rotation.set(angle, 0, mode === CYLINDER_MODES.TITLES ? Math.PI : 0);
+}
+
+function getStableTitleHit(intersections, currentMesh = null) {
+  const candidates = [];
+  const seen = new Set();
+
+  intersections.forEach((hit) => {
+    const hitMesh = hit.object;
+    const visualMesh = hitMesh.userData?.visualMesh;
+    if (!visualMesh || seen.has(visualMesh)) return;
+
+    const frontness = hitMesh.userData?.frontness ?? 0;
+    if (frontness < TITLE_HOVER_MIN_FRONTNESS) return;
+
+    seen.add(visualMesh);
+    candidates.push({
+      distance: hit.distance,
+      frontness,
+      visualMesh,
+    });
+  });
+
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => b.frontness - a.frontness || a.distance - b.distance);
+
+  const currentCandidate = candidates.find((candidate) => candidate.visualMesh === currentMesh);
+  const bestCandidate = candidates[0];
+
+  if (currentCandidate && currentCandidate.frontness >= bestCandidate.frontness - TITLE_HOVER_SWITCH_MARGIN) {
+    return currentCandidate.visualMesh;
+  }
+
+  return bestCandidate.visualMesh;
+}
+
+function updateRowMesh({ hitHeight, hitMesh, isMobile, letterSpacing, mesh, mode, project, rowHeight, virtualIndex }) {
+  const { texture, aspect } = makeProjectTexture(project, { isMobile, letterSpacing, mode });
+  const width = Math.min(rowHeight * aspect, CYLINDER_WIDTH);
+  const geometry = makeCurvedTextGeometry(width, rowHeight);
+  const material = makeCylinderTextMaterial(texture, { hoverEnabled: mode === CYLINDER_MODES.TITLES });
   const hitGeometry = makeCurvedTextGeometry(Math.min(width + HIT_WIDTH_PADDING, CYLINDER_WIDTH), hitHeight, {
     heightSegments: 4,
     widthSegments: 1,
@@ -292,10 +661,12 @@ function updateRowMesh({ hitHeight, hitMesh, letterSpacing, mesh, project, virtu
   mesh.material = material;
   mesh.userData.project = project;
   mesh.userData.virtualIndex = virtualIndex;
+  mesh.userData.mode = mode;
   hitMesh.geometry = hitGeometry;
   hitMesh.userData.project = project;
   hitMesh.userData.virtualIndex = virtualIndex;
   hitMesh.userData.visualMesh = mesh;
+  hitMesh.userData.mode = mode;
 }
 
 function disposeMeshes(meshes) {
@@ -349,12 +720,14 @@ export default function CylinderView({ array = [], language = "en" }) {
   const [layout, setLayout] = useState(() => cloneLayout(DEFAULT_LAYOUT));
   const [isDragging, setIsDragging] = useState(false);
   const [isClickable, setIsClickable] = useState(false);
+  const [cylinderMode, setCylinderMode] = useState(CYLINDER_MODES.TITLES);
 
   const projects = useMemo(
     () =>
       array
         .filter((entry) => entry?._type === "project" && entry?.slug?.current && entry?.title)
         .map((entry) => ({
+          ...entry,
           scheduling: entry.scheduling,
           slug: entry.slug.current,
           title: entry.title.toUpperCase(),
@@ -375,6 +748,7 @@ export default function CylinderView({ array = [], language = "en" }) {
 
     const canvas = canvasRef.current;
     const container = containerRef.current;
+    const isMobile = window.matchMedia?.("(max-width: 748px)").matches || false;
     let cancelled = false;
     let animationFrame = 0;
     let cleanupScene = () => {};
@@ -407,10 +781,11 @@ export default function CylinderView({ array = [], language = "en" }) {
       applyLayout(group, layoutRef.current);
       scene.add(group);
 
+      const cylinderWidth = cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH;
       const cylinderGeometry = new THREE.CylinderGeometry(
         CYLINDER_BODY_RADIUS,
         CYLINDER_BODY_RADIUS,
-        CYLINDER_WIDTH,
+        cylinderWidth,
         96,
         1,
         false,
@@ -425,7 +800,75 @@ export default function CylinderView({ array = [], language = "en" }) {
       cylinderBody.renderOrder = 0;
       group.add(cylinderBody);
 
-      const angleStep = (TEXT_HEIGHT * layoutRef.current.lineHeight) / CYLINDER_RADIUS;
+      if (cylinderMode === CYLINDER_MODES.IMAGES) {
+        const atlas = makeMediaAtlas(projects, isMobile);
+        const visibleWorldHeight = (VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN) * CYLINDER_RADIUS;
+        const stripGeometry = makeCylinderStripGeometry(IMAGE_CYLINDER_WIDTH, VISIBLE_ANGLE_MIN, VISIBLE_ANGLE_MAX);
+        const stripMaterial = makeCylinderMediaMaterial(atlas.texture);
+        const stripMesh = new THREE.Mesh(stripGeometry, stripMaterial);
+
+        stripMaterial.uniforms.visibleRepeat.value = visibleWorldHeight / atlas.totalWorldHeight;
+        group.add(stripMesh);
+
+        sceneStateRef.current = {
+          camera,
+          container,
+          media: {
+            atlas,
+            mesh: stripMesh,
+            visibleWorldHeight,
+          },
+          pointer,
+          raycaster,
+          renderer,
+          scene,
+          group,
+        };
+
+        const resize = () => {
+          const { width, height } = container.getBoundingClientRect();
+          renderer.setSize(width, height, false);
+          camera.aspect = width / Math.max(height, 1);
+          camera.updateProjectionMatrix();
+        };
+
+        const render = () => {
+          const rotation = rotationRef.current;
+          rotation.target += rotation.velocity;
+          rotation.velocity *= ROTATION_INERTIA;
+          if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
+          rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
+          applyLayout(group, layoutRef.current);
+          stripMaterial.uniforms.scrollOffset.value = wrapUnit(
+            (rotation.current * CYLINDER_RADIUS) / atlas.totalWorldHeight,
+          );
+          updateMediaAtlasVideos(atlas);
+          renderer.render(scene, camera);
+          animationFrame = window.requestAnimationFrame(render);
+        };
+
+        resize();
+        animationFrame = window.requestAnimationFrame(render);
+        window.addEventListener("resize", resize);
+
+        cleanupScene = () => {
+          window.cancelAnimationFrame(animationFrame);
+          window.removeEventListener("resize", resize);
+          scene.remove(group);
+          cylinderGeometry.dispose();
+          cylinderMaterial.dispose();
+          disposeMediaAtlas(atlas);
+          stripGeometry.dispose();
+          stripMaterial.uniforms.map.value?.dispose();
+          stripMaterial.dispose();
+          renderer.dispose();
+          sceneStateRef.current = null;
+        };
+        return;
+      }
+
+      const initialMetrics = getModeMetrics(cylinderMode, layoutRef.current);
+      const angleStep = initialMetrics.angleStep;
       const visibleAngleRange = VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN;
       const totalRows = Math.ceil(visibleAngleRange / angleStep) + ROW_POOL_BUFFER * 2;
       const hitMaterial = new THREE.MeshBasicMaterial({
@@ -436,7 +879,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         side: THREE.DoubleSide,
         transparent: true,
       });
-      const hitHeight = Math.max(0.08, TEXT_HEIGHT * layoutRef.current.lineHeight * HIT_HEIGHT_MULTIPLIER);
+      const hitHeight = initialMetrics.hitHeight;
       const meshes = [];
       const hitMeshes = [];
       const initialBaseVirtualIndex =
@@ -445,10 +888,14 @@ export default function CylinderView({ array = [], language = "en" }) {
       Array.from({ length: totalRows }, (_, index) => {
         const virtualIndex = initialBaseVirtualIndex + index;
         const project = getProjectForVirtualIndex(projects, virtualIndex);
-        const { texture, aspect } = makeTextTexture(project, layoutRef.current.letterSpacing);
-        const width = Math.min(TEXT_HEIGHT * aspect, CYLINDER_WIDTH);
-        const geometry = makeCurvedTextGeometry(width, TEXT_HEIGHT);
-        const material = makeCylinderTextMaterial(texture);
+        const { texture, aspect } = makeProjectTexture(project, {
+          isMobile,
+          letterSpacing: layoutRef.current.letterSpacing,
+          mode: cylinderMode,
+        });
+        const width = Math.min(initialMetrics.height * aspect, CYLINDER_WIDTH);
+        const geometry = makeCurvedTextGeometry(width, initialMetrics.height);
+        const material = makeCylinderTextMaterial(texture, { hoverEnabled: cylinderMode === CYLINDER_MODES.TITLES });
         const mesh = new THREE.Mesh(geometry, material);
         const hitGeometry = makeCurvedTextGeometry(Math.min(width + HIT_WIDTH_PADDING, CYLINDER_WIDTH), hitHeight, {
           heightSegments: 4,
@@ -458,11 +905,13 @@ export default function CylinderView({ array = [], language = "en" }) {
 
         mesh.userData = {
           index,
+          mode: cylinderMode,
           project,
           virtualIndex,
         };
         hitMesh.userData = {
           index,
+          mode: cylinderMode,
           project,
           visualMesh: mesh,
           virtualIndex,
@@ -497,7 +946,8 @@ export default function CylinderView({ array = [], language = "en" }) {
 
       const updateMeshes = () => {
         const { current } = rotationRef.current;
-        const currentAngleStep = (TEXT_HEIGHT * layoutRef.current.lineHeight) / CYLINDER_RADIUS;
+        const metrics = getModeMetrics(cylinderMode, layoutRef.current);
+        const currentAngleStep = metrics.angleStep;
         const baseVirtualIndex = Math.floor((VISIBLE_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
 
         meshes.forEach((mesh, index) => {
@@ -505,13 +955,16 @@ export default function CylinderView({ array = [], language = "en" }) {
           const virtualIndex = baseVirtualIndex + index;
           const project = getProjectForVirtualIndex(projects, virtualIndex);
 
-          if (mesh.userData.virtualIndex !== virtualIndex) {
+          if (mesh.userData.virtualIndex !== virtualIndex || mesh.userData.mode !== cylinderMode) {
             updateRowMesh({
-              hitHeight,
+              hitHeight: metrics.hitHeight,
               hitMesh,
+              isMobile,
               letterSpacing: layoutRef.current.letterSpacing,
               mesh,
+              mode: cylinderMode,
               project,
+              rowHeight: metrics.height,
               virtualIndex,
             });
           }
@@ -521,7 +974,7 @@ export default function CylinderView({ array = [], language = "en" }) {
 
           mesh.visible = frontness >= 0.5;
           mesh.position.set(0, 0, 0);
-          mesh.rotation.set(angle, 0, 0);
+          setTitleRowRotation(mesh, angle, cylinderMode);
           if (mesh.material?.uniforms?.hoverAmount) {
             const targetHover = mesh === hoveredMeshRef.current ? 1 : 0;
             mesh.material.uniforms.hoverAmount.value +=
@@ -536,7 +989,7 @@ export default function CylinderView({ array = [], language = "en" }) {
 
           hitMesh.visible = frontness >= 0.5;
           hitMesh.position.set(0, 0, 0);
-          hitMesh.rotation.set(angle, 0, 0);
+          setTitleRowRotation(hitMesh, angle, cylinderMode);
           hitMesh.userData.frontness = frontness;
         });
       };
@@ -556,8 +1009,8 @@ export default function CylinderView({ array = [], language = "en" }) {
           pointer.y = -(((pointerClientRef.current.y - rect.top) / rect.height) * 2 - 1);
           raycaster.setFromCamera(pointer, camera);
 
-          const [hit] = raycaster.intersectObjects(hitMeshes, false);
-          hoveredMeshRef.current = hit?.object?.userData?.visualMesh || null;
+          const hits = raycaster.intersectObjects(hitMeshes, false);
+          hoveredMeshRef.current = getStableTitleHit(hits, hoveredMeshRef.current);
         }
 
         renderer.render(scene, camera);
@@ -591,7 +1044,7 @@ export default function CylinderView({ array = [], language = "en" }) {
       cancelled = true;
       cleanupScene();
     };
-  }, [projects, layout.letterSpacing, layout.lineHeight]);
+  }, [cylinderMode, projects, layout.letterSpacing, layout.lineHeight]);
 
   const getIntersectedMesh = useCallback((clientX, clientY) => {
     const sceneState = sceneStateRef.current;
@@ -602,13 +1055,24 @@ export default function CylinderView({ array = [], language = "en" }) {
     sceneState.pointer.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
     sceneState.raycaster.setFromCamera(sceneState.pointer, sceneState.camera);
 
-    const [hit] = sceneState.raycaster.intersectObjects(sceneState.hitMeshes, false);
-    return hit?.object?.userData?.visualMesh || null;
+    if (sceneState.media) {
+      const [hit] = sceneState.raycaster.intersectObject(sceneState.media.mesh, false);
+      if (!hit?.uv) return null;
+
+      const material = sceneState.media.mesh.material;
+      const sampledV = wrapUnit(hit.uv.y * material.uniforms.visibleRepeat.value + material.uniforms.scrollOffset.value);
+      const project = findMediaRowByUnit(sceneState.media.atlas.rows, sampledV)?.project;
+
+      return project ? { userData: { project } } : null;
+    }
+
+    const hits = sceneState.raycaster.intersectObjects(sceneState.hitMeshes, false);
+    return getStableTitleHit(hits, hoveredMeshRef.current);
   }, []);
 
   const handleWheel = useCallback((event) => {
     event.preventDefault();
-    rotationRef.current.velocity += event.deltaY * SCROLL_SPEED * SCROLL_RESISTANCE;
+    rotationRef.current.velocity -= event.deltaY * SCROLL_SPEED * SCROLL_RESISTANCE;
   }, []);
 
   const handlePointerDown = useCallback((event) => {
@@ -634,7 +1098,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         const deltaY = event.clientY - pointerState.lastY;
         pointerState.lastY = event.clientY;
         pointerState.moved = pointerState.moved || Math.abs(deltaY) > 2;
-        rotationRef.current.velocity -= deltaY * DRAG_SPEED * DRAG_RESISTANCE;
+        rotationRef.current.velocity += deltaY * DRAG_SPEED * DRAG_RESISTANCE;
         hoveredMeshRef.current = null;
         setIsClickable(false);
         return;
@@ -732,6 +1196,28 @@ export default function CylinderView({ array = [], language = "en" }) {
       ref={containerRef}
     >
       <canvas className={styles.canvas} ref={canvasRef} />
+      <div
+        className={styles.modeToggle}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerMove={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
+      >
+        <button
+          className={cylinderMode === CYLINDER_MODES.TITLES ? styles.modeToggleButtonActive : styles.modeToggleButton}
+          onClick={() => setCylinderMode(CYLINDER_MODES.TITLES)}
+          type="button"
+        >
+          Titles
+        </button>
+        <button
+          className={cylinderMode === CYLINDER_MODES.IMAGES ? styles.modeToggleButtonActive : styles.modeToggleButton}
+          onClick={() => setCylinderMode(CYLINDER_MODES.IMAGES)}
+          type="button"
+        >
+          Images
+        </button>
+      </div>
       <div
         className={styles.controls}
         onPointerDown={(event) => event.stopPropagation()}
