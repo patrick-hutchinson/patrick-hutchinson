@@ -50,7 +50,7 @@ export default function App({ Component, pageProps }) {
   const language = pageProps.language || "en";
   const [exitingScrollY, setExitingScrollY] = useState(0);
   const [indexView, setIndexView] = useState("list");
-  const isIndexPage = router.pathname === "/";
+  const isIndexPage = router.pathname === "/" || router.pathname === "/[language]";
   // const [activeFilter, setActiveFilter] = useState(null);
   // const filterArray = useMemo(() => {
   //   const selection = pageProps.home?.selection || [];
@@ -118,6 +118,13 @@ export default function App({ Component, pageProps }) {
                       type="button"
                     >
                       Image
+                    </button>
+                    <button
+                      className={indexView === "3d" ? "viewToggleButtonActive" : "viewToggleButton"}
+                      onClick={() => setIndexView("3d")}
+                      type="button"
+                    >
+                      3D
                     </button>
                   </div>
                 ) : null}

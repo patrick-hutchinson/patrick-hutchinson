@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 
 import { getHomeStaticProps } from "@/lib/sanity/fetch";
@@ -8,6 +9,8 @@ import ImageView from "@/components/ImageView/ImageView";
 import ScaleList from "@/components/ScaleList/ScaleList";
 
 import styles from "@/styles/Index.module.css";
+
+const CylinderView = dynamic(() => import("@/components/CylinderView/CylinderView"), { ssr: false });
 
 export default function Home({ activeFilter, home, indexView = "list", language = "en" }) {
   const preloadedMedia = useRef([]);
@@ -42,13 +45,18 @@ export default function Home({ activeFilter, home, indexView = "list", language 
 
   if (!home || home.length === 0) return null;
 
+  const viewClassName = [
+    styles.view,
+    indexView === "list" ? styles.listView : indexView === "image" ? styles.imageView : styles.cylinderView,
+  ].join(" ");
+
   return (
     <div className={`page ${styles.page}`}>
       <main className="main">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             animate={{ opacity: 1 }}
-            className={[styles.view, indexView === "list" ? styles.listView : styles.imageView].join(" ")}
+            className={viewClassName}
             exit={{ opacity: 0 }}
             initial={{ opacity: 0 }}
             key={indexView}
@@ -56,8 +64,10 @@ export default function Home({ activeFilter, home, indexView = "list", language 
           >
             {indexView === "list" ? (
               <ScaleList array={filteredSelection} language={language} />
-            ) : (
+            ) : indexView === "image" ? (
               <ImageView array={imageViewSelection} language={language} />
+            ) : (
+              <CylinderView array={imageViewSelection} language={language} />
             )}
           </motion.div>
         </AnimatePresence>
