@@ -20,6 +20,8 @@ const SCROLL_RESISTANCE = 0.12;
 const DRAG_RESISTANCE = 0.12;
 const ROTATION_INERTIA = 0.88;
 const ROTATION_EASE = 0.085;
+const POINTER_ROTATION_MAX = 0.7;
+const POINTER_ROTATION_EASE = 0.08;
 const VELOCITY_STOP_THRESHOLD = 0.00001;
 const CAMERA_Z = 7.6;
 const CYLINDER_SHADE_WHITE_AT = 0.88;
@@ -687,13 +689,34 @@ function cloneLayout(layout) {
   };
 }
 
-function applyLayout(group, layout) {
+function applyLayout(group, layout, rotationOffset = { x: 0, y: 0 }) {
   group.position.set(layout.position.x, layout.position.y, layout.position.z);
-  group.rotation.set(layout.rotation.x, layout.rotation.y, layout.rotation.z);
+  group.rotation.set(rotationOffset.x, rotationOffset.y, layout.rotation.z);
 }
 
 function roundCoordinate(value) {
   return Math.round(value * 1000) / 1000;
+}
+
+function updatePointerRotationOffset(pointerRotation, pointerClient, container) {
+  let targetX = 0;
+  let targetY = 0;
+
+  if (pointerClient) {
+    const rect = container.getBoundingClientRect();
+    const normalizedX = Math.min(1, Math.max(-1, ((pointerClient.x - rect.left) / Math.max(rect.width, 1)) * 2 - 1));
+    const normalizedY = Math.min(1, Math.max(-1, ((pointerClient.y - rect.top) / Math.max(rect.height, 1)) * 2 - 1));
+
+    targetY = -normalizedX * POINTER_ROTATION_MAX;
+    targetX = -normalizedY * POINTER_ROTATION_MAX;
+  }
+
+  pointerRotation.target.x = targetX;
+  pointerRotation.target.y = targetY;
+  pointerRotation.current.x += (pointerRotation.target.x - pointerRotation.current.x) * POINTER_ROTATION_EASE;
+  pointerRotation.current.y += (pointerRotation.target.y - pointerRotation.current.y) * POINTER_ROTATION_EASE;
+
+  return pointerRotation.current;
 }
 
 export default function CylinderView({ array = [], language = "en" }) {
@@ -715,6 +738,10 @@ export default function CylinderView({ array = [], language = "en" }) {
     current: 0,
     target: 0,
     velocity: 0,
+  });
+  const pointerRotationRef = useRef({
+    current: { x: 0, y: 0 },
+    target: { x: 0, y: 0 },
   });
   const layoutRef = useRef(cloneLayout(DEFAULT_LAYOUT));
   const [layout, setLayout] = useState(() => cloneLayout(DEFAULT_LAYOUT));
@@ -838,7 +865,12 @@ export default function CylinderView({ array = [], language = "en" }) {
           rotation.velocity *= ROTATION_INERTIA;
           if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
           rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
-          applyLayout(group, layoutRef.current);
+          const pointerRotation = updatePointerRotationOffset(
+            pointerRotationRef.current,
+            pointerClientRef.current,
+            container,
+          );
+          applyLayout(group, layoutRef.current, pointerRotation);
           stripMaterial.uniforms.scrollOffset.value = wrapUnit(
             (rotation.current * CYLINDER_RADIUS) / atlas.totalWorldHeight,
           );
@@ -1000,7 +1032,8 @@ export default function CylinderView({ array = [], language = "en" }) {
         rotation.velocity *= ROTATION_INERTIA;
         if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
         rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
-        applyLayout(group, layoutRef.current);
+        const pointerRotation = updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
+        applyLayout(group, layoutRef.current, pointerRotation);
         updateMeshes();
 
         if (!pointerRef.current.dragging && pointerClientRef.current) {
