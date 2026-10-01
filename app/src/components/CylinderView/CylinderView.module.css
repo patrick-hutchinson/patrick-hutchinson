@@ -95,6 +95,20 @@
   text-transform: uppercase;
 }
 
+.paletteButton {
+  appearance: none;
+  background: #000;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  padding: 4px 8px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .controlGrid {
   display: grid;
   gap: 8px;

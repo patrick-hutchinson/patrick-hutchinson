@@ -94,7 +94,7 @@ export default function App({ Component, pageProps }) {
                     EN
                   </Link>
                 </div>
-                {isIndexPage ? (
+                {/* {isIndexPage ? (
                   <div className="viewToggle" typo="fineprint" aria-label="View options">
                     <button
                       className={indexView === "list" ? "viewToggleButtonActive" : "viewToggleButton"}
@@ -111,7 +111,7 @@ export default function App({ Component, pageProps }) {
                       Image
                     </button>
                   </div>
-                ) : null}
+                ) : null} */}
               </div>
               <div className="pageTransitionRoot">
                 <AnimatePresence custom={exitingScrollY} initial={false}>

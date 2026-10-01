@@ -17,7 +17,7 @@ const TEXT_CURVE_SEGMENTS = 16;
 const SCROLL_SPEED = 0.0032;
 const DRAG_SPEED = 0.008;
 const SCROLL_RESISTANCE = 0.12;
-const DRAG_RESISTANCE = 0.12;
+const DRAG_RESISTANCE = 0.14;
 const ROTATION_INERTIA = 0.88;
 const ROTATION_EASE = 0.085;
 const POINTER_ROTATION_MAX = 0.7;
@@ -47,13 +47,32 @@ const TITLE_HOVER_SWITCH_MARGIN = 0.08;
 const HIT_HEIGHT_MULTIPLIER = 0.72;
 const HIT_WIDTH_PADDING = 0.18;
 const ROW_POOL_BUFFER = 4;
-const VISIBLE_ANGLE_MIN = -Math.PI / 2;
-const VISIBLE_ANGLE_MAX = Math.PI / 2;
+const CYLINDER_VISIBLE_SURFACE_ANGLE = THREE.MathUtils.degToRad(200);
+const VISIBLE_ANGLE_MIN = -CYLINDER_VISIBLE_SURFACE_ANGLE / 2;
+const VISIBLE_ANGLE_MAX = CYLINDER_VISIBLE_SURFACE_ANGLE / 2;
+const VISIBLE_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2) + 1) / 2;
+const TITLE_READY_OVERSCAN = THREE.MathUtils.degToRad(24);
+const TITLE_READY_ANGLE_MIN = VISIBLE_ANGLE_MIN - TITLE_READY_OVERSCAN;
+const TITLE_READY_ANGLE_MAX = VISIBLE_ANGLE_MAX + TITLE_READY_OVERSCAN;
+const TITLE_READY_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + TITLE_READY_OVERSCAN) + 1) / 2;
+const MODE_TRANSITION_ROTATION = CYLINDER_VISIBLE_SURFACE_ANGLE;
 const CYLINDER_MODES = {
   IMAGES: "images",
   TITLES: "titles",
 };
 const MEDIA_ATLAS_WIDTH = 2048;
+const CYLINDER_PALETTES = {
+  dark: {
+    cylinderBackground: 0x000000,
+    font: "#ffffff",
+    pageBackground: 0x000000,
+  },
+  light: {
+    cylinderBackground: 0xffffff,
+    font: "#000000",
+    pageBackground: 0xffffff,
+  },
+};
 
 const BACKGROUND = "ffffff;";
 const FOREFROUND = "000000";
@@ -133,7 +152,7 @@ function getProjectDate(project) {
     : project.scheduling?.month || "";
 }
 
-function makeTextTexture(project, letterSpacing) {
+function makeTextTexture(project, letterSpacing, palette = CYLINDER_PALETTES.dark) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const title = project.title;
@@ -173,7 +192,7 @@ function makeTextTexture(project, letterSpacing) {
   }
 
   context.font = titleFont;
-  context.fillStyle = "#ffffff";
+  context.fillStyle = palette.font;
   drawSpacedText(context, title, cursorX, centerY, titleLetterSpacing, titleKerningPairs);
   cursorX += titleWidth + META_TEXTURE_GAP;
 
@@ -542,7 +561,10 @@ function makeCylinderTextMaterial(texture, options = {}) {
         float facing = clamp(vViewNormal.z, 0.0, 1.0);
         float shade = smoothstep(shadeBlackAt, shadeWhiteAt, facing);
         shade = pow(shade, shadePower);
-        float titleMask = smoothstep(0.72, 0.96, max(max(texel.r, texel.g), texel.b));
+        float luminance = dot(texel.rgb, vec3(0.299, 0.587, 0.114));
+        float whiteTitleMask = smoothstep(0.72, 0.96, luminance);
+        float blackTitleMask = 1.0 - smoothstep(0.08, 0.45, luminance);
+        float titleMask = max(whiteTitleMask, blackTitleMask);
         vec3 color = mix(texel.rgb, hoverColor, hoverEnabled * hoverAmount * titleMask);
 
         gl_FragColor = vec4(color * shade, texel.a);
@@ -647,8 +669,10 @@ function getModeMetrics(mode, layout) {
   };
 }
 
-function makeProjectTexture(project, { isMobile, letterSpacing, mode }) {
-  return mode === CYLINDER_MODES.IMAGES ? makeImageTexture(project, isMobile) : makeTextTexture(project, letterSpacing);
+function makeProjectTexture(project, { isMobile, letterSpacing, mode, palette }) {
+  return mode === CYLINDER_MODES.IMAGES
+    ? makeImageTexture(project, isMobile)
+    : makeTextTexture(project, letterSpacing, palette);
 }
 
 function setTitleRowRotation(mesh, angle, mode) {
@@ -689,8 +713,19 @@ function getStableTitleHit(intersections, currentMesh = null) {
   return bestCandidate.visualMesh;
 }
 
-function updateRowMesh({ hitHeight, hitMesh, isMobile, letterSpacing, mesh, mode, project, rowHeight, virtualIndex }) {
-  const { texture, aspect } = makeProjectTexture(project, { isMobile, letterSpacing, mode });
+function updateRowMesh({
+  hitHeight,
+  hitMesh,
+  isMobile,
+  letterSpacing,
+  mesh,
+  mode,
+  palette,
+  project,
+  rowHeight,
+  virtualIndex,
+}) {
+  const { texture, aspect } = makeProjectTexture(project, { isMobile, letterSpacing, mode, palette });
   const width = Math.min(rowHeight * aspect, CYLINDER_WIDTH);
   const geometry = makeCurvedTextGeometry(width, rowHeight);
   const material = makeCylinderTextMaterial(texture, { hoverEnabled: mode === CYLINDER_MODES.TITLES });
@@ -716,11 +751,11 @@ function updateRowMesh({ hitHeight, hitMesh, isMobile, letterSpacing, mesh, mode
   hitMesh.userData.mode = mode;
 }
 
-function createTitleTransitionSide({ isMobile, layout, projects }) {
+function createTitleTransitionSide({ isMobile, layout, palette, projects }) {
   const group = new THREE.Group();
   const metrics = getModeMetrics(CYLINDER_MODES.TITLES, layout);
   const angleStep = metrics.angleStep;
-  const totalRows = Math.ceil((VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN) / angleStep) + ROW_POOL_BUFFER * 2;
+  const totalRows = Math.ceil((TITLE_READY_ANGLE_MAX - TITLE_READY_ANGLE_MIN) / angleStep) + ROW_POOL_BUFFER * 2;
   const meshes = [];
   const hitMeshes = [];
 
@@ -742,6 +777,7 @@ function createTitleTransitionSide({ isMobile, layout, projects }) {
       letterSpacing: layout.letterSpacing,
       mesh,
       mode: CYLINDER_MODES.TITLES,
+      palette,
       project: getProjectForVirtualIndex(projects, index),
       rowHeight: metrics.height,
       virtualIndex: index,
@@ -756,7 +792,7 @@ function createTitleTransitionSide({ isMobile, layout, projects }) {
   const update = (current, layoutRefValue) => {
     const currentMetrics = getModeMetrics(CYLINDER_MODES.TITLES, layoutRefValue);
     const currentAngleStep = currentMetrics.angleStep;
-    const baseVirtualIndex = Math.floor((VISIBLE_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
+    const baseVirtualIndex = Math.floor((TITLE_READY_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
 
     meshes.forEach((mesh, index) => {
       const hitMesh = hitMeshes[index];
@@ -771,6 +807,7 @@ function createTitleTransitionSide({ isMobile, layout, projects }) {
           letterSpacing: layoutRefValue.letterSpacing,
           mesh,
           mode: CYLINDER_MODES.TITLES,
+          palette,
           project,
           rowHeight: currentMetrics.height,
           virtualIndex,
@@ -781,7 +818,7 @@ function createTitleTransitionSide({ isMobile, layout, projects }) {
       const angle = virtualIndex * currentAngleStep + current;
       const frontness = (Math.cos(angle) + 1) / 2;
 
-      mesh.visible = frontness >= 0.5;
+      mesh.visible = frontness >= TITLE_READY_FRONTNESS_MIN;
       mesh.position.set(0, 0, 0);
       setTitleRowRotation(mesh, angle, CYLINDER_MODES.TITLES);
       mesh.renderOrder = 1 + Math.round(frontness * 1000);
@@ -874,24 +911,28 @@ function easeInOutCubic(value) {
   return value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
-function getModeTransitionRotation(transition, now) {
+function getModeTransitionProgress(transition, now) {
   if (!transition.active) return 0;
 
-  const progress = Math.min(1, (now - transition.startedAt) / MODE_TRANSITION_DURATION);
+  return Math.min(1, (now - transition.startedAt) / MODE_TRANSITION_DURATION);
+}
+
+function getModeTransitionRotation(transition, now) {
+  const progress = getModeTransitionProgress(transition, now);
 
   if (progress >= 1) {
-    return Math.PI;
+    return MODE_TRANSITION_ROTATION;
   }
 
-  return easeInOutCubic(progress) * Math.PI;
+  return easeInOutCubic(progress) * MODE_TRANSITION_ROTATION;
+}
+
+function getIncomingTransitionRotation(contentRotation) {
+  return contentRotation - MODE_TRANSITION_ROTATION;
 }
 
 function shouldCompleteModeTransition(transition, now) {
-  return (
-    transition.active &&
-    transition.targetMode &&
-    now - transition.startedAt >= MODE_TRANSITION_DURATION
-  );
+  return transition.active && transition.targetMode && now - transition.startedAt >= MODE_TRANSITION_DURATION;
 }
 
 export default function CylinderView({ array = [], language = "en" }) {
@@ -931,6 +972,8 @@ export default function CylinderView({ array = [], language = "en" }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isClickable, setIsClickable] = useState(false);
   const [cylinderMode, setCylinderMode] = useState(CYLINDER_MODES.TITLES);
+  const [paletteMode, setPaletteMode] = useState("light");
+  const palette = CYLINDER_PALETTES[paletteMode];
 
   const projects = useMemo(
     () =>
@@ -988,7 +1031,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         antialias: true,
         canvas,
       });
-      renderer.setClearColor(0x000000, 1);
+      renderer.setClearColor(palette.pageBackground, 1);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
       const scene = new THREE.Scene();
@@ -1020,7 +1063,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         false,
       );
       const cylinderMaterial = new THREE.MeshBasicMaterial({
-        color: 0x000000,
+        color: palette.cylinderBackground,
         depthWrite: true,
         side: THREE.FrontSide,
       });
@@ -1091,19 +1134,24 @@ export default function CylinderView({ array = [], language = "en" }) {
 
           if (transition.active && transition.targetMode === CYLINDER_MODES.TITLES) {
             if (!incomingTitleSide) {
-              incomingTitleSide = createTitleTransitionSide({ isMobile, layout: layoutRef.current, projects });
-              incomingTitleSide.group.rotation.x = contentRotationRef.current - Math.PI;
+              incomingTitleSide = createTitleTransitionSide({
+                isMobile,
+                layout: layoutRef.current,
+                palette,
+                projects,
+              });
               group.add(incomingTitleSide.group);
             }
             incomingTitleSide.group.visible = true;
+            incomingTitleSide.group.rotation.x = getIncomingTransitionRotation(contentRotationRef.current);
             incomingTitleSide.update(rotation.current, layoutRef.current);
           } else if (incomingTitleSide) {
             incomingTitleSide.group.visible = false;
           }
 
           if (shouldCompleteModeTransition(transition, now)) {
-            transitionRotationBaseRef.current += Math.PI;
-            contentRotationRef.current -= Math.PI;
+            transitionRotationBaseRef.current += MODE_TRANSITION_ROTATION;
+            contentRotationRef.current -= MODE_TRANSITION_ROTATION;
             transition.active = false;
             const nextMode = transition.targetMode;
             transition.targetMode = null;
@@ -1137,7 +1185,7 @@ export default function CylinderView({ array = [], language = "en" }) {
 
       const initialMetrics = getModeMetrics(cylinderMode, layoutRef.current);
       const angleStep = initialMetrics.angleStep;
-      const visibleAngleRange = VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN;
+      const visibleAngleRange = TITLE_READY_ANGLE_MAX - TITLE_READY_ANGLE_MIN;
       const totalRows = Math.ceil(visibleAngleRange / angleStep) + ROW_POOL_BUFFER * 2;
       const hitMaterial = new THREE.MeshBasicMaterial({
         color: 0xffffff,
@@ -1152,7 +1200,7 @@ export default function CylinderView({ array = [], language = "en" }) {
       const hitMeshes = [];
       let incomingImageSide = null;
       const initialBaseVirtualIndex =
-        Math.floor((VISIBLE_ANGLE_MIN - rotationRef.current.current) / angleStep) - ROW_POOL_BUFFER;
+        Math.floor((TITLE_READY_ANGLE_MIN - rotationRef.current.current) / angleStep) - ROW_POOL_BUFFER;
 
       Array.from({ length: totalRows }, (_, index) => {
         const virtualIndex = initialBaseVirtualIndex + index;
@@ -1161,6 +1209,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           isMobile,
           letterSpacing: layoutRef.current.letterSpacing,
           mode: cylinderMode,
+          palette,
         });
         const width = Math.min(initialMetrics.height * aspect, CYLINDER_WIDTH);
         const geometry = makeCurvedTextGeometry(width, initialMetrics.height);
@@ -1217,7 +1266,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         const { current } = rotationRef.current;
         const metrics = getModeMetrics(cylinderMode, layoutRef.current);
         const currentAngleStep = metrics.angleStep;
-        const baseVirtualIndex = Math.floor((VISIBLE_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
+        const baseVirtualIndex = Math.floor((TITLE_READY_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
 
         meshes.forEach((mesh, index) => {
           const hitMesh = hitMeshes[index];
@@ -1232,6 +1281,7 @@ export default function CylinderView({ array = [], language = "en" }) {
               letterSpacing: layoutRef.current.letterSpacing,
               mesh,
               mode: cylinderMode,
+              palette,
               project,
               rowHeight: metrics.height,
               virtualIndex,
@@ -1241,7 +1291,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           const angle = virtualIndex * currentAngleStep + current;
           const frontness = (Math.cos(angle) + 1) / 2;
 
-          mesh.visible = frontness >= 0.5;
+          mesh.visible = frontness >= TITLE_READY_FRONTNESS_MIN;
           mesh.position.set(0, 0, 0);
           setTitleRowRotation(mesh, angle, cylinderMode);
           if (mesh.material?.uniforms?.hoverAmount) {
@@ -1256,7 +1306,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           const angle = hitMesh.userData.virtualIndex * currentAngleStep + current;
           const frontness = (Math.cos(angle) + 1) / 2;
 
-          hitMesh.visible = frontness >= 0.5;
+          hitMesh.visible = frontness >= VISIBLE_FRONTNESS_MIN;
           hitMesh.position.set(0, 0, 0);
           setTitleRowRotation(hitMesh, angle, cylinderMode);
           hitMesh.userData.frontness = frontness;
@@ -1291,10 +1341,10 @@ export default function CylinderView({ array = [], language = "en" }) {
               material: incomingMaterial,
               width: IMAGE_CYLINDER_WIDTH,
             });
-            incomingImageSide.group.rotation.x = contentRotationRef.current - Math.PI;
             group.add(incomingImageSide.group);
           }
           incomingImageSide.group.visible = true;
+          incomingImageSide.group.rotation.x = getIncomingTransitionRotation(contentRotationRef.current);
           incomingImageSide.update(rotation.current);
         } else if (incomingImageSide) {
           incomingImageSide.group.visible = false;
@@ -1302,8 +1352,8 @@ export default function CylinderView({ array = [], language = "en" }) {
 
         if (shouldCompleteModeTransition(transition, now)) {
           incomingImageSide?.setVideoPlayback?.(true);
-          transitionRotationBaseRef.current += Math.PI;
-          contentRotationRef.current -= Math.PI;
+          transitionRotationBaseRef.current += MODE_TRANSITION_ROTATION;
+          contentRotationRef.current -= MODE_TRANSITION_ROTATION;
           transition.active = false;
           const nextMode = transition.targetMode;
           transition.targetMode = null;
@@ -1352,7 +1402,7 @@ export default function CylinderView({ array = [], language = "en" }) {
       cancelled = true;
       cleanupScene();
     };
-  }, [cylinderMode, projects, layout.letterSpacing, layout.lineHeight]);
+  }, [cylinderMode, projects, layout.letterSpacing, layout.lineHeight, palette]);
 
   const getIntersectedMesh = useCallback((clientX, clientY) => {
     const sceneState = sceneStateRef.current;
@@ -1467,12 +1517,17 @@ export default function CylinderView({ array = [], language = "en" }) {
     setLayout(nextLayout);
   }, []);
 
+  const togglePalette = useCallback(() => {
+    setPaletteMode((current) => (current === "dark" ? "light" : "dark"));
+  }, []);
+
   const coordinateOutput = useMemo(
     () =>
       JSON.stringify(
         {
           letterSpacing: roundCoordinate(layout.letterSpacing),
           lineHeight: roundCoordinate(layout.lineHeight),
+          palette: paletteMode,
           position: {
             x: roundCoordinate(layout.position.x),
             y: roundCoordinate(layout.position.y),
@@ -1487,7 +1542,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         null,
         2,
       ),
-    [layout],
+    [layout, paletteMode],
   );
 
   return (
@@ -1502,6 +1557,7 @@ export default function CylinderView({ array = [], language = "en" }) {
       onPointerUp={handlePointerUp}
       onWheel={handleWheel}
       ref={containerRef}
+      style={{ background: `#${palette.pageBackground.toString(16).padStart(6, "0")}` }}
     >
       <canvas className={styles.canvas} ref={canvasRef} />
       <div
@@ -1526,7 +1582,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           Images
         </button>
       </div>
-      <div
+      {/* <div
         className={styles.controls}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerMove={(event) => event.stopPropagation()}
@@ -1539,6 +1595,9 @@ export default function CylinderView({ array = [], language = "en" }) {
             Reset
           </button>
         </div>
+        <button className={styles.paletteButton} onClick={togglePalette} type="button">
+          {paletteMode === "dark" ? "Black / White" : "White / Black"}
+        </button>
         <div className={styles.controlGrid}>
           {LAYOUT_CONTROLS.map((control) => (
             <label className={styles.control} key={`${control.group}-${control.key}`}>
@@ -1558,7 +1617,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           ))}
         </div>
         <pre className={styles.coordinates}>{coordinateOutput}</pre>
-      </div>
+      </div> */}
       <ul aria-hidden="true" className={styles.fallbackLinks}>
         {projects.map((project) => (
           <li key={project.slug}>{project.title}</li>
