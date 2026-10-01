@@ -28,12 +28,18 @@ const CAMERA_Z = 7.6;
 const CYLINDER_SHADE_WHITE_AT = 0.88;
 const CYLINDER_SHADE_BLACK_AT = 0.38;
 const CYLINDER_SHADE_POWER = 1.45;
+const MEDIA_SHADE_WHITE_AT = 0.42;
+const MEDIA_SHADE_BLACK_AT = 0.04;
+const MEDIA_SHADE_POWER = 0.8;
+const MEDIA_SHADE_STRENGTH = 0;
 const TITLE_TEXTURE_FONT_SIZE = 150;
 const META_TEXTURE_FONT_SIZE = 34;
 const META_TEXTURE_GAP = 18;
 const META_TEXTURE_COLOR = "#9c9c9d";
-const TITLE_TEXTURE_FONT_FAMILY = "NeueHaasGroteskDisplay, Arial, Helvetica, sans-serif";
-const META_TEXTURE_FONT_FAMILY = "NeueHaasGroteskText, Arial, Helvetica, sans-serif";
+const TITLE_TEXTURE_FONT_NAME = "NeueHaasGroteskDisplay";
+const META_TEXTURE_FONT_NAME = "NeueHaasGroteskText";
+const TITLE_TEXTURE_FONT_FAMILY = `${TITLE_TEXTURE_FONT_NAME}, Arial, Helvetica, sans-serif`;
+const META_TEXTURE_FONT_FAMILY = `${META_TEXTURE_FONT_NAME}, Arial, Helvetica, sans-serif`;
 const TITLE_HOVER_EASE = 0.14;
 const TITLE_HOVER_COLOR = new THREE.Color(META_TEXTURE_COLOR);
 const TITLE_HOVER_MIN_FRONTNESS = 0.54;
@@ -65,6 +71,19 @@ const DEFAULT_LAYOUT = {
     z: 0.096,
   },
 };
+
+async function loadCylinderFonts() {
+  if (!document.fonts?.load) {
+    await document.fonts?.ready;
+    return;
+  }
+
+  await Promise.all([
+    document.fonts.load(`bold ${TITLE_TEXTURE_FONT_SIZE}px ${TITLE_TEXTURE_FONT_NAME}`),
+    document.fonts.load(`bold ${META_TEXTURE_FONT_SIZE}px ${META_TEXTURE_FONT_NAME}`),
+  ]);
+  await document.fonts.ready;
+}
 
 const LAYOUT_CONTROLS = [
   { group: "spacing", key: "lineHeight", label: "Line Height", max: 2.6, min: 0.3, step: 0.01 },
@@ -210,7 +229,7 @@ function makeImageTexture(project, isMobile) {
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.colorSpace = THREE.NoColorSpace;
   texture.anisotropy = 8;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
@@ -466,7 +485,7 @@ function makeMediaAtlas(projects, isMobile, options = {}) {
     totalWorldHeight: Math.max(getMediaWorldHeight(16 / 9), totalWorldHeight),
   };
 
-  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.colorSpace = THREE.NoColorSpace;
   texture.anisotropy = 8;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
@@ -563,6 +582,7 @@ function makeCylinderMediaMaterial(texture) {
       uniform float shadeWhiteAt;
       uniform float shadeBlackAt;
       uniform float shadePower;
+      uniform float shadeStrength;
       uniform float scrollOffset;
       uniform float visibleRepeat;
       varying vec2 vUv;
@@ -574,6 +594,7 @@ function makeCylinderMediaMaterial(texture) {
         float facing = clamp(vViewNormal.z, 0.0, 1.0);
         float shade = smoothstep(shadeBlackAt, shadeWhiteAt, facing);
         shade = pow(shade, shadePower);
+        shade = mix(1.0, shade, shadeStrength);
 
         gl_FragColor = vec4(texel.rgb * shade, 1.0);
       }
@@ -584,9 +605,10 @@ function makeCylinderMediaMaterial(texture) {
     uniforms: {
       map: { value: texture },
       scrollOffset: { value: 0 },
-      shadeBlackAt: { value: CYLINDER_SHADE_BLACK_AT },
-      shadePower: { value: CYLINDER_SHADE_POWER },
-      shadeWhiteAt: { value: CYLINDER_SHADE_WHITE_AT },
+      shadeBlackAt: { value: MEDIA_SHADE_BLACK_AT },
+      shadePower: { value: MEDIA_SHADE_POWER },
+      shadeStrength: { value: MEDIA_SHADE_STRENGTH },
+      shadeWhiteAt: { value: MEDIA_SHADE_WHITE_AT },
       visibleRepeat: { value: 1 },
     },
     vertexShader: `
@@ -958,7 +980,7 @@ export default function CylinderView({ array = [], language = "en" }) {
     let cleanupScene = () => {};
 
     const setupScene = async () => {
-      await document.fonts?.ready;
+      await loadCylinderFonts();
       if (cancelled) return;
 
       const renderer = new THREE.WebGLRenderer({
