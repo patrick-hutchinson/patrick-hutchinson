@@ -344,7 +344,7 @@ function drawMediaAtlasRow(context, row, source) {
   drawImageContain(context, source, 0, row.startY, MEDIA_ATLAS_WIDTH, row.pixelHeight, row.aspect);
 }
 
-function loadAtlasVideo(row, texture) {
+function loadAtlasVideo(row, atlas) {
   if (!row.videoSrc) return null;
 
   const video = document.createElement("video");
@@ -356,9 +356,9 @@ function loadAtlasVideo(row, texture) {
   row.video = video;
 
   const handleLoaded = () => {
-    video.play().catch(() => {});
+    if (atlas.playVideos) video.play().catch(() => {});
     row.hasDrawnVideoFrame = false;
-    texture.needsUpdate = true;
+    atlas.texture.needsUpdate = true;
   };
 
   video.addEventListener("loadeddata", handleLoaded, { once: true });
@@ -374,6 +374,12 @@ function updateMediaAtlasVideos(atlas) {
   atlas.rows.forEach((row) => {
     const video = row.video;
     if (!video || video.readyState < 2) return;
+    if (!atlas.playVideos) {
+      if (!video.paused) video.pause();
+      return;
+    }
+
+    if (video.paused) video.play().catch(() => {});
     if (!row.hasDrawnVideoFrame && video.currentTime <= 0.03) return;
 
     try {
@@ -387,6 +393,19 @@ function updateMediaAtlasVideos(atlas) {
   });
 
   if (hasUpdated) atlas.texture.needsUpdate = true;
+}
+
+function setMediaAtlasVideoPlayback(atlas, shouldPlay) {
+  atlas.playVideos = shouldPlay;
+
+  atlas.rows.forEach((row) => {
+    if (!row.video) return;
+    if (shouldPlay) {
+      row.video.play().catch(() => {});
+    } else {
+      row.video.pause();
+    }
+  });
 }
 
 function disposeMediaAtlas(atlas) {
@@ -410,7 +429,7 @@ function findMediaRowByUnit(rows, unitValue) {
   return rows.find((row) => atlasY >= row.startY && atlasY < row.endY) || rows[rows.length - 1];
 }
 
-function makeMediaAtlas(projects, isMobile) {
+function makeMediaAtlas(projects, isMobile, options = {}) {
   const rows = projects.map((project) => {
     const medium = getProjectThumbnailMedia(project, isMobile);
     const aspect = getMediumAspect(medium);
@@ -439,6 +458,14 @@ function makeMediaAtlas(projects, isMobile) {
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   const texture = new THREE.CanvasTexture(canvas);
+  const atlas = {
+    context,
+    playVideos: options.playVideos !== false,
+    rows,
+    texture,
+    totalWorldHeight: Math.max(getMediaWorldHeight(16 / 9), totalWorldHeight),
+  };
+
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
   texture.minFilter = THREE.LinearFilter;
@@ -467,15 +494,10 @@ function makeMediaAtlas(projects, isMobile) {
     };
     if (row.src) image.src = row.src;
 
-    loadAtlasVideo(row, texture);
+    loadAtlasVideo(row, atlas);
   });
 
-  return {
-    context,
-    rows,
-    texture,
-    totalWorldHeight: Math.max(getMediaWorldHeight(16 / 9), totalWorldHeight),
-  };
+  return atlas;
 }
 
 function makeCylinderTextMaterial(texture, options = {}) {
@@ -770,6 +792,7 @@ function createImageTransitionSide({ atlas, material, width }) {
     },
     group,
     material,
+    setVideoPlayback: (shouldPlay) => setMediaAtlasVideoPlayback(atlas, shouldPlay),
     update: (current) => {
       material.uniforms.scrollOffset.value = wrapUnit((current * CYLINDER_RADIUS) / atlas.totalWorldHeight);
       updateMediaAtlasVideos(atlas);
@@ -1041,6 +1064,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           stripMaterial.uniforms.scrollOffset.value = wrapUnit(
             (rotation.current * CYLINDER_RADIUS) / atlas.totalWorldHeight,
           );
+          setMediaAtlasVideoPlayback(atlas, !transition.active);
           updateMediaAtlasVideos(atlas);
 
           if (transition.active && transition.targetMode === CYLINDER_MODES.TITLES) {
@@ -1238,7 +1262,7 @@ export default function CylinderView({ array = [], language = "en" }) {
 
         if (transition.active && transition.targetMode === CYLINDER_MODES.IMAGES) {
           if (!incomingImageSide) {
-            const incomingAtlas = makeMediaAtlas(projects, isMobile);
+            const incomingAtlas = makeMediaAtlas(projects, isMobile, { playVideos: false });
             const incomingMaterial = makeCylinderMediaMaterial(incomingAtlas.texture);
             incomingImageSide = createImageTransitionSide({
               atlas: incomingAtlas,
@@ -1255,6 +1279,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         }
 
         if (shouldCompleteModeTransition(transition, now)) {
+          incomingImageSide?.setVideoPlayback?.(true);
           transitionRotationBaseRef.current += Math.PI;
           contentRotationRef.current -= Math.PI;
           transition.active = false;
