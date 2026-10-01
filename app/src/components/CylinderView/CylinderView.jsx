@@ -22,6 +22,7 @@ const ROTATION_INERTIA = 0.88;
 const ROTATION_EASE = 0.085;
 const POINTER_ROTATION_MAX = 0.7;
 const POINTER_ROTATION_EASE = 0.08;
+const MODE_TRANSITION_DURATION = 950;
 const VELOCITY_STOP_THRESHOLD = 0.00001;
 const CAMERA_Z = 7.6;
 const CYLINDER_SHADE_WHITE_AT = 0.88;
@@ -671,6 +672,111 @@ function updateRowMesh({ hitHeight, hitMesh, isMobile, letterSpacing, mesh, mode
   hitMesh.userData.mode = mode;
 }
 
+function createTitleTransitionSide({ isMobile, layout, projects }) {
+  const group = new THREE.Group();
+  const metrics = getModeMetrics(CYLINDER_MODES.TITLES, layout);
+  const angleStep = metrics.angleStep;
+  const totalRows = Math.ceil((VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN) / angleStep) + ROW_POOL_BUFFER * 2;
+  const meshes = [];
+  const hitMeshes = [];
+
+  Array.from({ length: totalRows }, (_, index) => {
+    const mesh = new THREE.Mesh();
+    const hitMesh = new THREE.Mesh();
+
+    mesh.userData = {
+      index,
+      mode: CYLINDER_MODES.TITLES,
+      project: null,
+      virtualIndex: null,
+    };
+
+    updateRowMesh({
+      hitHeight: metrics.hitHeight,
+      hitMesh,
+      isMobile,
+      letterSpacing: layout.letterSpacing,
+      mesh,
+      mode: CYLINDER_MODES.TITLES,
+      project: getProjectForVirtualIndex(projects, index),
+      rowHeight: metrics.height,
+      virtualIndex: index,
+    });
+
+    if (mesh.material?.uniforms?.hoverEnabled) mesh.material.uniforms.hoverEnabled.value = 0;
+    group.add(mesh);
+    meshes.push(mesh);
+    hitMeshes.push(hitMesh);
+  });
+
+  const update = (current, layoutRefValue) => {
+    const currentMetrics = getModeMetrics(CYLINDER_MODES.TITLES, layoutRefValue);
+    const currentAngleStep = currentMetrics.angleStep;
+    const baseVirtualIndex = Math.floor((VISIBLE_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
+
+    meshes.forEach((mesh, index) => {
+      const hitMesh = hitMeshes[index];
+      const virtualIndex = baseVirtualIndex + index;
+      const project = getProjectForVirtualIndex(projects, virtualIndex);
+
+      if (mesh.userData.virtualIndex !== virtualIndex || mesh.userData.mode !== CYLINDER_MODES.TITLES) {
+        updateRowMesh({
+          hitHeight: currentMetrics.hitHeight,
+          hitMesh,
+          isMobile,
+          letterSpacing: layoutRefValue.letterSpacing,
+          mesh,
+          mode: CYLINDER_MODES.TITLES,
+          project,
+          rowHeight: currentMetrics.height,
+          virtualIndex,
+        });
+        if (mesh.material?.uniforms?.hoverEnabled) mesh.material.uniforms.hoverEnabled.value = 0;
+      }
+
+      const angle = virtualIndex * currentAngleStep + current;
+      const frontness = (Math.cos(angle) + 1) / 2;
+
+      mesh.visible = frontness >= 0.5;
+      mesh.position.set(0, 0, 0);
+      setTitleRowRotation(mesh, angle, CYLINDER_MODES.TITLES);
+      mesh.renderOrder = 1 + Math.round(frontness * 1000);
+    });
+  };
+
+  const dispose = () => {
+    disposeMeshes(meshes);
+    hitMeshes.forEach((mesh) => mesh.geometry?.dispose());
+  };
+
+  return { dispose, group, update };
+}
+
+function createImageTransitionSide({ atlas, material, width }) {
+  const group = new THREE.Group();
+  const geometry = makeCylinderStripGeometry(width, VISIBLE_ANGLE_MIN, VISIBLE_ANGLE_MAX);
+  const mesh = new THREE.Mesh(geometry, material);
+  const visibleWorldHeight = (VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN) * CYLINDER_RADIUS;
+
+  material.uniforms.visibleRepeat.value = visibleWorldHeight / atlas.totalWorldHeight;
+  group.add(mesh);
+
+  return {
+    dispose: () => {
+      geometry.dispose();
+      material.uniforms.map.value?.dispose();
+      material.dispose();
+      disposeMediaAtlas(atlas);
+    },
+    group,
+    material,
+    update: (current) => {
+      material.uniforms.scrollOffset.value = wrapUnit((current * CYLINDER_RADIUS) / atlas.totalWorldHeight);
+      updateMediaAtlasVideos(atlas);
+    },
+  };
+}
+
 function disposeMeshes(meshes) {
   meshes.forEach((mesh) => {
     mesh.geometry?.dispose();
@@ -689,9 +795,9 @@ function cloneLayout(layout) {
   };
 }
 
-function applyLayout(group, layout, rotationOffset = { x: 0, y: 0 }) {
+function applyLayout(group, layout, rotationOffset = { x: 0, y: 0 }, transitionRotationX = 0, baseRotationX = 0) {
   group.position.set(layout.position.x, layout.position.y, layout.position.z);
-  group.rotation.set(rotationOffset.x, rotationOffset.y, layout.rotation.z);
+  group.rotation.set(rotationOffset.x + baseRotationX + transitionRotationX, rotationOffset.y, layout.rotation.z);
 }
 
 function roundCoordinate(value) {
@@ -719,6 +825,30 @@ function updatePointerRotationOffset(pointerRotation, pointerClient, container) 
   return pointerRotation.current;
 }
 
+function easeInOutCubic(value) {
+  return value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
+function getModeTransitionRotation(transition, now) {
+  if (!transition.active) return 0;
+
+  const progress = Math.min(1, (now - transition.startedAt) / MODE_TRANSITION_DURATION);
+
+  if (progress >= 1) {
+    return Math.PI;
+  }
+
+  return easeInOutCubic(progress) * Math.PI;
+}
+
+function shouldCompleteModeTransition(transition, now) {
+  return (
+    transition.active &&
+    transition.targetMode &&
+    now - transition.startedAt >= MODE_TRANSITION_DURATION
+  );
+}
+
 export default function CylinderView({ array = [], language = "en" }) {
   const router = useRouter();
   const containerRef = useRef(null);
@@ -742,6 +872,14 @@ export default function CylinderView({ array = [], language = "en" }) {
   const pointerRotationRef = useRef({
     current: { x: 0, y: 0 },
     target: { x: 0, y: 0 },
+  });
+  const transitionRotationBaseRef = useRef(0);
+  const contentRotationRef = useRef(0);
+  const modeTransitionRef = useRef({
+    active: false,
+    startedAt: 0,
+    swapped: false,
+    targetMode: null,
   });
   const layoutRef = useRef(cloneLayout(DEFAULT_LAYOUT));
   const [layout, setLayout] = useState(() => cloneLayout(DEFAULT_LAYOUT));
@@ -768,6 +906,22 @@ export default function CylinderView({ array = [], language = "en" }) {
       router.push(getLocalizedPath(`/projects/${project.slug}`, language), undefined, { scroll: false });
     },
     [language, router],
+  );
+
+  const startModeTransition = useCallback(
+    (nextMode) => {
+      if (nextMode === cylinderMode) return;
+
+      modeTransitionRef.current = {
+        active: true,
+        startedAt: performance.now(),
+        swapped: false,
+        targetMode: nextMode,
+      };
+      hoveredMeshRef.current = null;
+      setIsClickable(false);
+    },
+    [cylinderMode],
   );
 
   useEffect(() => {
@@ -805,8 +959,11 @@ export default function CylinderView({ array = [], language = "en" }) {
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
       const group = new THREE.Group();
-      applyLayout(group, layoutRef.current);
+      applyLayout(group, layoutRef.current, { x: 0, y: 0 }, 0, transitionRotationBaseRef.current);
       scene.add(group);
+      const contentGroup = new THREE.Group();
+      contentGroup.rotation.x = contentRotationRef.current;
+      group.add(contentGroup);
 
       const cylinderWidth = cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH;
       const cylinderGeometry = new THREE.CylinderGeometry(
@@ -833,9 +990,10 @@ export default function CylinderView({ array = [], language = "en" }) {
         const stripGeometry = makeCylinderStripGeometry(IMAGE_CYLINDER_WIDTH, VISIBLE_ANGLE_MIN, VISIBLE_ANGLE_MAX);
         const stripMaterial = makeCylinderMediaMaterial(atlas.texture);
         const stripMesh = new THREE.Mesh(stripGeometry, stripMaterial);
+        let incomingTitleSide = null;
 
         stripMaterial.uniforms.visibleRepeat.value = visibleWorldHeight / atlas.totalWorldHeight;
-        group.add(stripMesh);
+        contentGroup.add(stripMesh);
 
         sceneStateRef.current = {
           camera,
@@ -860,6 +1018,9 @@ export default function CylinderView({ array = [], language = "en" }) {
         };
 
         const render = () => {
+          const now = performance.now();
+          const transition = modeTransitionRef.current;
+
           const rotation = rotationRef.current;
           rotation.target += rotation.velocity;
           rotation.velocity *= ROTATION_INERTIA;
@@ -870,11 +1031,39 @@ export default function CylinderView({ array = [], language = "en" }) {
             pointerClientRef.current,
             container,
           );
-          applyLayout(group, layoutRef.current, pointerRotation);
+          applyLayout(
+            group,
+            layoutRef.current,
+            pointerRotation,
+            getModeTransitionRotation(transition, now),
+            transitionRotationBaseRef.current,
+          );
           stripMaterial.uniforms.scrollOffset.value = wrapUnit(
             (rotation.current * CYLINDER_RADIUS) / atlas.totalWorldHeight,
           );
           updateMediaAtlasVideos(atlas);
+
+          if (transition.active && transition.targetMode === CYLINDER_MODES.TITLES) {
+            if (!incomingTitleSide) {
+              incomingTitleSide = createTitleTransitionSide({ isMobile, layout: layoutRef.current, projects });
+              incomingTitleSide.group.rotation.x = contentRotationRef.current - Math.PI;
+              group.add(incomingTitleSide.group);
+            }
+            incomingTitleSide.group.visible = true;
+            incomingTitleSide.update(rotation.current, layoutRef.current);
+          } else if (incomingTitleSide) {
+            incomingTitleSide.group.visible = false;
+          }
+
+          if (shouldCompleteModeTransition(transition, now)) {
+            transitionRotationBaseRef.current += Math.PI;
+            contentRotationRef.current -= Math.PI;
+            transition.active = false;
+            const nextMode = transition.targetMode;
+            transition.targetMode = null;
+            setCylinderMode(nextMode);
+          }
+
           renderer.render(scene, camera);
           animationFrame = window.requestAnimationFrame(render);
         };
@@ -890,6 +1079,7 @@ export default function CylinderView({ array = [], language = "en" }) {
           cylinderGeometry.dispose();
           cylinderMaterial.dispose();
           disposeMediaAtlas(atlas);
+          incomingTitleSide?.dispose();
           stripGeometry.dispose();
           stripMaterial.uniforms.map.value?.dispose();
           stripMaterial.dispose();
@@ -914,6 +1104,7 @@ export default function CylinderView({ array = [], language = "en" }) {
       const hitHeight = initialMetrics.hitHeight;
       const meshes = [];
       const hitMeshes = [];
+      let incomingImageSide = null;
       const initialBaseVirtualIndex =
         Math.floor((VISIBLE_ANGLE_MIN - rotationRef.current.current) / angleStep) - ROW_POOL_BUFFER;
 
@@ -949,8 +1140,8 @@ export default function CylinderView({ array = [], language = "en" }) {
           virtualIndex,
         };
 
-        group.add(mesh);
-        group.add(hitMesh);
+        contentGroup.add(mesh);
+        contentGroup.add(hitMesh);
         meshes.push(mesh);
         hitMeshes.push(hitMesh);
       });
@@ -1027,16 +1218,52 @@ export default function CylinderView({ array = [], language = "en" }) {
       };
 
       const render = () => {
+        const now = performance.now();
+        const transition = modeTransitionRef.current;
+
         const rotation = rotationRef.current;
         rotation.target += rotation.velocity;
         rotation.velocity *= ROTATION_INERTIA;
         if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
         rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
         const pointerRotation = updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
-        applyLayout(group, layoutRef.current, pointerRotation);
+        applyLayout(
+          group,
+          layoutRef.current,
+          pointerRotation,
+          getModeTransitionRotation(transition, now),
+          transitionRotationBaseRef.current,
+        );
         updateMeshes();
 
-        if (!pointerRef.current.dragging && pointerClientRef.current) {
+        if (transition.active && transition.targetMode === CYLINDER_MODES.IMAGES) {
+          if (!incomingImageSide) {
+            const incomingAtlas = makeMediaAtlas(projects, isMobile);
+            const incomingMaterial = makeCylinderMediaMaterial(incomingAtlas.texture);
+            incomingImageSide = createImageTransitionSide({
+              atlas: incomingAtlas,
+              material: incomingMaterial,
+              width: IMAGE_CYLINDER_WIDTH,
+            });
+            incomingImageSide.group.rotation.x = contentRotationRef.current - Math.PI;
+            group.add(incomingImageSide.group);
+          }
+          incomingImageSide.group.visible = true;
+          incomingImageSide.update(rotation.current);
+        } else if (incomingImageSide) {
+          incomingImageSide.group.visible = false;
+        }
+
+        if (shouldCompleteModeTransition(transition, now)) {
+          transitionRotationBaseRef.current += Math.PI;
+          contentRotationRef.current -= Math.PI;
+          transition.active = false;
+          const nextMode = transition.targetMode;
+          transition.targetMode = null;
+          setCylinderMode(nextMode);
+        }
+
+        if (!transition.active && !pointerRef.current.dragging && pointerClientRef.current) {
           const rect = container.getBoundingClientRect();
           pointer.x = ((pointerClientRef.current.x - rect.left) / rect.width) * 2 - 1;
           pointer.y = -(((pointerClientRef.current.y - rect.top) / rect.height) * 2 - 1);
@@ -1062,6 +1289,7 @@ export default function CylinderView({ array = [], language = "en" }) {
         cylinderGeometry.dispose();
         cylinderMaterial.dispose();
         hitMaterial.dispose();
+        incomingImageSide?.dispose();
         disposeMeshes(meshes);
         hitMeshes.forEach((mesh) => mesh.geometry?.dispose());
         renderer.dispose();
@@ -1238,14 +1466,14 @@ export default function CylinderView({ array = [], language = "en" }) {
       >
         <button
           className={cylinderMode === CYLINDER_MODES.TITLES ? styles.modeToggleButtonActive : styles.modeToggleButton}
-          onClick={() => setCylinderMode(CYLINDER_MODES.TITLES)}
+          onClick={() => startModeTransition(CYLINDER_MODES.TITLES)}
           type="button"
         >
           Titles
         </button>
         <button
           className={cylinderMode === CYLINDER_MODES.IMAGES ? styles.modeToggleButtonActive : styles.modeToggleButton}
-          onClick={() => setCylinderMode(CYLINDER_MODES.IMAGES)}
+          onClick={() => startModeTransition(CYLINDER_MODES.IMAGES)}
           type="button"
         >
           Images
