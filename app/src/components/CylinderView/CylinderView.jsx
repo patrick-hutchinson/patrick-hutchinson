@@ -93,9 +93,9 @@ const MOBILE_LAYOUT = {
   letterSpacing: -5,
   lineHeight: 0.66,
   position: {
-    x: 0,
-    y: 0,
-    z: -2.25,
+    x: -0.4,
+    y: 0.1,
+    z: -2.75,
   },
   rotation: {
     x: -0.05,
