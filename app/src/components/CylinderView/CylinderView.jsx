@@ -49,11 +49,13 @@ const TITLE_HOVER_SWITCH_MARGIN = 0.08;
 const HIT_HEIGHT_MULTIPLIER = 0.72;
 const HIT_WIDTH_PADDING = 0.18;
 const ROW_POOL_BUFFER = 4;
+const MOBILE_ROW_POOL_BUFFER = 2;
 const CYLINDER_VISIBLE_SURFACE_ANGLE = THREE.MathUtils.degToRad(200);
 const VISIBLE_ANGLE_MIN = -CYLINDER_VISIBLE_SURFACE_ANGLE / 2;
 const VISIBLE_ANGLE_MAX = CYLINDER_VISIBLE_SURFACE_ANGLE / 2;
 const VISIBLE_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2) + 1) / 2;
 const TITLE_READY_OVERSCAN = THREE.MathUtils.degToRad(24);
+const MOBILE_TITLE_READY_OVERSCAN = THREE.MathUtils.degToRad(8);
 const TITLE_READY_ANGLE_MIN = VISIBLE_ANGLE_MIN - TITLE_READY_OVERSCAN;
 const TITLE_READY_ANGLE_MAX = VISIBLE_ANGLE_MAX + TITLE_READY_OVERSCAN;
 const TITLE_READY_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + TITLE_READY_OVERSCAN) + 1) / 2;
@@ -773,7 +775,12 @@ function createTitleTransitionSide({ isMobile, layout, palette, projects }) {
   const group = new THREE.Group();
   const metrics = getModeMetrics(CYLINDER_MODES.TITLES, layout);
   const angleStep = metrics.angleStep;
-  const totalRows = Math.ceil((TITLE_READY_ANGLE_MAX - TITLE_READY_ANGLE_MIN) / angleStep) + ROW_POOL_BUFFER * 2;
+  const readyOverscan = isMobile ? MOBILE_TITLE_READY_OVERSCAN : TITLE_READY_OVERSCAN;
+  const readyAngleMin = VISIBLE_ANGLE_MIN - readyOverscan;
+  const readyAngleMax = VISIBLE_ANGLE_MAX + readyOverscan;
+  const readyFrontnessMin = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + readyOverscan) + 1) / 2;
+  const rowPoolBuffer = isMobile ? MOBILE_ROW_POOL_BUFFER : ROW_POOL_BUFFER;
+  const totalRows = Math.ceil((readyAngleMax - readyAngleMin) / angleStep) + rowPoolBuffer * 2;
   const meshes = [];
   const hitMeshes = [];
 
@@ -810,7 +817,7 @@ function createTitleTransitionSide({ isMobile, layout, palette, projects }) {
   const update = (current, layoutRefValue) => {
     const currentMetrics = getModeMetrics(CYLINDER_MODES.TITLES, layoutRefValue);
     const currentAngleStep = currentMetrics.angleStep;
-    const baseVirtualIndex = Math.floor((TITLE_READY_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
+    const baseVirtualIndex = Math.floor((readyAngleMin - current) / currentAngleStep) - rowPoolBuffer;
 
     meshes.forEach((mesh, index) => {
       const hitMesh = hitMeshes[index];
@@ -836,7 +843,7 @@ function createTitleTransitionSide({ isMobile, layout, palette, projects }) {
       const angle = virtualIndex * currentAngleStep + current;
       const frontness = (Math.cos(angle) + 1) / 2;
 
-      mesh.visible = frontness >= TITLE_READY_FRONTNESS_MIN;
+      mesh.visible = frontness >= readyFrontnessMin;
       mesh.position.set(0, 0, 0);
       setTitleRowRotation(mesh, angle, CYLINDER_MODES.TITLES);
       mesh.renderOrder = 1 + Math.round(frontness * 1000);
@@ -1105,11 +1112,11 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
       const renderer = new THREE.WebGLRenderer({
         alpha: true,
-        antialias: true,
+        antialias: !isMobile,
         canvas,
       });
       renderer.setClearColor(palette.pageBackground, 0);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2));
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
@@ -1269,8 +1276,13 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
       const initialMetrics = getModeMetrics(cylinderMode, layoutRef.current);
       const angleStep = initialMetrics.angleStep;
-      const visibleAngleRange = TITLE_READY_ANGLE_MAX - TITLE_READY_ANGLE_MIN;
-      const totalRows = Math.ceil(visibleAngleRange / angleStep) + ROW_POOL_BUFFER * 2;
+      const readyOverscan = isMobile ? MOBILE_TITLE_READY_OVERSCAN : TITLE_READY_OVERSCAN;
+      const readyAngleMin = VISIBLE_ANGLE_MIN - readyOverscan;
+      const readyAngleMax = VISIBLE_ANGLE_MAX + readyOverscan;
+      const readyFrontnessMin = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + readyOverscan) + 1) / 2;
+      const rowPoolBuffer = isMobile ? MOBILE_ROW_POOL_BUFFER : ROW_POOL_BUFFER;
+      const visibleAngleRange = readyAngleMax - readyAngleMin;
+      const totalRows = Math.ceil(visibleAngleRange / angleStep) + rowPoolBuffer * 2;
       const hitMaterial = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         depthTest: false,
@@ -1284,7 +1296,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       const hitMeshes = [];
       let incomingImageSide = null;
       const initialBaseVirtualIndex =
-        Math.floor((TITLE_READY_ANGLE_MIN - rotationRef.current.current) / angleStep) - ROW_POOL_BUFFER;
+        Math.floor((readyAngleMin - rotationRef.current.current) / angleStep) - rowPoolBuffer;
 
       Array.from({ length: totalRows }, (_, index) => {
         const virtualIndex = initialBaseVirtualIndex + index;
@@ -1350,7 +1362,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         const { current } = rotationRef.current;
         const metrics = getModeMetrics(cylinderMode, layoutRef.current);
         const currentAngleStep = metrics.angleStep;
-        const baseVirtualIndex = Math.floor((TITLE_READY_ANGLE_MIN - current) / currentAngleStep) - ROW_POOL_BUFFER;
+        const baseVirtualIndex = Math.floor((readyAngleMin - current) / currentAngleStep) - rowPoolBuffer;
 
         meshes.forEach((mesh, index) => {
           const hitMesh = hitMeshes[index];
@@ -1375,7 +1387,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           const angle = virtualIndex * currentAngleStep + current;
           const frontness = (Math.cos(angle) + 1) / 2;
 
-          mesh.visible = frontness >= TITLE_READY_FRONTNESS_MIN;
+          mesh.visible = frontness >= readyFrontnessMin;
           mesh.position.set(0, 0, 0);
           setTitleRowRotation(mesh, angle, cylinderMode);
           if (mesh.material?.uniforms?.hoverAmount) {
@@ -1525,7 +1537,8 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
   const handleWheel = useCallback((event) => {
     event.preventDefault();
-    rotationRef.current.velocity -= event.deltaY * SCROLL_SPEED * SCROLL_RESISTANCE;
+    const wheelDirection = isMobileRef.current ? 1 : -1;
+    rotationRef.current.velocity += event.deltaY * wheelDirection * SCROLL_SPEED * SCROLL_RESISTANCE;
   }, []);
 
   const handlePointerDown = useCallback((event) => {
@@ -1549,7 +1562,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
       if (pointerState.dragging) {
         const deltaY = event.clientY - pointerState.lastY;
-        const dragDirection = isMobileRef.current ? -1 : 1;
+        const dragDirection = 1;
         pointerState.lastY = event.clientY;
         pointerState.moved = pointerState.moved || Math.abs(deltaY) > 2;
         rotationRef.current.velocity += deltaY * dragDirection * DRAG_SPEED * DRAG_RESISTANCE;
