@@ -25,6 +25,11 @@ const ROTATION_INERTIA = 0.88;
 const ROTATION_EASE = 0.085;
 const POINTER_ROTATION_MAX = 0.7;
 const POINTER_ROTATION_EASE = 0.08;
+const MOBILE_ORIENTATION_MAX_X = 0.45;
+const MOBILE_ORIENTATION_MAX_Y = 0.45;
+const MOBILE_ORIENTATION_SENSITIVITY_X = 0.018;
+const MOBILE_ORIENTATION_SENSITIVITY_Y = 0.018;
+const MOBILE_ORIENTATION_EASE = 0.08;
 const MODE_TRANSITION_DURATION = 950;
 const VELOCITY_STOP_THRESHOLD = 0.00001;
 const CAMERA_Z = 7.6;
@@ -114,6 +119,10 @@ const MOBILE_ROTATION_OFFSET = {
   x: 0.579,
   y: 0.676,
 };
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 async function loadCylinderFonts() {
   if (!document.fonts?.load) {
@@ -897,8 +906,8 @@ function getCylinderDebugOutput({ cylinderMode, group, layout, paletteMode, scro
 function updatePointerRotationOffset(pointerRotation, pointerClient, container) {
   if (pointerClient) {
     const rect = container.getBoundingClientRect();
-    const normalizedX = Math.min(1, Math.max(-1, ((pointerClient.x - rect.left) / Math.max(rect.width, 1)) * 2 - 1));
-    const normalizedY = Math.min(1, Math.max(-1, ((pointerClient.y - rect.top) / Math.max(rect.height, 1)) * 2 - 1));
+    const normalizedX = clamp(((pointerClient.x - rect.left) / Math.max(rect.width, 1)) * 2 - 1, -1, 1);
+    const normalizedY = clamp(((pointerClient.y - rect.top) / Math.max(rect.height, 1)) * 2 - 1, -1, 1);
 
     pointerRotation.target.y = -normalizedX * POINTER_ROTATION_MAX;
     pointerRotation.target.x = -normalizedY * POINTER_ROTATION_MAX;
@@ -908,6 +917,18 @@ function updatePointerRotationOffset(pointerRotation, pointerClient, container) 
   pointerRotation.current.y += (pointerRotation.target.y - pointerRotation.current.y) * POINTER_ROTATION_EASE;
 
   return pointerRotation.current;
+}
+
+function updateMobileOrientationRotation(orientationRotation) {
+  orientationRotation.current.x +=
+    (orientationRotation.target.x - orientationRotation.current.x) * MOBILE_ORIENTATION_EASE;
+  orientationRotation.current.y +=
+    (orientationRotation.target.y - orientationRotation.current.y) * MOBILE_ORIENTATION_EASE;
+
+  return {
+    x: MOBILE_ROTATION_OFFSET.x + orientationRotation.current.x,
+    y: MOBILE_ROTATION_OFFSET.y + orientationRotation.current.y,
+  };
 }
 
 function easeInOutCubic(value) {
@@ -960,6 +981,12 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     current: { x: 0, y: 0 },
     target: { x: 0, y: 0 },
   });
+  const mobileOrientationRef = useRef({
+    base: null,
+    current: { x: 0, y: 0 },
+    target: { x: 0, y: 0 },
+  });
+  const mobileOrientationPermissionRef = useRef("unknown");
   const modeTransitionRef = useRef({
     active: false,
     startedAt: 0,
@@ -1018,6 +1045,54 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
     startModeTransition(mode);
   }, [cylinderMode, mode, startModeTransition]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      mobileOrientationRef.current.base = null;
+      mobileOrientationRef.current.target = { x: 0, y: 0 };
+      return undefined;
+    }
+
+    const handleDeviceOrientation = (event) => {
+      if (typeof event.beta !== "number" || typeof event.gamma !== "number") return;
+
+      const orientation = mobileOrientationRef.current;
+      if (!orientation.base) {
+        orientation.base = {
+          beta: event.beta,
+          gamma: event.gamma,
+        };
+      }
+
+      const deltaBeta = event.beta - orientation.base.beta;
+      const deltaGamma = event.gamma - orientation.base.gamma;
+
+      orientation.target.x = clamp(
+        -deltaBeta * MOBILE_ORIENTATION_SENSITIVITY_X,
+        -MOBILE_ORIENTATION_MAX_X,
+        MOBILE_ORIENTATION_MAX_X,
+      );
+      orientation.target.y = clamp(
+        deltaGamma * MOBILE_ORIENTATION_SENSITIVITY_Y,
+        -MOBILE_ORIENTATION_MAX_Y,
+        MOBILE_ORIENTATION_MAX_Y,
+      );
+    };
+
+    const resetOrientationBase = () => {
+      mobileOrientationRef.current.base = null;
+    };
+
+    window.addEventListener("deviceorientation", handleDeviceOrientation);
+    window.addEventListener("orientationchange", resetOrientationBase);
+    window.addEventListener("resize", resetOrientationBase);
+
+    return () => {
+      window.removeEventListener("deviceorientation", handleDeviceOrientation);
+      window.removeEventListener("orientationchange", resetOrientationBase);
+      window.removeEventListener("resize", resetOrientationBase);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current || !projects.length) return undefined;
@@ -1137,7 +1212,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
           rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
           const pointerRotation = isMobile
-            ? MOBILE_ROTATION_OFFSET
+            ? updateMobileOrientationRotation(mobileOrientationRef.current)
             : updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
           applyLayout(
             group,
@@ -1348,7 +1423,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
         rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
         const pointerRotation = isMobile
-          ? MOBILE_ROTATION_OFFSET
+          ? updateMobileOrientationRotation(mobileOrientationRef.current)
           : updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
         applyLayout(
           group,
@@ -1454,7 +1529,28 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     rotationRef.current.velocity += event.deltaY * wheelDirection * SCROLL_SPEED * SCROLL_RESISTANCE;
   }, []);
 
+  const requestMobileOrientationPermission = useCallback(() => {
+    if (!isMobileRef.current || mobileOrientationPermissionRef.current !== "unknown") return;
+
+    const OrientationEvent = window.DeviceOrientationEvent;
+    if (typeof OrientationEvent?.requestPermission !== "function") {
+      mobileOrientationPermissionRef.current = "granted";
+      return;
+    }
+
+    mobileOrientationPermissionRef.current = "pending";
+    OrientationEvent.requestPermission()
+      .then((permissionState) => {
+        mobileOrientationPermissionRef.current = permissionState;
+      })
+      .catch(() => {
+        mobileOrientationPermissionRef.current = "denied";
+      });
+  }, []);
+
   const handlePointerDown = useCallback((event) => {
+    requestMobileOrientationPermission();
+
     pointerRef.current = {
       dragging: true,
       moved: false,
@@ -1463,7 +1559,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     };
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsDragging(true);
-  }, []);
+  }, [requestMobileOrientationPermission]);
 
   const handlePointerMove = useCallback(
     (event) => {
