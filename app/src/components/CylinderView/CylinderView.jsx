@@ -103,6 +103,11 @@ const MOBILE_LAYOUT = {
   },
 };
 
+const MOBILE_ROTATION_OFFSET = {
+  x: 0.579,
+  y: 0.676,
+};
+
 async function loadCylinderFonts() {
   if (!document.fonts?.load) {
     await document.fonts?.ready;
@@ -911,6 +916,41 @@ function roundCoordinate(value) {
   return Math.round(value * 1000) / 1000;
 }
 
+function vectorToCoordinates(vector) {
+  return {
+    x: roundCoordinate(vector.x),
+    y: roundCoordinate(vector.y),
+    z: roundCoordinate(vector.z),
+  };
+}
+
+function getCylinderDebugOutput({ cylinderMode, group, layout, paletteMode, scrollRotation = 0 }) {
+  return JSON.stringify(
+    {
+      mode: cylinderMode,
+      palette: paletteMode,
+      letterSpacing: roundCoordinate(layout.letterSpacing),
+      lineHeight: roundCoordinate(layout.lineHeight),
+      size: {
+        radius: roundCoordinate(CYLINDER_RADIUS),
+        width: roundCoordinate(cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH),
+      },
+      layout: {
+        translate: vectorToCoordinates(layout.position),
+        rotation: vectorToCoordinates(layout.rotation),
+      },
+      live: {
+        translate: group ? vectorToCoordinates(group.position) : vectorToCoordinates(layout.position),
+        rotation: group ? vectorToCoordinates(group.rotation) : vectorToCoordinates(layout.rotation),
+        scale: group ? vectorToCoordinates(group.scale) : { x: 1, y: 1, z: 1 },
+        scrollRotation: roundCoordinate(scrollRotation),
+      },
+    },
+    null,
+    2,
+  );
+}
+
 function updatePointerRotationOffset(pointerRotation, pointerClient, container) {
   if (pointerClient) {
     const rect = container.getBoundingClientRect();
@@ -959,6 +999,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
   const router = useRouter();
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
+  const debugOutputRef = useRef(null);
   const meshesRef = useRef([]);
   const hitMeshesRef = useRef([]);
   const hoveredMeshRef = useRef(null);
@@ -1149,11 +1190,9 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           rotation.velocity *= ROTATION_INERTIA;
           if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
           rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
-          const pointerRotation = updatePointerRotationOffset(
-            pointerRotationRef.current,
-            pointerClientRef.current,
-            container,
-          );
+          const pointerRotation = isMobile
+            ? MOBILE_ROTATION_OFFSET
+            : updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
           applyLayout(
             group,
             layoutRef.current,
@@ -1161,6 +1200,15 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
             getModeTransitionRotation(transition, now),
             transitionRotationBaseRef.current,
           );
+          if (debugOutputRef.current) {
+            debugOutputRef.current.textContent = getCylinderDebugOutput({
+              cylinderMode,
+              group,
+              layout: layoutRef.current,
+              paletteMode,
+              scrollRotation: rotation.current,
+            });
+          }
           stripMaterial.uniforms.scrollOffset.value = wrapUnit(
             (rotation.current * CYLINDER_RADIUS) / atlas.totalWorldHeight,
           );
@@ -1357,7 +1405,9 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         rotation.velocity *= ROTATION_INERTIA;
         if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
         rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
-        const pointerRotation = updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
+        const pointerRotation = isMobile
+          ? MOBILE_ROTATION_OFFSET
+          : updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
         applyLayout(
           group,
           layoutRef.current,
@@ -1365,6 +1415,15 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           getModeTransitionRotation(transition, now),
           transitionRotationBaseRef.current,
         );
+        if (debugOutputRef.current) {
+          debugOutputRef.current.textContent = getCylinderDebugOutput({
+            cylinderMode,
+            group,
+            layout: layoutRef.current,
+            paletteMode,
+            scrollRotation: rotation.current,
+          });
+        }
         updateMeshes();
 
         if (transition.active && transition.targetMode === CYLINDER_MODES.IMAGES) {
@@ -1557,31 +1616,8 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
   }, []);
 
   const coordinateOutput = useMemo(
-    () =>
-      JSON.stringify(
-        {
-          letterSpacing: roundCoordinate(layout.letterSpacing),
-          lineHeight: roundCoordinate(layout.lineHeight),
-          palette: paletteMode,
-          size: {
-            radius: roundCoordinate(CYLINDER_RADIUS),
-            width: roundCoordinate(cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH),
-          },
-          position: {
-            x: roundCoordinate(layout.position.x),
-            y: roundCoordinate(layout.position.y),
-            z: roundCoordinate(layout.position.z),
-          },
-          rotation: {
-            x: roundCoordinate(layout.rotation.x),
-            y: roundCoordinate(layout.rotation.y),
-            z: roundCoordinate(layout.rotation.z),
-          },
-        },
-        null,
-        2,
-      ),
-    [layout, paletteMode],
+    () => getCylinderDebugOutput({ cylinderMode, layout, paletteMode, scrollRotation: rotationRef.current.current }),
+    [cylinderMode, layout, paletteMode],
   );
 
   return (
@@ -1604,6 +1640,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         onPointerMove={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
+        ref={debugOutputRef}
       >
         {coordinateOutput}
       </pre>
