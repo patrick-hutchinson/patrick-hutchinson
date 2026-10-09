@@ -96,6 +96,7 @@
   user-select: text;
   white-space: pre-wrap;
   z-index: 2;
+  display: none;
 }
 
 .fallbackLinks {
