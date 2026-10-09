@@ -1067,7 +1067,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         MOBILE_ORIENTATION_MAX_X,
       );
       orientation.target.y = clamp(
-        deltaGamma * MOBILE_ORIENTATION_SENSITIVITY_Y,
+        -deltaGamma * MOBILE_ORIENTATION_SENSITIVITY_Y,
         -MOBILE_ORIENTATION_MAX_Y,
         MOBILE_ORIENTATION_MAX_Y,
       );
