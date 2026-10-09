@@ -24,6 +24,24 @@
   width: 100%;
 }
 
+.motionButton {
+  appearance: none;
+  background: rgb(255 255 255 / 0.82);
+  border: 0;
+  border-radius: 999px;
+  bottom: calc(var(--margin) + 44px);
+  color: #000;
+  cursor: pointer;
+  display: none;
+  font: inherit;
+  line-height: 1;
+  padding: 4px 10px;
+  position: fixed;
+  right: var(--margin);
+  text-transform: uppercase;
+  z-index: 4;
+}
+
 .resetButton {
   appearance: none;
   background: #000;
@@ -112,5 +130,9 @@
 @media screen and (max-width: 748px) {
   .control {
     grid-template-columns: 76px minmax(100px, 1fr) 44px;
+  }
+
+  .motionButton {
+    display: block;
   }
 }

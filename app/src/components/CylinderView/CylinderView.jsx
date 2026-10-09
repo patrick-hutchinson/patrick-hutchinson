@@ -997,6 +997,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
   const [isDragging, setIsDragging] = useState(false);
   const [isClickable, setIsClickable] = useState(false);
   const [cylinderMode, setCylinderMode] = useState(CYLINDER_MODES.TITLES);
+  const [orientationPermission, setOrientationPermission] = useState("unknown");
   const [paletteMode, setPaletteMode] = useState("light");
   const palette = CYLINDER_PALETTES[paletteMode];
 
@@ -1529,28 +1530,36 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     rotationRef.current.velocity += event.deltaY * wheelDirection * SCROLL_SPEED * SCROLL_RESISTANCE;
   }, []);
 
-  const requestMobileOrientationPermission = useCallback(() => {
-    if (!isMobileRef.current || mobileOrientationPermissionRef.current !== "unknown") return;
+  const requestMobileOrientationPermission = useCallback(async () => {
+    if (!isMobileRef.current || mobileOrientationPermissionRef.current === "pending") return;
 
     const OrientationEvent = window.DeviceOrientationEvent;
+    if (!OrientationEvent) {
+      mobileOrientationPermissionRef.current = "unsupported";
+      setOrientationPermission("unsupported");
+      return;
+    }
+
     if (typeof OrientationEvent?.requestPermission !== "function") {
       mobileOrientationPermissionRef.current = "granted";
+      setOrientationPermission("granted");
       return;
     }
 
     mobileOrientationPermissionRef.current = "pending";
-    OrientationEvent.requestPermission()
-      .then((permissionState) => {
-        mobileOrientationPermissionRef.current = permissionState;
-      })
-      .catch(() => {
-        mobileOrientationPermissionRef.current = "denied";
-      });
+    setOrientationPermission("pending");
+
+    try {
+      const permissionState = await OrientationEvent.requestPermission();
+      mobileOrientationPermissionRef.current = permissionState;
+      setOrientationPermission(permissionState);
+    } catch {
+      mobileOrientationPermissionRef.current = "denied";
+      setOrientationPermission("denied");
+    }
   }, []);
 
   const handlePointerDown = useCallback((event) => {
-    requestMobileOrientationPermission();
-
     pointerRef.current = {
       dragging: true,
       moved: false,
@@ -1559,7 +1568,16 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     };
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsDragging(true);
-  }, [requestMobileOrientationPermission]);
+  }, []);
+
+  const handleMotionPermissionClick = useCallback(
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      requestMobileOrientationPermission();
+    },
+    [requestMobileOrientationPermission],
+  );
 
   const handlePointerMove = useCallback(
     (event) => {
@@ -1663,6 +1681,18 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       ref={containerRef}
     >
       <canvas className={styles.canvas} ref={canvasRef} />
+      {isMobile && orientationPermission !== "granted" && orientationPermission !== "unsupported" ? (
+        <button
+          className={styles.motionButton}
+          onClick={handleMotionPermissionClick}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerMove={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          type="button"
+        >
+          {orientationPermission === "pending" ? "Motion..." : "Motion"}
+        </button>
+      ) : null}
       <pre
         className={styles.coordinates}
         onPointerDown={(event) => event.stopPropagation()}
