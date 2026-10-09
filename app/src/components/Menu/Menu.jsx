@@ -1,14 +1,26 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { getLocalizedPath } from "@/lib/i18n";
+import { getLocalizedPath, SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import styles from "./Menu.module.css";
 const Menu = ({ className, language = "en", socials = [] }) => {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [portalElement, setPortalElement] = useState(null);
   const socialItems = Array.isArray(socials) ? socials : [];
+
+  function getLanguagePath(asPath, nextLanguage) {
+    const [pathWithQuery, hash = ""] = asPath.split("#");
+    const [path = "/", query = ""] = pathWithQuery.split("?");
+    const segments = path.split("/").filter(Boolean);
+    const pathWithoutLanguage = SUPPORTED_LANGUAGES.includes(segments[0]) ? `/${segments.slice(1).join("/")}` : path;
+    const normalizedPath = pathWithoutLanguage === "/" ? "" : pathWithoutLanguage;
+
+    return `/${nextLanguage}${normalizedPath}${query ? `?${query}` : ""}${hash ? `#${hash}` : ""}`;
+  }
 
   useEffect(() => {
     setPortalElement(document.body);
@@ -35,58 +47,76 @@ const Menu = ({ className, language = "en", socials = [] }) => {
   }, []);
 
   const overlay = (
-      <AnimatePresence
-        onExitComplete={() => {
-          delete document.documentElement.dataset.menuOverlayOpen;
-        }}
-      >
-        {isOpen ? (
-          <motion.nav
-            animate={{ opacity: 1 }}
-            aria-label="Primary navigation"
-            className={styles.menuOverlay}
-            exit={{ opacity: 0 }}
-            id="primary-menu-overlay"
-            initial={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-          >
-            <button
-              aria-label="Close menu"
-              className={styles.overlayHitArea}
-              onClick={() => setIsOpen(false)}
-              type="button"
-            />
-            <ul className={styles.menuList} typo="h2">
-              <li className={styles.menuItem}>
-                <Link href={getLocalizedPath("/", language)} onClick={() => setIsOpen(false)} scroll={false}>
-                  Index
-                </Link>
-              </li>
-              <li className={styles.menuItem}>
-                <Link href={getLocalizedPath("/info", language)} onClick={() => setIsOpen(false)} scroll={false}>
-                  Info
-                </Link>
-              </li>
-              <li className={styles.menuItem}>
-                <a href="mailto:hutchinsonpatrick@icloud.com" onClick={() => setIsOpen(false)}>
-                  Contact
-                </a>
-              </li>
+    <AnimatePresence
+      onExitComplete={() => {
+        delete document.documentElement.dataset.menuOverlayOpen;
+      }}
+    >
+      {isOpen ? (
+        <motion.nav
+          animate={{ opacity: 1 }}
+          aria-label="Primary navigation"
+          className={styles.menuOverlay}
+          exit={{ opacity: 0 }}
+          id="primary-menu-overlay"
+          initial={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: "easeInOut" }}
+        >
+          <button aria-label="Close menu" className={styles.overlayHitArea} onClick={() => setIsOpen(false)} type="button" />
+          <ul className={styles.menuList} typo="h2">
+            <li className={styles.menuItem}>
+              <Link href={getLocalizedPath("/", language)} onClick={() => setIsOpen(false)} scroll={false}>
+                Index
+              </Link>
+            </li>
+            <li className={styles.menuItem}>
+              <Link href={getLocalizedPath("/info", language)} onClick={() => setIsOpen(false)} scroll={false}>
+                Info
+              </Link>
+            </li>
+            <li className={styles.menuItem}>
+              <a href="mailto:hutchinsonpatrick@icloud.com" onClick={() => setIsOpen(false)}>
+                Contact
+              </a>
+            </li>
+          </ul>
+          <ul className={styles.languageList} typo="h2" aria-label="Language options">
+            <li className={styles.languageItem}>
+              <Link
+                className={language === "de" ? styles.languageItemActive : undefined}
+                href={getLanguagePath(router.asPath, "de")}
+                onClick={() => setIsOpen(false)}
+                scroll={false}
+              >
+                De
+              </Link>
+            </li>
+            /
+            <li className={styles.languageItem}>
+              <Link
+                className={language === "en" ? styles.languageItemActive : undefined}
+                href={getLanguagePath(router.asPath, "en")}
+                onClick={() => setIsOpen(false)}
+                scroll={false}
+              >
+                En
+              </Link>
+            </li>
+          </ul>
+          {socialItems.length ? (
+            <ul className={styles.socialList} typo="fineprint">
+              {socialItems.map((social) => (
+                <li className={styles.socialItem} key={social.platform}>
+                  <a href={social.link} onClick={() => setIsOpen(false)} target="_blank">
+                    {social.platform}
+                  </a>
+                </li>
+              ))}
             </ul>
-            {socialItems.length ? (
-              <ul className={styles.socialList} typo="fineprint">
-                {socialItems.map((social) => (
-                  <li className={styles.socialItem} key={social.platform}>
-                    <a href={social.link} onClick={() => setIsOpen(false)} target="_blank">
-                      {social.platform}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </motion.nav>
-        ) : null}
-      </AnimatePresence>
+          ) : null}
+        </motion.nav>
+      ) : null}
+    </AnimatePresence>
   );
 
   return (

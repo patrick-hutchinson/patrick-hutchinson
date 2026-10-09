@@ -1,8 +1,9 @@
 export {
-  fallbackSiteData,
   getHome,
   getHomeStaticProps,
   getInfo,
   getInfoStaticProps,
   getSite,
 } from "./sanity/fetch";
+
+export { fallbackSiteData } from "./sanity/siteFallback";

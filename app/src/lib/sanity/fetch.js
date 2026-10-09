@@ -9,13 +9,8 @@ import {
   publicityQuery,
   siteQuery,
 } from "./queries";
+import { fallbackSiteData } from "./siteFallback";
 import { DEFAULT_LANGUAGE, normalizeLanguage, SUPPORTED_LANGUAGES } from "@/lib/i18n";
-
-export const fallbackSiteData = {
-  title: "Patrick Hutchinson",
-  description: "",
-  faviconUrl: "/favicon.ico",
-};
 
 const revalidate = 5;
 
@@ -25,7 +20,7 @@ function getLastUpdatedAt() {
   }
 
   try {
-    const { execFileSync } = require("node:child_process");
+    const { execFileSync } = require("child_process");
 
     return execFileSync("git", ["log", "-1", "--format=%cI"], {
       cwd: process.cwd(),

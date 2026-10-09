@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { getLocalizedPath } from "@/lib/i18n";
 import { getMediumPreviewImageUrl, getProjectThumbnailMedia, getVideoRenditionUrl } from "@/lib/media/projectThumbnails";
 
+import { CYLINDER_MODES } from "./cylinderModes";
 import styles from "./CylinderView.module.css";
 import { TITLE_KERNING } from "./titleKerning";
 
@@ -56,10 +57,6 @@ const TITLE_READY_ANGLE_MIN = VISIBLE_ANGLE_MIN - TITLE_READY_OVERSCAN;
 const TITLE_READY_ANGLE_MAX = VISIBLE_ANGLE_MAX + TITLE_READY_OVERSCAN;
 const TITLE_READY_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + TITLE_READY_OVERSCAN) + 1) / 2;
 const MODE_TRANSITION_ROTATION = CYLINDER_VISIBLE_SURFACE_ANGLE;
-const CYLINDER_MODES = {
-  IMAGES: "images",
-  TITLES: "titles",
-};
 const MEDIA_ATLAS_WIDTH = 2048;
 const CYLINDER_PALETTES = {
   dark: {
@@ -87,7 +84,22 @@ const DEFAULT_LAYOUT = {
   rotation: {
     x: -0.05,
     y: 0.487,
-    z: 0.096,
+    z: 0,
+  },
+};
+
+const MOBILE_LAYOUT = {
+  letterSpacing: -5,
+  lineHeight: 0.66,
+  position: {
+    x: 0,
+    y: 0,
+    z: -2.25,
+  },
+  rotation: {
+    x: -0.05,
+    y: 0.487,
+    z: 0,
   },
 };
 
@@ -877,6 +889,19 @@ function cloneLayout(layout) {
   };
 }
 
+function layoutsEqual(a, b) {
+  return (
+    a.letterSpacing === b.letterSpacing &&
+    a.lineHeight === b.lineHeight &&
+    a.position.x === b.position.x &&
+    a.position.y === b.position.y &&
+    a.position.z === b.position.z &&
+    a.rotation.x === b.rotation.x &&
+    a.rotation.y === b.rotation.y &&
+    a.rotation.z === b.rotation.z
+  );
+}
+
 function applyLayout(group, layout, rotationOffset = { x: 0, y: 0 }, transitionRotationX = 0, baseRotationX = 0) {
   group.position.set(layout.position.x, layout.position.y, layout.position.z);
   group.rotation.set(rotationOffset.x + baseRotationX + transitionRotationX, rotationOffset.y, layout.rotation.z);
@@ -887,20 +912,15 @@ function roundCoordinate(value) {
 }
 
 function updatePointerRotationOffset(pointerRotation, pointerClient, container) {
-  let targetX = 0;
-  let targetY = 0;
-
   if (pointerClient) {
     const rect = container.getBoundingClientRect();
     const normalizedX = Math.min(1, Math.max(-1, ((pointerClient.x - rect.left) / Math.max(rect.width, 1)) * 2 - 1));
     const normalizedY = Math.min(1, Math.max(-1, ((pointerClient.y - rect.top) / Math.max(rect.height, 1)) * 2 - 1));
 
-    targetY = -normalizedX * POINTER_ROTATION_MAX;
-    targetX = -normalizedY * POINTER_ROTATION_MAX;
+    pointerRotation.target.y = -normalizedX * POINTER_ROTATION_MAX;
+    pointerRotation.target.x = -normalizedY * POINTER_ROTATION_MAX;
   }
 
-  pointerRotation.target.x = targetX;
-  pointerRotation.target.y = targetY;
   pointerRotation.current.x += (pointerRotation.target.x - pointerRotation.current.x) * POINTER_ROTATION_EASE;
   pointerRotation.current.y += (pointerRotation.target.y - pointerRotation.current.y) * POINTER_ROTATION_EASE;
 
@@ -935,7 +955,7 @@ function shouldCompleteModeTransition(transition, now) {
   return transition.active && transition.targetMode && now - transition.startedAt >= MODE_TRANSITION_DURATION;
 }
 
-export default function CylinderView({ array = [], language = "en" }) {
+export default function CylinderView({ array = [], language = "en", mode = CYLINDER_MODES.TITLES }) {
   const router = useRouter();
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -944,6 +964,7 @@ export default function CylinderView({ array = [], language = "en" }) {
   const hoveredMeshRef = useRef(null);
   const pointerClientRef = useRef(null);
   const sceneStateRef = useRef(null);
+  const isMobileRef = useRef(false);
   const pointerRef = useRef({
     dragging: false,
     moved: false,
@@ -1013,11 +1034,25 @@ export default function CylinderView({ array = [], language = "en" }) {
   );
 
   useEffect(() => {
+    if (mode === cylinderMode || modeTransitionRef.current.targetMode === mode) return;
+
+    startModeTransition(mode);
+  }, [cylinderMode, mode, startModeTransition]);
+
+  useEffect(() => {
     if (!canvasRef.current || !containerRef.current || !projects.length) return undefined;
 
     const canvas = canvasRef.current;
     const container = containerRef.current;
     const isMobile = window.matchMedia?.("(max-width: 748px)").matches || false;
+    isMobileRef.current = isMobile;
+
+    if (isMobile && !layoutsEqual(layoutRef.current, MOBILE_LAYOUT)) {
+      const nextLayout = cloneLayout(MOBILE_LAYOUT);
+      layoutRef.current = nextLayout;
+      setLayout(nextLayout);
+    }
+
     let cancelled = false;
     let animationFrame = 0;
     let cleanupScene = () => {};
@@ -1027,11 +1062,11 @@ export default function CylinderView({ array = [], language = "en" }) {
       if (cancelled) return;
 
       const renderer = new THREE.WebGLRenderer({
-        alpha: false,
+        alpha: true,
         antialias: true,
         canvas,
       });
-      renderer.setClearColor(palette.pageBackground, 1);
+      renderer.setClearColor(palette.pageBackground, 0);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
       const scene = new THREE.Scene();
@@ -1454,9 +1489,10 @@ export default function CylinderView({ array = [], language = "en" }) {
 
       if (pointerState.dragging) {
         const deltaY = event.clientY - pointerState.lastY;
+        const dragDirection = isMobileRef.current ? -1 : 1;
         pointerState.lastY = event.clientY;
         pointerState.moved = pointerState.moved || Math.abs(deltaY) > 2;
-        rotationRef.current.velocity += deltaY * DRAG_SPEED * DRAG_RESISTANCE;
+        rotationRef.current.velocity += deltaY * dragDirection * DRAG_SPEED * DRAG_RESISTANCE;
         hoveredMeshRef.current = null;
         setIsClickable(false);
         return;
@@ -1496,7 +1532,6 @@ export default function CylinderView({ array = [], language = "en" }) {
 
   const handlePointerLeave = useCallback(() => {
     hoveredMeshRef.current = null;
-    pointerClientRef.current = null;
     if (!pointerRef.current.dragging) setIsClickable(false);
   }, []);
 
@@ -1528,6 +1563,10 @@ export default function CylinderView({ array = [], language = "en" }) {
           letterSpacing: roundCoordinate(layout.letterSpacing),
           lineHeight: roundCoordinate(layout.lineHeight),
           palette: paletteMode,
+          size: {
+            radius: roundCoordinate(CYLINDER_RADIUS),
+            width: roundCoordinate(cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH),
+          },
           position: {
             x: roundCoordinate(layout.position.x),
             y: roundCoordinate(layout.position.y),
@@ -1557,67 +1596,17 @@ export default function CylinderView({ array = [], language = "en" }) {
       onPointerUp={handlePointerUp}
       onWheel={handleWheel}
       ref={containerRef}
-      style={{ background: `#${palette.pageBackground.toString(16).padStart(6, "0")}` }}
     >
       <canvas className={styles.canvas} ref={canvasRef} />
-      <div
-        className={styles.modeToggle}
+      <pre
+        className={styles.coordinates}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerMove={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
       >
-        <button
-          className={cylinderMode === CYLINDER_MODES.TITLES ? styles.modeToggleButtonActive : styles.modeToggleButton}
-          onClick={() => startModeTransition(CYLINDER_MODES.TITLES)}
-          type="button"
-        >
-          Titles
-        </button>
-        <button
-          className={cylinderMode === CYLINDER_MODES.IMAGES ? styles.modeToggleButtonActive : styles.modeToggleButton}
-          onClick={() => startModeTransition(CYLINDER_MODES.IMAGES)}
-          type="button"
-        >
-          Images
-        </button>
-      </div>
-      {/* <div
-        className={styles.controls}
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerMove={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
-        onWheel={(event) => event.stopPropagation()}
-      >
-        <div className={styles.controlsHeader}>
-          <span>3D Controls</span>
-          <button className={styles.resetButton} onClick={resetLayout} type="button">
-            Reset
-          </button>
-        </div>
-        <button className={styles.paletteButton} onClick={togglePalette} type="button">
-          {paletteMode === "dark" ? "Black / White" : "White / Black"}
-        </button>
-        <div className={styles.controlGrid}>
-          {LAYOUT_CONTROLS.map((control) => (
-            <label className={styles.control} key={`${control.group}-${control.key}`}>
-              <span>{control.label}</span>
-              <input
-                max={control.max}
-                min={control.min}
-                onChange={(event) => handleLayoutChange(control.group, control.key, event.target.value)}
-                step={control.step}
-                type="range"
-                value={control.group === "spacing" ? layout[control.key] : layout[control.group][control.key]}
-              />
-              <output>
-                {(control.group === "spacing" ? layout[control.key] : layout[control.group][control.key]).toFixed(3)}
-              </output>
-            </label>
-          ))}
-        </div>
-        <pre className={styles.coordinates}>{coordinateOutput}</pre>
-      </div> */}
+        {coordinateOutput}
+      </pre>
       <ul aria-hidden="true" className={styles.fallbackLinks}>
         {projects.map((project) => (
           <li key={project.slug}>{project.title}</li>

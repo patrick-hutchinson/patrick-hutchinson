@@ -1,5 +1,5 @@
 .cylinder {
-  background: #000;
+  background: transparent;
   cursor: grab;
   height: 100svh;
   min-height: 100vh;
@@ -22,65 +22,6 @@
   display: block;
   height: 100%;
   width: 100%;
-}
-
-.modeToggle {
-  align-items: center;
-  background: rgb(0 0 0 / 0.4);
-  border-radius: 999px;
-  bottom: var(--margin);
-  display: flex;
-  gap: 0;
-  left: 50%;
-  padding: 0;
-  position: absolute;
-  transform: translateX(-50%);
-  z-index: 2;
-}
-
-.modeToggleButton,
-.modeToggleButtonActive {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: #fff;
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-  opacity: var(--opacity);
-  padding: 4px 8px;
-  text-transform: uppercase;
-}
-
-.modeToggleButtonActive {
-  background: #000;
-  opacity: 1;
-}
-
-.controls {
-  background: rgb(255 255 255 / 0.86);
-  border-radius: 8px;
-  color: #000;
-  cursor: default;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  left: var(--margin);
-  max-width: min(420px, calc(100vw - var(--margin) * 2));
-  padding: 12px;
-  position: absolute;
-  top: var(--margin);
-  user-select: text;
-  z-index: 2;
-}
-
-.controlsHeader {
-  align-items: center;
-  display: flex;
-  font: inherit;
-  justify-content: space-between;
-  text-transform: uppercase;
 }
 
 .resetButton {
@@ -141,12 +82,20 @@
 }
 
 .coordinates {
-  background: rgb(0 0 0 / 0.08);
-  border-radius: 4px;
+  background: rgb(255 255 255 / 0.72);
+  border-radius: 6px;
+  color: #000;
+  left: var(--margin);
   margin: 0;
-  overflow: auto;
+  max-width: min(320px, calc(100vw - 2 * var(--margin)));
+  overflow: visible;
   padding: 8px;
+  pointer-events: auto;
+  position: absolute;
+  top: var(--margin);
+  user-select: text;
   white-space: pre-wrap;
+  z-index: 2;
 }
 
 .fallbackLinks {
@@ -160,12 +109,6 @@
 }
 
 @media screen and (max-width: 748px) {
-  .controls {
-    bottom: calc(var(--margin) * 4);
-    left: var(--margin);
-    top: auto;
-  }
-
   .control {
     grid-template-columns: 76px minmax(100px, 1fr) 44px;
   }

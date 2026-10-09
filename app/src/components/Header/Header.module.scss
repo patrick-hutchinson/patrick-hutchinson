@@ -1,0 +1,77 @@
+.controls {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--margin);
+  isolation: auto;
+  left: var(--margin);
+  pointer-events: none;
+  position: fixed;
+  top: var(--margin);
+  right: var(--margin);
+  z-index: 1004;
+  mix-blend-mode: difference;
+  width: calc(100vw - 2 * var(--margin));
+
+  .leftControls,
+  .rightControls {
+    align-items: flex-start;
+    display: flex;
+    gap: var(--margin);
+    pointer-events: auto;
+  }
+
+  .rightControls {
+    justify-content: flex-end;
+  }
+
+  .homeButton {
+    background: var(--foreground);
+    border-radius: 25px;
+    color: var(--background);
+    // opacity: var(--opacity);
+    padding: 4px 8px;
+    // transition: opacity 0.4s ease-in-out;
+  }
+
+  .cylinderModeToggle {
+    align-items: center;
+    background: var(--foreground);
+    border-radius: 25px;
+    color: var(--background);
+    display: flex;
+    gap: 12px;
+    // opacity: var(--opacity);
+    padding: 4px 8px;
+    // transition: opacity 0.4s ease-in-out;
+
+    // &:hover,
+    // &:focus-within {
+    //   opacity: 1;
+    // }
+
+    .cylinderModeToggleButton,
+    .cylinderModeToggleButtonActive {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      color: currentColor;
+      cursor: pointer;
+      font: inherit;
+      line-height: 1;
+      // opacity: var(--opacity);
+      padding: 0;
+    }
+
+    // .cylinderModeToggleButtonActive {
+    //   opacity: 1;
+    // }
+  }
+}
+
+@media screen and (max-width: 748px) {
+  .controls {
+    bottom: var(--margin);
+    top: auto;
+  }
+}

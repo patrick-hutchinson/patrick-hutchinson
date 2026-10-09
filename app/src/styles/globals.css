@@ -50,6 +50,11 @@ html[data-scale-list-page="true"] body {
   overflow: hidden;
 }
 
+html[data-menu-overlay-open="true"],
+html[data-menu-overlay-open="true"] body {
+  overflow: hidden;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -63,21 +68,7 @@ html[data-scale-list-page="true"] body {
   position: relative;
 }
 
-.controls {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: flex-start;
-  gap: var(--margin);
-  isolation: auto;
-  position: fixed;
-  top: var(--margin);
-  right: var(--margin);
-  z-index: 1004;
-  mix-blend-mode: difference;
-}
-
-.viewToggle,
-.languageToggle {
+.viewToggle {
   align-items: center;
   background: var(--foreground);
   border-radius: 25px;
@@ -90,16 +81,12 @@ html[data-scale-list-page="true"] body {
 }
 
 .viewToggle:hover,
-.viewToggle:focus-within,
-.languageToggle:hover,
-.languageToggle:focus-within {
+.viewToggle:focus-within {
   opacity: 1;
 }
 
 .viewToggleButton,
-.viewToggleButtonActive,
-.languageToggleButton,
-.languageToggleButtonActive {
+.viewToggleButtonActive {
   appearance: none;
   background: transparent;
   border: 0;
@@ -113,17 +100,11 @@ html[data-scale-list-page="true"] body {
   transition: opacity 0.3s ease-in-out;
 }
 
-.viewToggleButtonActive,
-.languageToggleButtonActive {
+.viewToggleButtonActive {
   opacity: 1;
 }
 
 @media screen and (max-width: 748px) {
-  .controls {
-    bottom: var(--margin);
-    top: auto;
-  }
-
   a,
   .link {
     text-decoration: underline;
