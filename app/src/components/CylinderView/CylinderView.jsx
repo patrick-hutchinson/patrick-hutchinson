@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import * as THREE from "three";
 
+import { DeviceContext } from "@/context/DeviceContext";
 import { getLocalizedPath } from "@/lib/i18n";
 import { getMediumPreviewImageUrl, getProjectThumbnailMedia, getVideoRenditionUrl } from "@/lib/media/projectThumbnails";
 
@@ -997,6 +998,7 @@ function shouldCompleteModeTransition(transition, now) {
 
 export default function CylinderView({ array = [], language = "en", mode = CYLINDER_MODES.TITLES }) {
   const router = useRouter();
+  const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const debugOutputRef = useRef(null);
@@ -1085,7 +1087,6 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    const isMobile = window.matchMedia?.("(max-width: 748px)").matches || false;
     isMobileRef.current = isMobile;
 
     if (isMobile && !layoutsEqual(layoutRef.current, MOBILE_LAYOUT)) {
@@ -1496,7 +1497,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       cancelled = true;
       cleanupScene();
     };
-  }, [cylinderMode, projects, layout.letterSpacing, layout.lineHeight, palette]);
+  }, [cylinderMode, isMobile, projects, layout.letterSpacing, layout.lineHeight, palette]);
 
   const getIntersectedMesh = useCallback((clientX, clientY) => {
     const sceneState = sceneStateRef.current;
