@@ -16,6 +16,7 @@ const CYLINDER_WIDTH = 8.2;
 const IMAGE_CYLINDER_WIDTH = 5.2;
 const TEXT_HEIGHT = 0.75;
 const TEXT_CURVE_SEGMENTS = 16;
+const MOBILE_TEXT_CURVE_SEGMENTS = 8;
 const SCROLL_SPEED = 0.0032;
 const DRAG_SPEED = 0.008;
 const SCROLL_RESISTANCE = 0.12;
@@ -36,6 +37,7 @@ const MEDIA_SHADE_POWER = 0.8;
 const MEDIA_SHADE_STRENGTH = 0;
 const TITLE_TEXTURE_FONT_SIZE = 150;
 const META_TEXTURE_FONT_SIZE = 34;
+const MOBILE_TEXT_TEXTURE_SCALE = 1.75;
 const META_TEXTURE_GAP = 18;
 const META_TEXTURE_COLOR = "#9c9c9d";
 const TITLE_TEXTURE_FONT_NAME = "NeueHaasGroteskDisplay";
@@ -59,8 +61,10 @@ const MOBILE_TITLE_READY_OVERSCAN = THREE.MathUtils.degToRad(8);
 const TITLE_READY_ANGLE_MIN = VISIBLE_ANGLE_MIN - TITLE_READY_OVERSCAN;
 const TITLE_READY_ANGLE_MAX = VISIBLE_ANGLE_MAX + TITLE_READY_OVERSCAN;
 const TITLE_READY_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + TITLE_READY_OVERSCAN) + 1) / 2;
-const MODE_TRANSITION_ROTATION = CYLINDER_VISIBLE_SURFACE_ANGLE;
+const MODE_TRANSITION_SCROLL_DISTANCE = CYLINDER_VISIBLE_SURFACE_ANGLE;
 const MEDIA_ATLAS_WIDTH = 2048;
+const MOBILE_RENDER_PIXEL_RATIO = 2.2;
+const MOBILE_MEDIA_ATLAS_WIDTH = 1280;
 const CYLINDER_PALETTES = {
   dark: {
     cylinderBackground: 0x000000,
@@ -166,25 +170,33 @@ function drawSpacedText(context, text, x, y, letterSpacing, pairs) {
   });
 }
 
+function scaleKerningPairs(pairs, scale) {
+  return Object.fromEntries(Object.entries(pairs).map(([pair, value]) => [pair, value * scale]));
+}
+
 function getProjectDate(project) {
   return project.scheduling?.year
     ? `${project.scheduling?.month}‘${project.scheduling.year.slice(2)}`
     : project.scheduling?.month || "";
 }
 
-function makeTextTexture(project, letterSpacing, palette = CYLINDER_PALETTES.dark) {
+function makeTextTexture(project, letterSpacing, palette = CYLINDER_PALETTES.dark, isMobile = false) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const title = project.title;
   const kerning = TITLE_KERNING[project.slug] || {};
-  const titleLetterSpacing = letterSpacing + (kerning.letterSpacing || 0);
-  const titleKerningPairs = kerning.pairs || {};
+  const textureScale = isMobile ? MOBILE_TEXT_TEXTURE_SCALE : 1;
+  const titleTextureFontSize = TITLE_TEXTURE_FONT_SIZE * textureScale;
+  const metaTextureFontSize = META_TEXTURE_FONT_SIZE * textureScale;
+  const titleLetterSpacing = (letterSpacing + (kerning.letterSpacing || 0)) * textureScale;
+  const titleKerningPairs = scaleKerningPairs(kerning.pairs || {}, textureScale);
   const date = getProjectDate(project);
   const location = project.scheduling?.location || "";
-  const paddingX = 28;
-  const paddingY = 14;
-  const titleFont = `bold ${TITLE_TEXTURE_FONT_SIZE}px ${TITLE_TEXTURE_FONT_FAMILY}`;
-  const metaFont = `bold ${META_TEXTURE_FONT_SIZE}px ${META_TEXTURE_FONT_FAMILY}`;
+  const paddingX = 28 * textureScale;
+  const paddingY = 14 * textureScale;
+  const metaTextureGap = META_TEXTURE_GAP * textureScale;
+  const titleFont = `bold ${titleTextureFontSize}px ${TITLE_TEXTURE_FONT_FAMILY}`;
+  const metaFont = `bold ${metaTextureFontSize}px ${META_TEXTURE_FONT_FAMILY}`;
 
   context.font = titleFont;
   const titleWidth = getSpacedTextWidth(context, title, titleLetterSpacing, titleKerningPairs);
@@ -192,9 +204,9 @@ function makeTextTexture(project, letterSpacing, palette = CYLINDER_PALETTES.dar
   const dateWidth = date ? context.measureText(date).width : 0;
   const locationWidth = location ? context.measureText(location).width : 0;
   const textWidth =
-    titleWidth + (dateWidth ? dateWidth + META_TEXTURE_GAP : 0) + (locationWidth ? locationWidth + META_TEXTURE_GAP : 0);
+    titleWidth + (dateWidth ? dateWidth + metaTextureGap : 0) + (locationWidth ? locationWidth + metaTextureGap : 0);
   canvas.width = Math.ceil(textWidth + paddingX * 2);
-  canvas.height = Math.ceil(TITLE_TEXTURE_FONT_SIZE + paddingY * 2);
+  canvas.height = Math.ceil(titleTextureFontSize + paddingY * 2);
 
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.textBaseline = "middle";
@@ -202,19 +214,19 @@ function makeTextTexture(project, letterSpacing, palette = CYLINDER_PALETTES.dar
   context.scale(-1, 1);
 
   let cursorX = paddingX;
-  const centerY = canvas.height / 2 + TITLE_TEXTURE_FONT_SIZE * 0.02;
+  const centerY = canvas.height / 2 + titleTextureFontSize * 0.02;
 
   context.font = metaFont;
   context.fillStyle = META_TEXTURE_COLOR;
   if (date) {
     context.fillText(date, cursorX, centerY);
-    cursorX += dateWidth + META_TEXTURE_GAP;
+    cursorX += dateWidth + metaTextureGap;
   }
 
   context.font = titleFont;
   context.fillStyle = palette.font;
   drawSpacedText(context, title, cursorX, centerY, titleLetterSpacing, titleKerningPairs);
-  cursorX += titleWidth + META_TEXTURE_GAP;
+  cursorX += titleWidth + metaTextureGap;
 
   if (location) {
     context.font = metaFont;
@@ -256,7 +268,7 @@ function drawImageCover(context, image, canvasWidth, canvasHeight) {
 }
 
 function makeImageTexture(project, isMobile) {
-  const medium = getProjectThumbnailMedia(project, isMobile);
+  const medium = getProjectThumbnailMedia(project, false);
   const src = getMediumPreviewImageUrl(medium, 1600);
   const aspect = getMediumAspect(medium);
   const canvas = document.createElement("canvas");
@@ -398,8 +410,8 @@ function drawImageContain(context, image, x, y, width, height, aspect) {
 
 function drawMediaAtlasRow(context, row, source) {
   context.fillStyle = "#000000";
-  context.fillRect(0, row.startY, MEDIA_ATLAS_WIDTH, row.pixelHeight);
-  drawImageContain(context, source, 0, row.startY, MEDIA_ATLAS_WIDTH, row.pixelHeight, row.aspect);
+  context.fillRect(0, row.startY, row.atlasWidth, row.pixelHeight);
+  drawImageContain(context, source, 0, row.startY, row.atlasWidth, row.pixelHeight, row.aspect);
 }
 
 function loadAtlasVideo(row, atlas) {
@@ -488,20 +500,24 @@ function findMediaRowByUnit(rows, unitValue) {
 }
 
 function makeMediaAtlas(projects, isMobile, options = {}) {
+  const atlasWidth = isMobile ? MOBILE_MEDIA_ATLAS_WIDTH : MEDIA_ATLAS_WIDTH;
+  const imageResolution = isMobile ? MOBILE_MEDIA_ATLAS_WIDTH : 1600;
+  const shouldUseVideo = !isMobile;
   const rows = projects.map((project) => {
-    const medium = getProjectThumbnailMedia(project, isMobile);
+    const medium = getProjectThumbnailMedia(project, false);
     const aspect = getMediumAspect(medium);
-    const pixelHeight = Math.max(1, Math.round(MEDIA_ATLAS_WIDTH / aspect));
+    const pixelHeight = Math.max(1, Math.round(atlasWidth / aspect));
     const worldHeight = getMediaWorldHeight(aspect);
 
     return {
+      atlasWidth,
       aspect,
       hasDrawnVideoFrame: false,
       pixelHeight,
       project,
-      src: getMediumPreviewImageUrl(medium, 1600),
+      src: getMediumPreviewImageUrl(medium, imageResolution),
       video: null,
-      videoSrc: medium?.type === "video" ? getVideoRenditionUrl(medium) : null,
+      videoSrc: shouldUseVideo && medium?.type === "video" ? getVideoRenditionUrl(medium) : null,
       worldHeight,
     };
   });
@@ -510,7 +526,7 @@ function makeMediaAtlas(projects, isMobile, options = {}) {
   const totalPixelHeight = rows.reduce((height, row) => height + row.pixelHeight, 0);
   const totalWorldHeight = rows.reduce((height, row) => height + row.worldHeight, 0);
 
-  canvas.width = MEDIA_ATLAS_WIDTH;
+  canvas.width = atlasWidth;
   canvas.height = Math.max(1, totalPixelHeight);
   context.fillStyle = "#000000";
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -518,7 +534,7 @@ function makeMediaAtlas(projects, isMobile, options = {}) {
   const texture = new THREE.CanvasTexture(canvas);
   const atlas = {
     context,
-    playVideos: options.playVideos !== false,
+    playVideos: shouldUseVideo && options.playVideos !== false,
     rows,
     texture,
     totalWorldHeight: Math.max(getMediaWorldHeight(16 / 9), totalWorldHeight),
@@ -692,7 +708,37 @@ function getModeMetrics(mode, layout) {
 function makeProjectTexture(project, { isMobile, letterSpacing, mode, palette }) {
   return mode === CYLINDER_MODES.IMAGES
     ? makeImageTexture(project, isMobile)
-    : makeTextTexture(project, letterSpacing, palette);
+    : makeTextTexture(project, letterSpacing, palette, isMobile);
+}
+
+function getCachedProjectTexture(textureCache, project, options) {
+  const cacheKey = [
+    options.mode,
+    project.slug,
+    options.isMobile ? "mobile" : "desktop",
+    options.letterSpacing,
+    options.palette.font,
+  ].join(":");
+
+  if (!textureCache.has(cacheKey)) {
+    textureCache.set(cacheKey, makeProjectTexture(project, options));
+  }
+
+  return textureCache.get(cacheKey);
+}
+
+function disposeTextureCache(textureCache) {
+  textureCache.forEach(({ texture }) => texture?.dispose());
+  textureCache.clear();
+}
+
+function getTextGeometryOptions(width, isMobile) {
+  if (!isMobile) return {};
+
+  return {
+    heightSegments: MOBILE_TEXT_CURVE_SEGMENTS,
+    widthSegments: Math.max(6, Math.ceil(width * 3)),
+  };
 }
 
 function setTitleRowRotation(mesh, angle, mode) {
@@ -743,152 +789,41 @@ function updateRowMesh({
   palette,
   project,
   rowHeight,
+  textureCache,
   virtualIndex,
 }) {
-  const { texture, aspect } = makeProjectTexture(project, { isMobile, letterSpacing, mode, palette });
+  const { texture, aspect } = getCachedProjectTexture(textureCache, project, { isMobile, letterSpacing, mode, palette });
   const width = Math.min(rowHeight * aspect, CYLINDER_WIDTH);
-  const geometry = makeCurvedTextGeometry(width, rowHeight);
-  const material = makeCylinderTextMaterial(texture, { hoverEnabled: mode === CYLINDER_MODES.TITLES });
-  const hitGeometry = makeCurvedTextGeometry(Math.min(width + HIT_WIDTH_PADDING, CYLINDER_WIDTH), hitHeight, {
-    heightSegments: 4,
-    widthSegments: 1,
-  });
+  const geometry = makeCurvedTextGeometry(width, rowHeight, getTextGeometryOptions(width, isMobile));
+  const material = makeCylinderTextMaterial(texture, { hoverEnabled: mode === CYLINDER_MODES.TITLES && !isMobile });
 
   mesh.geometry?.dispose();
-  mesh.material?.uniforms?.map?.value?.dispose();
   mesh.material?.dispose();
-  hitMesh.geometry?.dispose();
 
   mesh.geometry = geometry;
   mesh.material = material;
   mesh.userData.project = project;
   mesh.userData.virtualIndex = virtualIndex;
   mesh.userData.mode = mode;
-  hitMesh.geometry = hitGeometry;
-  hitMesh.userData.project = project;
-  hitMesh.userData.virtualIndex = virtualIndex;
-  hitMesh.userData.visualMesh = mesh;
-  hitMesh.userData.mode = mode;
-}
 
-function createTitleTransitionSide({ isMobile, layout, palette, projects }) {
-  const group = new THREE.Group();
-  const metrics = getModeMetrics(CYLINDER_MODES.TITLES, layout);
-  const angleStep = metrics.angleStep;
-  const readyOverscan = isMobile ? MOBILE_TITLE_READY_OVERSCAN : TITLE_READY_OVERSCAN;
-  const readyAngleMin = VISIBLE_ANGLE_MIN - readyOverscan;
-  const readyAngleMax = VISIBLE_ANGLE_MAX + readyOverscan;
-  const readyFrontnessMin = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + readyOverscan) + 1) / 2;
-  const rowPoolBuffer = isMobile ? MOBILE_ROW_POOL_BUFFER : ROW_POOL_BUFFER;
-  const totalRows = Math.ceil((readyAngleMax - readyAngleMin) / angleStep) + rowPoolBuffer * 2;
-  const meshes = [];
-  const hitMeshes = [];
-
-  Array.from({ length: totalRows }, (_, index) => {
-    const mesh = new THREE.Mesh();
-    const hitMesh = new THREE.Mesh();
-
-    mesh.userData = {
-      index,
-      mode: CYLINDER_MODES.TITLES,
-      project: null,
-      virtualIndex: null,
-    };
-
-    updateRowMesh({
-      hitHeight: metrics.hitHeight,
-      hitMesh,
-      isMobile,
-      letterSpacing: layout.letterSpacing,
-      mesh,
-      mode: CYLINDER_MODES.TITLES,
-      palette,
-      project: getProjectForVirtualIndex(projects, index),
-      rowHeight: metrics.height,
-      virtualIndex: index,
+  if (hitMesh) {
+    const hitGeometry = makeCurvedTextGeometry(Math.min(width + HIT_WIDTH_PADDING, CYLINDER_WIDTH), hitHeight, {
+      heightSegments: 4,
+      widthSegments: 1,
     });
 
-    if (mesh.material?.uniforms?.hoverEnabled) mesh.material.uniforms.hoverEnabled.value = 0;
-    group.add(mesh);
-    meshes.push(mesh);
-    hitMeshes.push(hitMesh);
-  });
-
-  const update = (current, layoutRefValue) => {
-    const currentMetrics = getModeMetrics(CYLINDER_MODES.TITLES, layoutRefValue);
-    const currentAngleStep = currentMetrics.angleStep;
-    const baseVirtualIndex = Math.floor((readyAngleMin - current) / currentAngleStep) - rowPoolBuffer;
-
-    meshes.forEach((mesh, index) => {
-      const hitMesh = hitMeshes[index];
-      const virtualIndex = baseVirtualIndex + index;
-      const project = getProjectForVirtualIndex(projects, virtualIndex);
-
-      if (mesh.userData.virtualIndex !== virtualIndex || mesh.userData.mode !== CYLINDER_MODES.TITLES) {
-        updateRowMesh({
-          hitHeight: currentMetrics.hitHeight,
-          hitMesh,
-          isMobile,
-          letterSpacing: layoutRefValue.letterSpacing,
-          mesh,
-          mode: CYLINDER_MODES.TITLES,
-          palette,
-          project,
-          rowHeight: currentMetrics.height,
-          virtualIndex,
-        });
-        if (mesh.material?.uniforms?.hoverEnabled) mesh.material.uniforms.hoverEnabled.value = 0;
-      }
-
-      const angle = virtualIndex * currentAngleStep + current;
-      const frontness = (Math.cos(angle) + 1) / 2;
-
-      mesh.visible = frontness >= readyFrontnessMin;
-      mesh.position.set(0, 0, 0);
-      setTitleRowRotation(mesh, angle, CYLINDER_MODES.TITLES);
-      mesh.renderOrder = 1 + Math.round(frontness * 1000);
-    });
-  };
-
-  const dispose = () => {
-    disposeMeshes(meshes);
-    hitMeshes.forEach((mesh) => mesh.geometry?.dispose());
-  };
-
-  return { dispose, group, update };
-}
-
-function createImageTransitionSide({ atlas, material, width }) {
-  const group = new THREE.Group();
-  const geometry = makeCylinderStripGeometry(width, VISIBLE_ANGLE_MIN, VISIBLE_ANGLE_MAX);
-  const mesh = new THREE.Mesh(geometry, material);
-  const visibleWorldHeight = (VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN) * CYLINDER_RADIUS;
-
-  material.uniforms.visibleRepeat.value = visibleWorldHeight / atlas.totalWorldHeight;
-  group.add(mesh);
-
-  return {
-    dispose: () => {
-      geometry.dispose();
-      material.uniforms.map.value?.dispose();
-      material.dispose();
-      disposeMediaAtlas(atlas);
-    },
-    group,
-    material,
-    setVideoPlayback: (shouldPlay) => setMediaAtlasVideoPlayback(atlas, shouldPlay),
-    update: (current) => {
-      material.uniforms.scrollOffset.value = wrapUnit((current * CYLINDER_RADIUS) / atlas.totalWorldHeight);
-      updateMediaAtlasVideos(atlas);
-    },
-  };
+    hitMesh.geometry?.dispose();
+    hitMesh.geometry = hitGeometry;
+    hitMesh.userData.project = project;
+    hitMesh.userData.virtualIndex = virtualIndex;
+    hitMesh.userData.visualMesh = mesh;
+    hitMesh.userData.mode = mode;
+  }
 }
 
 function disposeMeshes(meshes) {
   meshes.forEach((mesh) => {
     mesh.geometry?.dispose();
-    mesh.material?.map?.dispose();
-    mesh.material?.uniforms?.map?.value?.dispose();
     mesh.material?.dispose();
   });
 }
@@ -985,18 +920,13 @@ function getModeTransitionProgress(transition, now) {
   return Math.min(1, (now - transition.startedAt) / MODE_TRANSITION_DURATION);
 }
 
-function getModeTransitionRotation(transition, now) {
+function getModeTransitionScroll(transition, now) {
   const progress = getModeTransitionProgress(transition, now);
+  const easedProgress = easeInOutCubic(progress);
+  const startScroll = transition.startScroll ?? 0;
+  const targetScroll = transition.targetScroll ?? startScroll;
 
-  if (progress >= 1) {
-    return MODE_TRANSITION_ROTATION;
-  }
-
-  return easeInOutCubic(progress) * MODE_TRANSITION_ROTATION;
-}
-
-function getIncomingTransitionRotation(contentRotation) {
-  return contentRotation - MODE_TRANSITION_ROTATION;
+  return startScroll + (targetScroll - startScroll) * easedProgress;
 }
 
 function shouldCompleteModeTransition(transition, now) {
@@ -1030,12 +960,9 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     current: { x: 0, y: 0 },
     target: { x: 0, y: 0 },
   });
-  const transitionRotationBaseRef = useRef(0);
-  const contentRotationRef = useRef(0);
   const modeTransitionRef = useRef({
     active: false,
     startedAt: 0,
-    swapped: false,
     targetMode: null,
   });
   const layoutRef = useRef(cloneLayout(DEFAULT_LAYOUT));
@@ -1071,11 +998,14 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     (nextMode) => {
       if (nextMode === cylinderMode) return;
 
+      const startScroll = rotationRef.current.target;
+
       modeTransitionRef.current = {
         active: true,
         startedAt: performance.now(),
-        swapped: false,
+        startScroll,
         targetMode: nextMode,
+        targetScroll: startScroll + MODE_TRANSITION_SCROLL_DISTANCE,
       };
       hoveredMeshRef.current = null;
       setIsClickable(false);
@@ -1116,9 +1046,12 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         canvas,
       });
       renderer.setClearColor(palette.pageBackground, 0);
-      renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(
+        isMobile ? Math.min(window.devicePixelRatio || MOBILE_RENDER_PIXEL_RATIO, MOBILE_RENDER_PIXEL_RATIO) : Math.min(window.devicePixelRatio || 1.5, 2),
+      );
 
       const scene = new THREE.Scene();
+      const textureCache = new Map();
       const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
       camera.position.set(0, 0, CAMERA_Z);
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.035);
@@ -1131,10 +1064,9 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
       const group = new THREE.Group();
-      applyLayout(group, layoutRef.current, { x: 0, y: 0 }, 0, transitionRotationBaseRef.current);
+      applyLayout(group, layoutRef.current);
       scene.add(group);
       const contentGroup = new THREE.Group();
-      contentGroup.rotation.x = contentRotationRef.current;
       group.add(contentGroup);
 
       const cylinderWidth = cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH;
@@ -1159,10 +1091,11 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       if (cylinderMode === CYLINDER_MODES.IMAGES) {
         const atlas = makeMediaAtlas(projects, isMobile);
         const visibleWorldHeight = (VISIBLE_ANGLE_MAX - VISIBLE_ANGLE_MIN) * CYLINDER_RADIUS;
-        const stripGeometry = makeCylinderStripGeometry(IMAGE_CYLINDER_WIDTH, VISIBLE_ANGLE_MIN, VISIBLE_ANGLE_MAX);
+        const stripGeometry = makeCylinderStripGeometry(IMAGE_CYLINDER_WIDTH, VISIBLE_ANGLE_MIN, VISIBLE_ANGLE_MAX, {
+          heightSegments: isMobile ? 48 : 96,
+        });
         const stripMaterial = makeCylinderMediaMaterial(atlas.texture);
         const stripMesh = new THREE.Mesh(stripGeometry, stripMaterial);
-        let incomingTitleSide = null;
 
         stripMaterial.uniforms.visibleRepeat.value = visibleWorldHeight / atlas.totalWorldHeight;
         contentGroup.add(stripMesh);
@@ -1194,8 +1127,13 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           const transition = modeTransitionRef.current;
 
           const rotation = rotationRef.current;
-          rotation.target += rotation.velocity;
-          rotation.velocity *= ROTATION_INERTIA;
+          if (transition.active) {
+            rotation.target = getModeTransitionScroll(transition, now);
+            rotation.velocity = 0;
+          } else {
+            rotation.target += rotation.velocity;
+            rotation.velocity *= ROTATION_INERTIA;
+          }
           if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
           rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
           const pointerRotation = isMobile
@@ -1205,8 +1143,8 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
             group,
             layoutRef.current,
             pointerRotation,
-            getModeTransitionRotation(transition, now),
-            transitionRotationBaseRef.current,
+            0,
+            0,
           );
           if (debugOutputRef.current) {
             debugOutputRef.current.textContent = getCylinderDebugOutput({
@@ -1223,29 +1161,15 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           setMediaAtlasVideoPlayback(atlas, !transition.active);
           updateMediaAtlasVideos(atlas);
 
-          if (transition.active && transition.targetMode === CYLINDER_MODES.TITLES) {
-            if (!incomingTitleSide) {
-              incomingTitleSide = createTitleTransitionSide({
-                isMobile,
-                layout: layoutRef.current,
-                palette,
-                projects,
-              });
-              group.add(incomingTitleSide.group);
-            }
-            incomingTitleSide.group.visible = true;
-            incomingTitleSide.group.rotation.x = getIncomingTransitionRotation(contentRotationRef.current);
-            incomingTitleSide.update(rotation.current, layoutRef.current);
-          } else if (incomingTitleSide) {
-            incomingTitleSide.group.visible = false;
-          }
-
           if (shouldCompleteModeTransition(transition, now)) {
-            transitionRotationBaseRef.current += MODE_TRANSITION_ROTATION;
-            contentRotationRef.current -= MODE_TRANSITION_ROTATION;
+            rotation.target = transition.targetScroll ?? rotation.target;
+            rotation.current = rotation.target;
+            rotation.velocity = 0;
             transition.active = false;
             const nextMode = transition.targetMode;
+            transition.startScroll = null;
             transition.targetMode = null;
+            transition.targetScroll = null;
             setCylinderMode(nextMode);
           }
 
@@ -1264,7 +1188,6 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           cylinderGeometry.dispose();
           cylinderMaterial.dispose();
           disposeMediaAtlas(atlas);
-          incomingTitleSide?.dispose();
           stripGeometry.dispose();
           stripMaterial.uniforms.map.value?.dispose();
           stripMaterial.dispose();
@@ -1294,22 +1217,22 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       const hitHeight = initialMetrics.hitHeight;
       const meshes = [];
       const hitMeshes = [];
-      let incomingImageSide = null;
-      const initialBaseVirtualIndex =
-        Math.floor((readyAngleMin - rotationRef.current.current) / angleStep) - rowPoolBuffer;
+      const initialBaseVirtualIndex = Math.floor((readyAngleMin - rotationRef.current.current) / angleStep) - rowPoolBuffer;
 
       Array.from({ length: totalRows }, (_, index) => {
         const virtualIndex = initialBaseVirtualIndex + index;
         const project = getProjectForVirtualIndex(projects, virtualIndex);
-        const { texture, aspect } = makeProjectTexture(project, {
+        const { texture, aspect } = getCachedProjectTexture(textureCache, project, {
           isMobile,
           letterSpacing: layoutRef.current.letterSpacing,
           mode: cylinderMode,
           palette,
         });
         const width = Math.min(initialMetrics.height * aspect, CYLINDER_WIDTH);
-        const geometry = makeCurvedTextGeometry(width, initialMetrics.height);
-        const material = makeCylinderTextMaterial(texture, { hoverEnabled: cylinderMode === CYLINDER_MODES.TITLES });
+        const geometry = makeCurvedTextGeometry(width, initialMetrics.height, getTextGeometryOptions(width, isMobile));
+        const material = makeCylinderTextMaterial(texture, {
+          hoverEnabled: cylinderMode === CYLINDER_MODES.TITLES && !isMobile,
+        });
         const mesh = new THREE.Mesh(geometry, material);
         const hitGeometry = makeCurvedTextGeometry(Math.min(width + HIT_WIDTH_PADDING, CYLINDER_WIDTH), hitHeight, {
           heightSegments: 4,
@@ -1380,6 +1303,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
               palette,
               project,
               rowHeight: metrics.height,
+              textureCache,
               virtualIndex,
             });
           }
@@ -1390,7 +1314,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           mesh.visible = frontness >= readyFrontnessMin;
           mesh.position.set(0, 0, 0);
           setTitleRowRotation(mesh, angle, cylinderMode);
-          if (mesh.material?.uniforms?.hoverAmount) {
+          if (!isMobile && mesh.material?.uniforms?.hoverAmount) {
             const targetHover = mesh === hoveredMeshRef.current ? 1 : 0;
             mesh.material.uniforms.hoverAmount.value +=
               (targetHover - mesh.material.uniforms.hoverAmount.value) * TITLE_HOVER_EASE;
@@ -1414,8 +1338,13 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         const transition = modeTransitionRef.current;
 
         const rotation = rotationRef.current;
-        rotation.target += rotation.velocity;
-        rotation.velocity *= ROTATION_INERTIA;
+        if (transition.active) {
+          rotation.target = getModeTransitionScroll(transition, now);
+          rotation.velocity = 0;
+        } else {
+          rotation.target += rotation.velocity;
+          rotation.velocity *= ROTATION_INERTIA;
+        }
         if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
         rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
         const pointerRotation = isMobile
@@ -1425,8 +1354,8 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           group,
           layoutRef.current,
           pointerRotation,
-          getModeTransitionRotation(transition, now),
-          transitionRotationBaseRef.current,
+          0,
+          0,
         );
         if (debugOutputRef.current) {
           debugOutputRef.current.textContent = getCylinderDebugOutput({
@@ -1439,35 +1368,19 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         }
         updateMeshes();
 
-        if (transition.active && transition.targetMode === CYLINDER_MODES.IMAGES) {
-          if (!incomingImageSide) {
-            const incomingAtlas = makeMediaAtlas(projects, isMobile, { playVideos: false });
-            const incomingMaterial = makeCylinderMediaMaterial(incomingAtlas.texture);
-            incomingImageSide = createImageTransitionSide({
-              atlas: incomingAtlas,
-              material: incomingMaterial,
-              width: IMAGE_CYLINDER_WIDTH,
-            });
-            group.add(incomingImageSide.group);
-          }
-          incomingImageSide.group.visible = true;
-          incomingImageSide.group.rotation.x = getIncomingTransitionRotation(contentRotationRef.current);
-          incomingImageSide.update(rotation.current);
-        } else if (incomingImageSide) {
-          incomingImageSide.group.visible = false;
-        }
-
         if (shouldCompleteModeTransition(transition, now)) {
-          incomingImageSide?.setVideoPlayback?.(true);
-          transitionRotationBaseRef.current += MODE_TRANSITION_ROTATION;
-          contentRotationRef.current -= MODE_TRANSITION_ROTATION;
+          rotation.target = transition.targetScroll ?? rotation.target;
+          rotation.current = rotation.target;
+          rotation.velocity = 0;
           transition.active = false;
           const nextMode = transition.targetMode;
+          transition.startScroll = null;
           transition.targetMode = null;
+          transition.targetScroll = null;
           setCylinderMode(nextMode);
         }
 
-        if (!transition.active && !pointerRef.current.dragging && pointerClientRef.current) {
+        if (!isMobile && !transition.active && !pointerRef.current.dragging && pointerClientRef.current) {
           const rect = container.getBoundingClientRect();
           pointer.x = ((pointerClientRef.current.x - rect.left) / rect.width) * 2 - 1;
           pointer.y = -(((pointerClientRef.current.y - rect.top) / rect.height) * 2 - 1);
@@ -1493,9 +1406,9 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         cylinderGeometry.dispose();
         cylinderMaterial.dispose();
         hitMaterial.dispose();
-        incomingImageSide?.dispose();
         disposeMeshes(meshes);
         hitMeshes.forEach((mesh) => mesh.geometry?.dispose());
+        disposeTextureCache(textureCache);
         renderer.dispose();
         meshesRef.current = [];
         hitMeshesRef.current = [];
@@ -1566,6 +1479,12 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         pointerState.lastY = event.clientY;
         pointerState.moved = pointerState.moved || Math.abs(deltaY) > 2;
         rotationRef.current.velocity += deltaY * dragDirection * DRAG_SPEED * DRAG_RESISTANCE;
+        hoveredMeshRef.current = null;
+        setIsClickable(false);
+        return;
+      }
+
+      if (isMobileRef.current) {
         hoveredMeshRef.current = null;
         setIsClickable(false);
         return;
