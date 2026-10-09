@@ -25,6 +25,8 @@ const ROTATION_INERTIA = 0.88;
 const ROTATION_EASE = 0.085;
 const POINTER_ROTATION_MAX = 0.7;
 const POINTER_ROTATION_EASE = 0.08;
+const MOBILE_ORIENTATION_NEUTRAL_BETA = 55;
+const MOBILE_ORIENTATION_NEUTRAL_GAMMA = 0;
 const MOBILE_ORIENTATION_MAX_X = 0.45;
 const MOBILE_ORIENTATION_MAX_Y = 0.45;
 const MOBILE_ORIENTATION_SENSITIVITY_X = 0.018;
@@ -982,7 +984,6 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     target: { x: 0, y: 0 },
   });
   const mobileOrientationRef = useRef({
-    base: null,
     current: { x: 0, y: 0 },
     target: { x: 0, y: 0 },
   });
@@ -1049,7 +1050,6 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
   useEffect(() => {
     if (!isMobile) {
-      mobileOrientationRef.current.base = null;
       mobileOrientationRef.current.target = { x: 0, y: 0 };
       return undefined;
     }
@@ -1058,18 +1058,11 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       if (typeof event.beta !== "number" || typeof event.gamma !== "number") return;
 
       const orientation = mobileOrientationRef.current;
-      if (!orientation.base) {
-        orientation.base = {
-          beta: event.beta,
-          gamma: event.gamma,
-        };
-      }
-
-      const deltaBeta = event.beta - orientation.base.beta;
-      const deltaGamma = event.gamma - orientation.base.gamma;
+      const deltaBeta = event.beta - MOBILE_ORIENTATION_NEUTRAL_BETA;
+      const deltaGamma = event.gamma - MOBILE_ORIENTATION_NEUTRAL_GAMMA;
 
       orientation.target.x = clamp(
-        -deltaBeta * MOBILE_ORIENTATION_SENSITIVITY_X,
+        deltaBeta * MOBILE_ORIENTATION_SENSITIVITY_X,
         -MOBILE_ORIENTATION_MAX_X,
         MOBILE_ORIENTATION_MAX_X,
       );
@@ -1080,18 +1073,18 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       );
     };
 
-    const resetOrientationBase = () => {
-      mobileOrientationRef.current.base = null;
+    const resetOrientationTarget = () => {
+      mobileOrientationRef.current.target = { x: 0, y: 0 };
     };
 
     window.addEventListener("deviceorientation", handleDeviceOrientation);
-    window.addEventListener("orientationchange", resetOrientationBase);
-    window.addEventListener("resize", resetOrientationBase);
+    window.addEventListener("orientationchange", resetOrientationTarget);
+    window.addEventListener("resize", resetOrientationTarget);
 
     return () => {
       window.removeEventListener("deviceorientation", handleDeviceOrientation);
-      window.removeEventListener("orientationchange", resetOrientationBase);
-      window.removeEventListener("resize", resetOrientationBase);
+      window.removeEventListener("orientationchange", resetOrientationTarget);
+      window.removeEventListener("resize", resetOrientationTarget);
     };
   }, [isMobile]);
 
