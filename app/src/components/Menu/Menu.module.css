@@ -21,7 +21,7 @@
 .menuLabel {
   align-items: center;
   display: flex;
-  height: 1em;
+  height: var(--font-size-caption);
   justify-content: center;
   overflow: hidden;
   white-space: nowrap;
@@ -193,3 +193,5 @@
     bottom: auto;
   }
 }
+
+/* Deployment Update */

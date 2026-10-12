@@ -5,7 +5,7 @@
   overflow: hidden;
   background: var(--foreground);
   color: var(--background) !important;
-  border-radius: 25px;
+  border-radius: var(--border-radius);
   padding: 4px 8px;
   opacity: var(--opacity);
   transition:

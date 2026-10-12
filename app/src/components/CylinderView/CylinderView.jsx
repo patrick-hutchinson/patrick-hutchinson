@@ -54,7 +54,6 @@ const TITLE_TEXTURE_FONT_FAMILY = `${TITLE_TEXTURE_FONT_NAME}, Arial, Helvetica,
 const META_TEXTURE_FONT_FAMILY = `${META_TEXTURE_FONT_NAME}, Arial, Helvetica, sans-serif`;
 const TITLE_HOVER_EASE = 0.14;
 const TITLE_HOVER_COLOR = new THREE.Color(META_TEXTURE_COLOR);
-const FOCUS_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const TITLE_HOVER_MIN_FRONTNESS = 0.54;
 const TITLE_HOVER_SWITCH_MARGIN = 0.08;
 const HIT_HEIGHT_MULTIPLIER = 0.72;
@@ -708,25 +707,6 @@ function wrapUnit(value) {
   return ((value % 1) + 1) % 1;
 }
 
-function getFocusFontColors(focusColors) {
-  const colors = Array.isArray(focusColors) ? focusColors : [];
-  const fontColors = colors
-    .map((entry) => {
-      if (typeof entry === "string") return entry;
-      return entry?.foreground;
-    })
-    .filter((color) => typeof color === "string" && FOCUS_COLOR_PATTERN.test(color));
-
-  return fontColors.length ? fontColors : [META_TEXTURE_COLOR];
-}
-
-function getRandomHoverColor(colors, currentColor) {
-  if (colors.length <= 1) return colors[0];
-
-  const nextColors = colors.filter((color) => color.toLowerCase() !== currentColor?.toLowerCase());
-  return nextColors[Math.floor(Math.random() * nextColors.length)];
-}
-
 function getModeMetrics(mode, layout) {
   const height = TEXT_HEIGHT;
   const lineHeight = mode === CYLINDER_MODES.IMAGES ? 1 : layout.lineHeight;
@@ -1008,7 +988,6 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   const pointerClientRef = useRef(null);
   const sceneStateRef = useRef(null);
   const isMobileRef = useRef(false);
-  const lastTitleHoverColorRef = useRef(null);
   const pointerRef = useRef({
     dragging: false,
     moved: false,
@@ -1048,7 +1027,6 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   const [orientationPermission, setOrientationPermission] = useState("unknown");
   const [paletteMode, setPaletteMode] = useState("light");
   const palette = CYLINDER_PALETTES[paletteMode];
-  const focusFontColors = useMemo(() => getFocusFontColors(focusColors), [focusColors]);
 
   const projects = useMemo(
     () =>
@@ -1188,6 +1166,34 @@ export default function CylinderView({ array = [], focusColors = [], language = 
       const contentGroup = new THREE.Group();
       group.add(contentGroup);
 
+      const recenterInteraction = () => {
+        const rect = container.getBoundingClientRect();
+
+        pointerClientRef.current = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        };
+        pointerRotationRef.current.current = { x: 0, y: 0 };
+        pointerRotationRef.current.target = { x: 0, y: 0 };
+        mobileOrientationRef.current.current = { x: 0, y: 0 };
+        mobileOrientationRef.current.target = { x: 0, y: 0 };
+        hoveredMeshRef.current = null;
+        previousHoveredMeshRef.current = null;
+        previousHoveredKeyRef.current = null;
+        setIsClickable(false);
+      };
+
+      const resizeRenderer = () => {
+        const { width, height } = container.getBoundingClientRect();
+        const safeWidth = Math.max(width, 1);
+        const safeHeight = Math.max(height, 1);
+
+        renderer.setSize(safeWidth, safeHeight, false);
+        camera.aspect = safeWidth / safeHeight;
+        camera.updateProjectionMatrix();
+        recenterInteraction();
+      };
+
       const cylinderWidth = cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH;
       const cylinderGeometry = new THREE.CylinderGeometry(
         CYLINDER_BODY_RADIUS,
@@ -1232,13 +1238,6 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           renderer,
           scene,
           group,
-        };
-
-        const resize = () => {
-          const { width, height } = container.getBoundingClientRect();
-          renderer.setSize(width, height, false);
-          camera.aspect = width / Math.max(height, 1);
-          camera.updateProjectionMatrix();
         };
 
         const render = () => {
@@ -1307,13 +1306,16 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           animationFrame = window.requestAnimationFrame(render);
         };
 
-        resize();
+        resizeRenderer();
         animationFrame = window.requestAnimationFrame(render);
-        window.addEventListener("resize", resize);
+        const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resizeRenderer) : null;
+        resizeObserver?.observe(container);
+        window.addEventListener("resize", resizeRenderer);
 
         cleanupScene = () => {
           window.cancelAnimationFrame(animationFrame);
-          window.removeEventListener("resize", resize);
+          window.removeEventListener("resize", resizeRenderer);
+          resizeObserver?.disconnect();
           scene.remove(group);
           cylinderGeometry.dispose();
           cylinderMaterial.dispose();
@@ -1405,13 +1407,6 @@ export default function CylinderView({ array = [], focusColors = [], language = 
         group,
       };
 
-      const resize = () => {
-        const { width, height } = container.getBoundingClientRect();
-        renderer.setSize(width, height, false);
-        camera.aspect = width / Math.max(height, 1);
-        camera.updateProjectionMatrix();
-      };
-
       const updateMeshes = () => {
         const { current } = rotationRef.current;
         const metrics = getModeMetrics(cylinderMode, layoutRef.current);
@@ -1447,9 +1442,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           setTitleRowRotation(mesh, angle, cylinderMode);
           if (!isMobile && mesh.material?.uniforms?.hoverAmount) {
             const targetHover = mesh === hoveredMeshRef.current ? 1 : 0;
-            if (mesh.userData.hoverColor) {
-              mesh.material.uniforms.hoverColor.value.set(mesh.userData.hoverColor);
-            }
+            mesh.material.uniforms.hoverColor.value.copy(TITLE_HOVER_COLOR);
             mesh.material.uniforms.hoverAmount.value +=
               (targetHover - mesh.material.uniforms.hoverAmount.value) * TITLE_HOVER_EASE;
           }
@@ -1534,22 +1527,8 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           const hits = raycaster.intersectObjects(hitMeshes, false);
           const nextHoveredMesh = getStableTitleHit(hits, hoveredMeshRef.current);
           const nextHoveredKey = getTitleHoverKey(nextHoveredMesh);
-          if (
-            nextHoveredMesh !== previousHoveredMeshRef.current ||
-            nextHoveredKey !== previousHoveredKeyRef.current ||
-            !nextHoveredMesh?.userData?.hoverColor
-          ) {
-            if (nextHoveredMesh) {
-              nextHoveredMesh.userData.hoverColor = getRandomHoverColor(
-                focusFontColors,
-                lastTitleHoverColorRef.current,
-              );
-              lastTitleHoverColorRef.current = nextHoveredMesh.userData.hoverColor;
-              nextHoveredMesh.material?.uniforms?.hoverColor?.value.set(nextHoveredMesh.userData.hoverColor);
-            }
-            previousHoveredMeshRef.current = nextHoveredMesh;
-            previousHoveredKeyRef.current = nextHoveredKey;
-          }
+          previousHoveredMeshRef.current = nextHoveredMesh;
+          previousHoveredKeyRef.current = nextHoveredKey;
           hoveredMeshRef.current = nextHoveredMesh;
         }
 
@@ -1557,14 +1536,17 @@ export default function CylinderView({ array = [], focusColors = [], language = 
         animationFrame = window.requestAnimationFrame(render);
       };
 
-      resize();
+      resizeRenderer();
       updateMeshes();
       animationFrame = window.requestAnimationFrame(render);
-      window.addEventListener("resize", resize);
+      const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resizeRenderer) : null;
+      resizeObserver?.observe(container);
+      window.addEventListener("resize", resizeRenderer);
 
       cleanupScene = () => {
         window.cancelAnimationFrame(animationFrame);
-        window.removeEventListener("resize", resize);
+        window.removeEventListener("resize", resizeRenderer);
+        resizeObserver?.disconnect();
         scene.remove(group);
         cylinderGeometry.dispose();
         cylinderMaterial.dispose();
@@ -1585,7 +1567,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
       cancelled = true;
       cleanupScene();
     };
-  }, [cylinderMode, focusFontColors, isMobile, projects, layout.letterSpacing, layout.lineHeight, palette]);
+  }, [cylinderMode, isMobile, projects, layout.letterSpacing, layout.lineHeight, palette]);
 
   const getIntersectedMesh = useCallback((clientX, clientY) => {
     const sceneState = sceneStateRef.current;

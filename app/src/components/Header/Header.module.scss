@@ -28,7 +28,7 @@
 
   .homeButton {
     background: var(--foreground);
-    border-radius: 25px;
+    border-radius: var(--border-radius);
     color: var(--background);
 
     padding: 4px 8px;
@@ -42,7 +42,7 @@
   .cylinderModeToggle {
     align-items: center;
     background: var(--foreground);
-    border-radius: 25px;
+    border-radius: var(--border-radius);
     color: var(--background);
     display: flex;
     gap: 0;
@@ -71,7 +71,7 @@
 
     .cylinderModeToggleHighlight {
       background: var(--fixed-inverted-focus);
-      border-radius: 25px;
+      border-radius: var(--border-radius);
       inset: 0;
       position: absolute;
       z-index: -1;

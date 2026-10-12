@@ -106,7 +106,7 @@
 
   background: var(--foreground);
   color: var(--background);
-  border-radius: 25px;
+  border-radius: var(--border-radius);
   padding: 4px 8px;
   opacity: var(--opacity);
   text-transform: uppercase;
