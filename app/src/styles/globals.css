@@ -35,6 +35,17 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
+html[data-theme-switching="true"] *,
+html[data-theme-switching="true"] *::before,
+html[data-theme-switching="true"] *::after {
+  transition:
+    background-color 0.45s ease-in-out,
+    color 0.45s ease-in-out,
+    border-color 0.45s ease-in-out,
+    fill 0.45s ease-in-out,
+    stroke 0.45s ease-in-out;
+}
+
 *,
 *::-webkit-scrollbar {
   scrollbar-width: none;

@@ -64,6 +64,37 @@
   text-transform: uppercase;
 }
 
+.controlsPanel {
+  background: rgb(255 255 255 / 0.82);
+  border-radius: 8px;
+  color: #000;
+  display: grid;
+  gap: 14px;
+  left: var(--margin);
+  max-width: min(390px, calc(100vw - 2 * var(--margin)));
+  padding: 12px;
+  pointer-events: auto;
+  position: absolute;
+  top: var(--margin);
+  user-select: none;
+  z-index: 3;
+}
+
+.controlsHeader {
+  align-items: center;
+  display: flex;
+  font-family: monospace;
+  font-size: 12px;
+  justify-content: space-between;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.controlsActions {
+  display: flex;
+  gap: 6px;
+}
+
 .controlGrid {
   display: grid;
   gap: 8px;
@@ -96,21 +127,16 @@
 }
 
 .coordinates {
-  background: rgb(255 255 255 / 0.72);
+  background: rgb(0 0 0 / 0.08);
   border-radius: 6px;
   color: #000;
-  left: var(--margin);
   margin: 0;
-  max-width: min(320px, calc(100vw - 2 * var(--margin)));
+  max-height: 280px;
+  max-width: 100%;
   overflow: visible;
   padding: 8px;
-  pointer-events: auto;
-  position: absolute;
-  top: var(--margin);
   user-select: text;
   white-space: pre-wrap;
-  z-index: 2;
-  display: none;
 }
 
 .fallbackLinks {

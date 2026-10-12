@@ -174,7 +174,7 @@ export default function App({ Component, pageProps }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href={site.faviconUrl} />
       </Head>
-      <ThemeProvider attribute="data-theme" enableSystem={false} forcedTheme="light">
+      <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false}>
         <ViewportProvider>
           <DeviceProvider>
             <LenisProvider>

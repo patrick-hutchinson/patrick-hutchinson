@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
+import { useTheme } from "next-themes";
 import * as THREE from "three";
 
 import { DeviceContext } from "@/context/DeviceContext";
@@ -27,11 +28,11 @@ const POINTER_ROTATION_MAX = 0.7;
 const POINTER_ROTATION_EASE = 0.08;
 const MOBILE_ORIENTATION_NEUTRAL_BETA = 55;
 const MOBILE_ORIENTATION_NEUTRAL_GAMMA = 0;
-const MOBILE_ORIENTATION_MAX_X = 0.45;
-const MOBILE_ORIENTATION_MAX_Y = 0.45;
-const MOBILE_ORIENTATION_SENSITIVITY_X = 0.018;
-const MOBILE_ORIENTATION_SENSITIVITY_Y = 0.018;
-const MOBILE_ORIENTATION_EASE = 0.08;
+const MOBILE_ORIENTATION_MAX_X = 0.16;
+const MOBILE_ORIENTATION_MAX_Y = 0.16;
+const MOBILE_ORIENTATION_SENSITIVITY_X = 0.006;
+const MOBILE_ORIENTATION_SENSITIVITY_Y = 0.006;
+const MOBILE_ORIENTATION_EASE = 0.06;
 const ENTRY_SCROLL_DURATION = 2000;
 const MODE_TRANSITION_DURATION = 950;
 const VELOCITY_STOP_THRESHOLD = 0.00001;
@@ -110,18 +111,13 @@ const MOBILE_LAYOUT = {
   position: {
     x: -0.4,
     y: 0.1,
-    z: -2.75,
+    z: -3.95,
   },
   rotation: {
     x: -0.05,
     y: 0.487,
-    z: 0,
+    z: 0.242,
   },
-};
-
-const MOBILE_ROTATION_OFFSET = {
-  x: 0.579,
-  y: 0.676,
 };
 
 function clamp(value, min, max) {
@@ -924,15 +920,13 @@ function updatePointerRotationOffset(pointerRotation, pointerClient, container) 
   return pointerRotation.current;
 }
 
-function updateMobileOrientationRotation(orientationRotation) {
-  orientationRotation.current.x +=
-    (orientationRotation.target.x - orientationRotation.current.x) * MOBILE_ORIENTATION_EASE;
-  orientationRotation.current.y +=
-    (orientationRotation.target.y - orientationRotation.current.y) * MOBILE_ORIENTATION_EASE;
+function updateMobileOrientationRotation(orientationRotation, layout) {
+  orientationRotation.current.x += (orientationRotation.target.x - orientationRotation.current.x) * MOBILE_ORIENTATION_EASE;
+  orientationRotation.current.y += (orientationRotation.target.y - orientationRotation.current.y) * MOBILE_ORIENTATION_EASE;
 
   return {
-    x: MOBILE_ROTATION_OFFSET.x + orientationRotation.current.x,
-    y: MOBILE_ROTATION_OFFSET.y + orientationRotation.current.y,
+    x: layout.rotation.x + orientationRotation.current.x,
+    y: layout.rotation.y + orientationRotation.current.y,
   };
 }
 
@@ -976,6 +970,7 @@ function getTitleHoverKey(mesh) {
 
 export default function CylinderView({ array = [], focusColors = [], language = "en", mode = CYLINDER_MODES.TITLES }) {
   const router = useRouter();
+  const { resolvedTheme, setTheme, theme } = useTheme();
   const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -986,6 +981,11 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   const previousHoveredMeshRef = useRef(null);
   const previousHoveredKeyRef = useRef(null);
   const pointerClientRef = useRef(null);
+  const rendererSizeRef = useRef({
+    height: 0,
+    hasSize: false,
+    width: 0,
+  });
   const sceneStateRef = useRef(null);
   const isMobileRef = useRef(false);
   const pointerRef = useRef({
@@ -1027,6 +1027,11 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   const [orientationPermission, setOrientationPermission] = useState("unknown");
   const [paletteMode, setPaletteMode] = useState("light");
   const palette = CYLINDER_PALETTES[paletteMode];
+
+  useEffect(() => {
+    const nextPaletteMode = (resolvedTheme || theme) === "dark" ? "dark" : "light";
+    setPaletteMode(nextPaletteMode);
+  }, [resolvedTheme, theme]);
 
   const projects = useMemo(
     () =>
@@ -1144,7 +1149,9 @@ export default function CylinderView({ array = [], focusColors = [], language = 
       });
       renderer.setClearColor(palette.pageBackground, 0);
       renderer.setPixelRatio(
-        isMobile ? Math.min(window.devicePixelRatio || MOBILE_RENDER_PIXEL_RATIO, MOBILE_RENDER_PIXEL_RATIO) : Math.min(window.devicePixelRatio || 1.5, 2),
+        isMobile
+          ? Math.min(window.devicePixelRatio || MOBILE_RENDER_PIXEL_RATIO, MOBILE_RENDER_PIXEL_RATIO)
+          : Math.min(window.devicePixelRatio || 1.5, 2),
       );
 
       const scene = new THREE.Scene();
@@ -1187,11 +1194,22 @@ export default function CylinderView({ array = [], focusColors = [], language = 
         const { width, height } = container.getBoundingClientRect();
         const safeWidth = Math.max(width, 1);
         const safeHeight = Math.max(height, 1);
+        const previousSize = rendererSizeRef.current;
+        const sizeChanged =
+          !previousSize.hasSize ||
+          Math.abs(previousSize.width - safeWidth) > 0.5 ||
+          Math.abs(previousSize.height - safeHeight) > 0.5;
 
         renderer.setSize(safeWidth, safeHeight, false);
         camera.aspect = safeWidth / safeHeight;
         camera.updateProjectionMatrix();
-        recenterInteraction();
+        rendererSizeRef.current = {
+          height: safeHeight,
+          hasSize: true,
+          width: safeWidth,
+        };
+
+        if (sizeChanged) recenterInteraction();
       };
 
       const cylinderWidth = cylinderMode === CYLINDER_MODES.IMAGES ? IMAGE_CYLINDER_WIDTH : CYLINDER_WIDTH;
@@ -1266,15 +1284,9 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
           rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
           const pointerRotation = isMobile
-            ? updateMobileOrientationRotation(mobileOrientationRef.current)
+            ? updateMobileOrientationRotation(mobileOrientationRef.current, layoutRef.current)
             : updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
-          applyLayout(
-            group,
-            layoutRef.current,
-            pointerRotation,
-            0,
-            0,
-          );
+          applyLayout(group, layoutRef.current, pointerRotation, 0, 0);
           if (debugOutputRef.current) {
             debugOutputRef.current.textContent = getCylinderDebugOutput({
               cylinderMode,
@@ -1486,15 +1498,9 @@ export default function CylinderView({ array = [], focusColors = [], language = 
         if (Math.abs(rotation.velocity) < VELOCITY_STOP_THRESHOLD) rotation.velocity = 0;
         rotation.current += (rotation.target - rotation.current) * ROTATION_EASE;
         const pointerRotation = isMobile
-          ? updateMobileOrientationRotation(mobileOrientationRef.current)
+          ? updateMobileOrientationRotation(mobileOrientationRef.current, layoutRef.current)
           : updatePointerRotationOffset(pointerRotationRef.current, pointerClientRef.current, container);
-        applyLayout(
-          group,
-          layoutRef.current,
-          pointerRotation,
-          0,
-          0,
-        );
+        applyLayout(group, layoutRef.current, pointerRotation, 0, 0);
         if (debugOutputRef.current) {
           debugOutputRef.current.textContent = getCylinderDebugOutput({
             cylinderMode,
@@ -1736,8 +1742,8 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   }, []);
 
   const togglePalette = useCallback(() => {
-    setPaletteMode((current) => (current === "dark" ? "light" : "dark"));
-  }, []);
+    setTheme(paletteMode === "dark" ? "light" : "dark");
+  }, [paletteMode, setTheme]);
 
   const coordinateOutput = useMemo(
     () => getCylinderDebugOutput({ cylinderMode, layout, paletteMode, scrollRotation: rotationRef.current.current }),
@@ -1770,16 +1776,48 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           {orientationPermission === "pending" ? "Motion..." : "Motion"}
         </button>
       ) : null}
-      <pre
-        className={styles.coordinates}
+      <aside
+        className={styles.controlsPanel}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerMove={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
         onWheel={(event) => event.stopPropagation()}
-        ref={debugOutputRef}
       >
-        {coordinateOutput}
-      </pre>
+        <div className={styles.controlsHeader}>
+          <span>3D Controls</span>
+          <div className={styles.controlsActions}>
+            <button className={styles.paletteButton} onClick={togglePalette} type="button">
+              {paletteMode}
+            </button>
+            <button className={styles.resetButton} onClick={resetLayout} type="button">
+              Reset
+            </button>
+          </div>
+        </div>
+        <div className={styles.controlGrid}>
+          {LAYOUT_CONTROLS.map((control) => {
+            const value = control.group === "spacing" ? layout[control.key] : layout[control.group][control.key];
+
+            return (
+              <label className={styles.control} key={`${control.group}-${control.key}`}>
+                <span>{control.label}</span>
+                <input
+                  max={control.max}
+                  min={control.min}
+                  onChange={(event) => handleLayoutChange(control.group, control.key, event.target.value)}
+                  step={control.step}
+                  type="range"
+                  value={value}
+                />
+                <output>{Number(value).toFixed(3)}</output>
+              </label>
+            );
+          })}
+        </div>
+        <pre className={styles.coordinates} ref={debugOutputRef}>
+          {coordinateOutput}
+        </pre>
+      </aside>
       <ul aria-hidden="true" className={styles.fallbackLinks}>
         {projects.map((project) => (
           <li key={project.slug}>{project.title}</li>
