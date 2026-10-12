@@ -115,8 +115,8 @@ const MOBILE_LAYOUT = {
   },
   rotation: {
     x: -0.05,
-    y: 0.487,
-    z: 0.242,
+    y: 0.688,
+    z: 0.7,
   },
 };
 
@@ -1794,7 +1794,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
             </button>
           </div>
         </div>
-        <div className={styles.controlGrid}>
+        {/* <div className={styles.controlGrid}>
           {LAYOUT_CONTROLS.map((control) => {
             const value = control.group === "spacing" ? layout[control.key] : layout[control.group][control.key];
 
@@ -1813,7 +1813,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
               </label>
             );
           })}
-        </div>
+        </div> */}
         <pre className={styles.coordinates} ref={debugOutputRef}>
           {coordinateOutput}
         </pre>
