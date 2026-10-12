@@ -12,6 +12,22 @@ const Menu = ({ className, language = "en", socials = [] }) => {
   const [portalElement, setPortalElement] = useState(null);
   const socialItems = Array.isArray(socials) ? socials : [];
 
+  function normalizeComparablePath(path) {
+    const [pathWithoutHash] = path.split("#");
+    const [pathname = "/"] = pathWithoutHash.split("?");
+    const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+    return normalizedPathname || "/";
+  }
+
+  function handleMenuRouteClick(event, href) {
+    if (normalizeComparablePath(router.asPath) === normalizeComparablePath(href)) {
+      event.preventDefault();
+    }
+
+    setIsOpen(false);
+  }
+
   function getLanguagePath(asPath, nextLanguage) {
     const [pathWithQuery, hash = ""] = asPath.split("#");
     const [path = "/", query = ""] = pathWithQuery.split("?");
@@ -65,12 +81,20 @@ const Menu = ({ className, language = "en", socials = [] }) => {
           <button aria-label="Close menu" className={styles.overlayHitArea} onClick={() => setIsOpen(false)} type="button" />
           <ul className={styles.menuList} typo="h2">
             <li className={styles.menuItem}>
-              <Link href={getLocalizedPath("/", language)} onClick={() => setIsOpen(false)} scroll={false}>
+              <Link
+                href={getLocalizedPath("/", language)}
+                onClick={(event) => handleMenuRouteClick(event, getLocalizedPath("/", language))}
+                scroll={false}
+              >
                 Index
               </Link>
             </li>
             <li className={styles.menuItem}>
-              <Link href={getLocalizedPath("/info", language)} onClick={() => setIsOpen(false)} scroll={false}>
+              <Link
+                href={getLocalizedPath("/info", language)}
+                onClick={(event) => handleMenuRouteClick(event, getLocalizedPath("/info", language))}
+                scroll={false}
+              >
                 Info
               </Link>
             </li>
@@ -85,7 +109,7 @@ const Menu = ({ className, language = "en", socials = [] }) => {
               <Link
                 className={language === "de" ? styles.languageItemActive : undefined}
                 href={getLanguagePath(router.asPath, "de")}
-                onClick={() => setIsOpen(false)}
+                onClick={(event) => handleMenuRouteClick(event, getLanguagePath(router.asPath, "de"))}
                 scroll={false}
               >
                 De
@@ -96,7 +120,7 @@ const Menu = ({ className, language = "en", socials = [] }) => {
               <Link
                 className={language === "en" ? styles.languageItemActive : undefined}
                 href={getLanguagePath(router.asPath, "en")}
-                onClick={() => setIsOpen(false)}
+                onClick={(event) => handleMenuRouteClick(event, getLanguagePath(router.asPath, "en"))}
                 scroll={false}
               >
                 En

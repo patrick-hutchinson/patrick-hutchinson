@@ -1,0 +1,158 @@
+.imageView {
+  cursor: grab;
+  height: calc(100vh);
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  width: calc(100vw);
+}
+
+.imageViewClickable {
+  cursor: pointer;
+}
+
+.imageViewDragging,
+.imageViewDragging.imageViewClickable {
+  cursor: grabbing;
+}
+
+.canvasFrame {
+  height: 100%;
+  left: calc(var(--margin) + 40px + var(--margin));
+  overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.metadataLayer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.metadata {
+  align-items: baseline;
+  display: flex;
+  gap: 0.35em;
+  left: 0;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.metadataTitle {
+  color: var(--foreground);
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metadataYear,
+.metadataLocation {
+  color: #9c9c9d;
+  flex: 0 0 auto;
+}
+
+.positionIndicator {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+  position: fixed;
+  left: var(--margin);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  z-index: 2;
+}
+
+.positionThumbnailButton {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: block;
+  padding: 0;
+  width: 40px;
+}
+
+.positionThumbnail {
+  aspect-ratio: 1920 / 1080;
+  display: block;
+  object-fit: cover;
+  opacity: 0.3;
+  transition: opacity 0.25s ease-in-out;
+  width: 40px;
+}
+
+.positionThumbnailActive {
+  opacity: 1;
+}
+
+.fallback {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 15vh;
+  height: 100%;
+  inset: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 100%;
+}
+
+.fallbackItem {
+  width: 80%;
+}
+
+.fallbackImage {
+  aspect-ratio: 1920 / 1080;
+  display: block;
+  object-fit: cover;
+  width: 100%;
+}
+
+.fallbackMetadata {
+  align-items: baseline;
+  display: flex;
+  gap: 0.35em;
+  margin-top: calc(var(--margin) * 0.4);
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+}
+
+@media screen and (max-width: 749px) {
+  .canvasFrame {
+    left: 0;
+  }
+
+  .metadata {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .fallback {
+    align-items: center;
+  }
+
+  .fallbackImage {
+    aspect-ratio: 1080 / 1920;
+  }
+}
