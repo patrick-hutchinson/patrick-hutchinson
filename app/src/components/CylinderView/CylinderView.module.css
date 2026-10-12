@@ -17,7 +17,12 @@
 .canvas {
   display: block;
   height: 100%;
+  transition: filter 0.45s ease-in-out;
   width: 100%;
+}
+
+:global(html:not([data-theme="dark"])) .canvas {
+  filter: invert(1);
 }
 
 .motionButton {

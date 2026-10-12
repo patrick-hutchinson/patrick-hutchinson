@@ -90,18 +90,35 @@
 
 @media screen and (max-width: 748px) {
   .header {
-    align-items: flex-end;
-    bottom: var(--margin);
-    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    width: auto;
 
-    .leftControls,
+    .leftControls {
+      left: var(--margin);
+      position: fixed;
+      top: var(--margin);
+    }
+
     .rightControls {
       align-items: flex-end;
+      bottom: var(--margin);
+      gap: var(--margin);
+      justify-content: flex-start;
+      left: var(--margin);
+      position: fixed;
+      right: var(--margin);
     }
 
     .homeButton {
       background: var(--inverted-focus);
       color: var(--inverted-focus-foreground);
+    }
+
+    .menuControl {
+      margin-left: auto;
     }
   }
 }

@@ -32,6 +32,7 @@ const MOBILE_ORIENTATION_MAX_X = 0.16;
 const MOBILE_ORIENTATION_MAX_Y = 0.16;
 const MOBILE_ORIENTATION_SENSITIVITY_X = 0.006;
 const MOBILE_ORIENTATION_SENSITIVITY_Y = 0.006;
+const MOBILE_ORIENTATION_TARGET_EASE = 0.28;
 const MOBILE_ORIENTATION_EASE = 0.06;
 const ENTRY_SCROLL_DURATION = 2000;
 const MODE_TRANSITION_DURATION = 950;
@@ -122,6 +123,15 @@ const MOBILE_LAYOUT = {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function softClamp(value, max) {
+  if (!max) return 0;
+  return Math.tanh(value / max) * max;
+}
+
+function easeTarget(current, target, ease) {
+  return current + (target - current) * ease;
 }
 
 async function loadCylinderFonts() {
@@ -847,19 +857,6 @@ function cloneLayout(layout) {
   };
 }
 
-function layoutsEqual(a, b) {
-  return (
-    a.letterSpacing === b.letterSpacing &&
-    a.lineHeight === b.lineHeight &&
-    a.position.x === b.position.x &&
-    a.position.y === b.position.y &&
-    a.position.z === b.position.z &&
-    a.rotation.x === b.rotation.x &&
-    a.rotation.y === b.rotation.y &&
-    a.rotation.z === b.rotation.z
-  );
-}
-
 function applyLayout(group, layout, rotationOffset = { x: 0, y: 0 }, transitionRotationX = 0, baseRotationX = 0) {
   group.position.set(layout.position.x, layout.position.y, layout.position.z);
   group.rotation.set(rotationOffset.x + baseRotationX + transitionRotationX, rotationOffset.y, layout.rotation.z);
@@ -1014,6 +1011,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
     target: { x: 0, y: 0 },
   });
   const mobileOrientationPermissionRef = useRef("unknown");
+  const previousIsMobileRef = useRef(null);
   const modeTransitionRef = useRef({
     active: false,
     startedAt: 0,
@@ -1025,13 +1023,9 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   const [isClickable, setIsClickable] = useState(false);
   const [cylinderMode, setCylinderMode] = useState(CYLINDER_MODES.TITLES);
   const [orientationPermission, setOrientationPermission] = useState("unknown");
-  const [paletteMode, setPaletteMode] = useState("light");
+  const themeMode = (resolvedTheme || theme) === "dark" ? "dark" : "light";
+  const paletteMode = "dark";
   const palette = CYLINDER_PALETTES[paletteMode];
-
-  useEffect(() => {
-    const nextPaletteMode = (resolvedTheme || theme) === "dark" ? "dark" : "light";
-    setPaletteMode(nextPaletteMode);
-  }, [resolvedTheme, theme]);
 
   const projects = useMemo(
     () =>
@@ -1082,6 +1076,22 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   }, [cylinderMode, mode, startModeTransition]);
 
   useEffect(() => {
+    const previousIsMobile = previousIsMobileRef.current;
+    const shouldApplyPreset = previousIsMobile === null ? isMobile : previousIsMobile !== isMobile;
+
+    previousIsMobileRef.current = isMobile;
+    if (!shouldApplyPreset) return;
+
+    const nextLayout = cloneLayout(isMobile ? MOBILE_LAYOUT : DEFAULT_LAYOUT);
+    layoutRef.current = nextLayout;
+    setLayout(nextLayout);
+    pointerRotationRef.current.current = { x: 0, y: 0 };
+    pointerRotationRef.current.target = { x: 0, y: 0 };
+    mobileOrientationRef.current.current = { x: 0, y: 0 };
+    mobileOrientationRef.current.target = { x: 0, y: 0 };
+  }, [isMobile]);
+
+  useEffect(() => {
     if (!isMobile) {
       mobileOrientationRef.current.target = { x: 0, y: 0 };
       return undefined;
@@ -1093,17 +1103,11 @@ export default function CylinderView({ array = [], focusColors = [], language = 
       const orientation = mobileOrientationRef.current;
       const deltaBeta = event.beta - MOBILE_ORIENTATION_NEUTRAL_BETA;
       const deltaGamma = event.gamma - MOBILE_ORIENTATION_NEUTRAL_GAMMA;
+      const nextTargetX = softClamp(deltaBeta * MOBILE_ORIENTATION_SENSITIVITY_X, MOBILE_ORIENTATION_MAX_X);
+      const nextTargetY = softClamp(-deltaGamma * MOBILE_ORIENTATION_SENSITIVITY_Y, MOBILE_ORIENTATION_MAX_Y);
 
-      orientation.target.x = clamp(
-        deltaBeta * MOBILE_ORIENTATION_SENSITIVITY_X,
-        -MOBILE_ORIENTATION_MAX_X,
-        MOBILE_ORIENTATION_MAX_X,
-      );
-      orientation.target.y = clamp(
-        -deltaGamma * MOBILE_ORIENTATION_SENSITIVITY_Y,
-        -MOBILE_ORIENTATION_MAX_Y,
-        MOBILE_ORIENTATION_MAX_Y,
-      );
+      orientation.target.x = easeTarget(orientation.target.x, nextTargetX, MOBILE_ORIENTATION_TARGET_EASE);
+      orientation.target.y = easeTarget(orientation.target.y, nextTargetY, MOBILE_ORIENTATION_TARGET_EASE);
     };
 
     const resetOrientationTarget = () => {
@@ -1127,12 +1131,6 @@ export default function CylinderView({ array = [], focusColors = [], language = 
     const canvas = canvasRef.current;
     const container = containerRef.current;
     isMobileRef.current = isMobile;
-
-    if (isMobile && !layoutsEqual(layoutRef.current, MOBILE_LAYOUT)) {
-      const nextLayout = cloneLayout(MOBILE_LAYOUT);
-      layoutRef.current = nextLayout;
-      setLayout(nextLayout);
-    }
 
     let cancelled = false;
     let animationFrame = 0;
@@ -1742,8 +1740,8 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   }, []);
 
   const togglePalette = useCallback(() => {
-    setTheme(paletteMode === "dark" ? "light" : "dark");
-  }, [paletteMode, setTheme]);
+    setTheme(themeMode === "dark" ? "light" : "dark");
+  }, [setTheme, themeMode]);
 
   const coordinateOutput = useMemo(
     () => getCylinderDebugOutput({ cylinderMode, layout, paletteMode, scrollRotation: rotationRef.current.current }),
@@ -1787,7 +1785,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           <span>3D Controls</span>
           <div className={styles.controlsActions}>
             <button className={styles.paletteButton} onClick={togglePalette} type="button">
-              {paletteMode}
+              {themeMode}
             </button>
             <button className={styles.resetButton} onClick={resetLayout} type="button">
               Reset

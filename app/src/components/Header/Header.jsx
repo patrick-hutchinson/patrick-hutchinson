@@ -125,7 +125,7 @@ const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggl
             <span className={styles.cylinderModeToggleLabel}>Dark</span>
           </button>
         </motion.div>
-        <motion.div layout transition={{ duration: 0.35, ease: "easeInOut" }}>
+        <motion.div className={styles.menuControl} layout transition={{ duration: 0.35, ease: "easeInOut" }}>
           <Menu language={language} socials={site.socials} />
         </motion.div>
       </motion.div>

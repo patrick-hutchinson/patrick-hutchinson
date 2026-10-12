@@ -48,6 +48,7 @@ html[data-theme-switching="true"] *::after {
     background-color 0.45s ease-in-out,
     color 0.45s ease-in-out,
     border-color 0.45s ease-in-out,
+    filter 0.45s ease-in-out,
     fill 0.45s ease-in-out,
     stroke 0.45s ease-in-out;
 }
@@ -151,11 +152,11 @@ html[data-menu-overlay-open="true"] body {
   }
 }
 
-@media screen and (min-width: 749px) {
+/* @media screen and (min-width: 749px) {
   :root {
     --margin: 8px;
   }
-}
+} */
 
 .copyright {
   position: fixed;
