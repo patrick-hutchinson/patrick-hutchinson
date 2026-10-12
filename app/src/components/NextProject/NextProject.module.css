@@ -6,12 +6,12 @@
   position: relative;
   left: calc(var(--margin) * -1);
   /* bottom: calc(var(--margin) * -1); */
-  background-color: #fff;
-  background-image: radial-gradient(circle, #ccc 1px, transparent 1px);
+  background-color: var(--background);
+  background-image: radial-gradient(circle, var(--accent) 1px, transparent 1px);
   background-size: 50px 50px;
   cursor: none;
   padding: var(--margin);
-  color: #000;
+  color: var(--foreground);
 }
 
 .nextProjectHeader {
@@ -21,7 +21,7 @@
 }
 
 .nextProjectCursor {
-  color: #000;
+  color: var(--foreground);
 }
 
 .nextProjectContainer:hover {

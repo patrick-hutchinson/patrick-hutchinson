@@ -1776,7 +1776,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
           {orientationPermission === "pending" ? "Motion..." : "Motion"}
         </button>
       ) : null}
-      <aside
+      {/* <aside
         className={styles.controlsPanel}
         onPointerDown={(event) => event.stopPropagation()}
         onPointerMove={(event) => event.stopPropagation()}
@@ -1794,7 +1794,7 @@ export default function CylinderView({ array = [], focusColors = [], language = 
             </button>
           </div>
         </div>
-        {/* <div className={styles.controlGrid}>
+        <div className={styles.controlGrid}>
           {LAYOUT_CONTROLS.map((control) => {
             const value = control.group === "spacing" ? layout[control.key] : layout[control.group][control.key];
 
@@ -1813,11 +1813,11 @@ export default function CylinderView({ array = [], focusColors = [], language = 
               </label>
             );
           })}
-        </div> */}
+        </div>
         <pre className={styles.coordinates} ref={debugOutputRef}>
           {coordinateOutput}
         </pre>
-      </aside>
+      </aside> */}
       <ul aria-hidden="true" className={styles.fallbackLinks}>
         {projects.map((project) => (
           <li key={project.slug}>{project.title}</li>

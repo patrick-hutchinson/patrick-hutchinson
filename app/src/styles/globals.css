@@ -1,6 +1,9 @@
 :root {
   --background: #fff;
+  --background-rgb: 255 255 255;
   --foreground: #0a0a0a;
+  --foreground-rgb: 10 10 10;
+  --background-90: rgb(var(--background-rgb) / 0.9);
 
   --accent: #aeb0b1;
   --focus: #f00000;
@@ -31,7 +34,10 @@
 
 html[data-theme="dark"] {
   --background: #0a0a0a;
+  --background-rgb: 10 10 10;
   --foreground: #fff;
+  --foreground-rgb: 255 255 255;
+  --background-90: rgb(var(--background-rgb) / 0.9);
   color-scheme: dark;
 }
 
