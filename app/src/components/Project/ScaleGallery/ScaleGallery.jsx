@@ -7,11 +7,11 @@ const ScaleGalleryItem = ({ entry, fallbackSubcaption, index, isMobile }) => {
   return (
     <div className={className} key={entry?._key || entry?.medium?._id || index}>
       <Media className={styles.media} medium={entry.medium} />
-      <div typo="fineprint" className={styles.caption}>
+      <div typo="caption" className={styles.caption}>
         {entry?.medium?.caption || "Here's a placeholder caption for the media piece"}
       </div>
 
-      <div typo="h5" className={styles.subcaption}>
+      <div typo="fineprint" className={styles.subcaption}>
         {entry?.medium?.subcaption || fallbackSubcaption || "Here's a placeholder caption for the media piece"}
       </div>
     </div>

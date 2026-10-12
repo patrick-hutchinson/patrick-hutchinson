@@ -34,6 +34,65 @@ const pageTransitionVariants = {
   }),
 };
 
+const focusColorPattern = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const interactiveFocusSelector = [
+  "a",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "summary",
+  "[role='button']",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function normalizeFocusColorPair(entry) {
+  if (typeof entry === "string" && focusColorPattern.test(entry)) {
+    return {
+      background: entry,
+      foreground: "#0a0a0a",
+    };
+  }
+
+  if (
+    entry &&
+    typeof entry === "object" &&
+    focusColorPattern.test(entry.background) &&
+    focusColorPattern.test(entry.foreground)
+  ) {
+    return {
+      background: entry.background,
+      foreground: entry.foreground,
+    };
+  }
+
+  return null;
+}
+
+function getFocusColorPairs(site) {
+  const colors = Array.isArray(site?.focusColors) ? site.focusColors : [];
+  const validColorPairs = colors.map(normalizeFocusColorPair).filter(Boolean);
+
+  return validColorPairs.length ? validColorPairs : fallbackSiteData.focusColors;
+}
+
+function getRandomFocusColorPair(colorPairs, currentColor) {
+  if (colorPairs.length <= 1) return colorPairs[0];
+
+  const nextColorPairs = colorPairs.filter((pair) => pair.background.toLowerCase() !== currentColor?.toLowerCase());
+  return nextColorPairs[Math.floor(Math.random() * nextColorPairs.length)];
+}
+
+function applyFocusColorPair(root, colorPair) {
+  root.style.setProperty("--focus", colorPair.background);
+  root.style.setProperty("--focus-foreground", colorPair.foreground);
+}
+
+function applyFixedFocusColorPair(root, colorPair) {
+  root.style.setProperty("--fixed-focus", colorPair.background);
+  root.style.setProperty("--fixed-focus-foreground", colorPair.foreground);
+}
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const site = pageProps.site || fallbackSiteData;
@@ -54,6 +113,34 @@ export default function App({ Component, pageProps }) {
       router.events.off("routeChangeStart", handleRouteChangeStart);
     };
   }, [router.events]);
+
+  useEffect(() => {
+    const focusColorPairs = getFocusColorPairs(site);
+    const root = document.documentElement;
+
+    applyFocusColorPair(root, focusColorPairs[0]);
+    applyFixedFocusColorPair(root, getRandomFocusColorPair(focusColorPairs));
+
+    const handleInteractivePointerOver = (event) => {
+      if (!(event.target instanceof Element)) return;
+
+      const interactiveElement = event.target.closest(interactiveFocusSelector);
+      if (!interactiveElement || interactiveElement.closest("[data-focus-static='true']")) return;
+
+      if (event.relatedTarget instanceof Node && interactiveElement.contains(event.relatedTarget)) return;
+
+      applyFocusColorPair(
+        root,
+        getRandomFocusColorPair(focusColorPairs, root.style.getPropertyValue("--focus")),
+      );
+    };
+
+    document.addEventListener("pointerover", handleInteractivePointerOver, true);
+
+    return () => {
+      document.removeEventListener("pointerover", handleInteractivePointerOver, true);
+    };
+  }, [site]);
 
   return (
     <>

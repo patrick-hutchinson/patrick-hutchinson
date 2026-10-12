@@ -7,9 +7,9 @@ import styles from "./Header.module.scss";
 
 const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggle = false, site }) => {
   return (
-    <div className={styles.controls}>
+    <div className={styles.header} typo="caption">
       <motion.div className={styles.leftControls} layout transition={{ duration: 0.35, ease: "easeInOut" }}>
-        <Link href="/" typo="fineprint" className={styles.homeButton}>
+        <Link href="/" className={styles.homeButton}>
           Patrick Hutchinson
         </Link>
       </motion.div>
@@ -25,8 +25,8 @@ const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggl
               key="cylinder-mode-toggle"
               layout
               transition={{ duration: 0.35, ease: "easeInOut" }}
-              typo="fineprint"
               aria-label="Cylinder view options"
+              data-focus-static="true"
             >
               <button
                 className={
@@ -37,7 +37,14 @@ const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggl
                 onClick={() => setCylinderMode(CYLINDER_MODES.TITLES)}
                 type="button"
               >
-                Titles
+                {cylinderMode === CYLINDER_MODES.TITLES ? (
+                  <motion.span
+                    className={styles.cylinderModeToggleHighlight}
+                    layoutId="cylinder-mode-toggle-highlight"
+                    transition={{ duration: 0.35, ease: "easeInOut" }}
+                  />
+                ) : null}
+                <span className={styles.cylinderModeToggleLabel}>Titles</span>
               </button>
               <button
                 className={
@@ -48,7 +55,14 @@ const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggl
                 onClick={() => setCylinderMode(CYLINDER_MODES.IMAGES)}
                 type="button"
               >
-                Images
+                {cylinderMode === CYLINDER_MODES.IMAGES ? (
+                  <motion.span
+                    className={styles.cylinderModeToggleHighlight}
+                    layoutId="cylinder-mode-toggle-highlight"
+                    transition={{ duration: 0.35, ease: "easeInOut" }}
+                  />
+                ) : null}
+                <span className={styles.cylinderModeToggleLabel}>Images</span>
               </button>
             </motion.div>
           ) : null}

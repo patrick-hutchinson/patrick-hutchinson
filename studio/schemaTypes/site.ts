@@ -30,6 +30,55 @@ export const site = defineType({
       },
     }),
     defineField({
+      name: 'focusColors',
+      title: 'Focus Color Pairs',
+      description: 'Color pairs used as the pool for randomly selected focus states.',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'focusColorPair',
+          title: 'Focus Color Pair',
+          fields: [
+            defineField({
+              name: 'background',
+              title: 'Background Color',
+              type: 'string',
+              validation: (Rule) =>
+                Rule.required()
+                  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, {
+                    name: 'hex color',
+                    invert: false,
+                  })
+                  .error('Use a hex color, for example #f00000.'),
+            }),
+            defineField({
+              name: 'foreground',
+              title: 'Font Color',
+              type: 'string',
+              validation: (Rule) =>
+                Rule.required()
+                  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, {
+                    name: 'hex color',
+                    invert: false,
+                  })
+                  .error('Use a hex color, for example #ffffff.'),
+            }),
+          ],
+          preview: {
+            select: {
+              background: 'background',
+              foreground: 'foreground',
+            },
+            prepare: ({background, foreground}) => ({
+              title: background || 'Focus color',
+              subtitle: foreground ? `Font: ${foreground}` : undefined,
+            }),
+          },
+        },
+      ],
+    }),
+    defineField({
       name: 'address',
       type: 'object',
       options: {

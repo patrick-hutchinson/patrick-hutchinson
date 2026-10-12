@@ -89,7 +89,7 @@ export default function Project({ language = "en", lastUpdatedAt, nextProject, p
                   <DescriptionReveal className={styles.description} text={description} />
 
                   {subcaptionItems.length ? (
-                    <div typo="h5" className={styles.subcaption}>
+                    <div typo="fineprint" className={styles.subcaption}>
                       {subcaptionItems.map((item) => (
                         <div key={item}>{item}</div>
                       ))}
@@ -113,18 +113,14 @@ export default function Project({ language = "en", lastUpdatedAt, nextProject, p
 
             {projectLink ? (
               <Section>
-                <div typo="h5">Link</div>
+                <div typo="fineprint">Link</div>
                 <a href={projectLink} target="_blank" rel="noreferrer">
                   <Marquee canDrag={false} reliableLoop string={projectLink} typo="h1" />
                 </a>
               </Section>
             ) : null}
 
-            <NextProject
-              language={language}
-              lastUpdatedAt={lastUpdatedAt}
-              project={nextProject}
-            />
+            <NextProject language={language} lastUpdatedAt={lastUpdatedAt} project={nextProject} />
           </div>
         </article>
       </main>

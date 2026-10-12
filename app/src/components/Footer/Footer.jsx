@@ -20,21 +20,25 @@ const Footer = ({ className, lastUpdatedAt }) => {
   return (
     <footer className={[className, styles.footer].filter(Boolean).join(" ")}>
       <div className={styles.copyright}>
-        <div typo="fineprint" className={styles.copyrightNotice}>
+        <div
+          typo="fineprint"
+          className={styles.copyrightNotice}
+          style={{ fontSize: "clamp(1.25rem, calc(0.8892rem + 0.2385vw), 1.5rem)" }}
+        >
           © {currentYear}, Patrick Hutchinson. All rights reserved.
         </div>
-        <div typo="h5" className={styles.legalNotice}>
-          Patrick Hutchinson. This website and all of its content, including all text, graphics, video, and photos, are the
-          copyrighted works of PH.
+        <div typo="microtype" className={styles.legalNotice}>
+          This website and all of its content, including all text, graphics, video, and photos, are the copyrighted works of
+          Patrick Hutchinson.
         </div>
 
-        <div typo="h5" className={styles.legalNotice}>
+        <div typo="microtype" className={styles.legalNotice}>
           Font in Use: Neue Haas Grotesk, via CommercialType. <br />
-          Hosten via Vercel.
+          Hosted via Vercel.
         </div>
       </div>
 
-      <div className={styles.lastUpdated} typo="fineprint">
+      <div className={styles.lastUpdated} typo="microtype">
         Site was last updated{lastUpdated ? ` ${lastUpdated}.` : "."}
       </div>
     </footer>

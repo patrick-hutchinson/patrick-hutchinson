@@ -32,6 +32,7 @@ const MOBILE_ORIENTATION_MAX_Y = 0.45;
 const MOBILE_ORIENTATION_SENSITIVITY_X = 0.018;
 const MOBILE_ORIENTATION_SENSITIVITY_Y = 0.018;
 const MOBILE_ORIENTATION_EASE = 0.08;
+const ENTRY_SCROLL_DURATION = 2000;
 const MODE_TRANSITION_DURATION = 950;
 const VELOCITY_STOP_THRESHOLD = 0.00001;
 const CAMERA_Z = 7.6;
@@ -68,6 +69,7 @@ const MOBILE_TITLE_READY_OVERSCAN = THREE.MathUtils.degToRad(8);
 const TITLE_READY_ANGLE_MIN = VISIBLE_ANGLE_MIN - TITLE_READY_OVERSCAN;
 const TITLE_READY_ANGLE_MAX = VISIBLE_ANGLE_MAX + TITLE_READY_OVERSCAN;
 const TITLE_READY_FRONTNESS_MIN = (Math.cos(CYLINDER_VISIBLE_SURFACE_ANGLE / 2 + TITLE_READY_OVERSCAN) + 1) / 2;
+const ENTRY_SCROLL_DISTANCE = CYLINDER_VISIBLE_SURFACE_ANGLE;
 const MODE_TRANSITION_SCROLL_DISTANCE = CYLINDER_VISIBLE_SURFACE_ANGLE;
 const MEDIA_ATLAS_WIDTH = 2048;
 const MOBILE_RENDER_PIXEL_RATIO = 2.2;
@@ -956,6 +958,15 @@ function shouldCompleteModeTransition(transition, now) {
   return transition.active && transition.targetMode && now - transition.startedAt >= MODE_TRANSITION_DURATION;
 }
 
+function getEntryScrollAnimation(animation, now) {
+  if (!animation.startedAt) animation.startedAt = now;
+
+  const progress = Math.min(1, (now - animation.startedAt) / ENTRY_SCROLL_DURATION);
+  const easedProgress = easeInOutCubic(progress);
+
+  return animation.startScroll + (animation.targetScroll - animation.startScroll) * easedProgress;
+}
+
 export default function CylinderView({ array = [], language = "en", mode = CYLINDER_MODES.TITLES }) {
   const router = useRouter();
   const { isMobile } = useContext(DeviceContext);
@@ -978,6 +989,12 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
     current: 0,
     target: 0,
     velocity: 0,
+  });
+  const entryScrollAnimationRef = useRef({
+    active: true,
+    startedAt: 0,
+    startScroll: -ENTRY_SCROLL_DISTANCE,
+    targetScroll: 0,
   });
   const pointerRotationRef = useRef({
     current: { x: 0, y: 0 },
@@ -1194,11 +1211,22 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         const render = () => {
           const now = performance.now();
           const transition = modeTransitionRef.current;
+          const entryAnimation = entryScrollAnimationRef.current;
 
           const rotation = rotationRef.current;
           if (transition.active) {
             rotation.target = getModeTransitionScroll(transition, now);
             rotation.velocity = 0;
+          } else if (entryAnimation.active) {
+            rotation.target = getEntryScrollAnimation(entryAnimation, now);
+            rotation.current = rotation.target;
+            rotation.velocity = 0;
+
+            if (now - entryAnimation.startedAt >= ENTRY_SCROLL_DURATION) {
+              entryAnimation.active = false;
+              rotation.target = entryAnimation.targetScroll;
+              rotation.current = rotation.target;
+            }
           } else {
             rotation.target += rotation.velocity;
             rotation.velocity *= ROTATION_INERTIA;
@@ -1405,11 +1433,22 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       const render = () => {
         const now = performance.now();
         const transition = modeTransitionRef.current;
+        const entryAnimation = entryScrollAnimationRef.current;
 
         const rotation = rotationRef.current;
         if (transition.active) {
           rotation.target = getModeTransitionScroll(transition, now);
           rotation.velocity = 0;
+        } else if (entryAnimation.active) {
+          rotation.target = getEntryScrollAnimation(entryAnimation, now);
+          rotation.current = rotation.target;
+          rotation.velocity = 0;
+
+          if (now - entryAnimation.startedAt >= ENTRY_SCROLL_DURATION) {
+            entryAnimation.active = false;
+            rotation.target = entryAnimation.targetScroll;
+            rotation.current = rotation.target;
+          }
         } else {
           rotation.target += rotation.velocity;
           rotation.velocity *= ROTATION_INERTIA;
@@ -1519,6 +1558,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
   const handleWheel = useCallback((event) => {
     event.preventDefault();
+    entryScrollAnimationRef.current.active = false;
     const wheelDirection = isMobileRef.current ? 1 : -1;
     rotationRef.current.velocity += event.deltaY * wheelDirection * SCROLL_SPEED * SCROLL_RESISTANCE;
   }, []);
@@ -1585,6 +1625,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         const dragDirection = 1;
         pointerState.lastY = event.clientY;
         pointerState.moved = pointerState.moved || Math.abs(deltaY) > 2;
+        entryScrollAnimationRef.current.active = false;
         rotationRef.current.velocity += deltaY * dragDirection * DRAG_SPEED * DRAG_RESISTANCE;
         hoveredMeshRef.current = null;
         setIsClickable(false);

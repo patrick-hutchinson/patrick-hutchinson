@@ -20,6 +20,7 @@ export const siteQuery = `*[_type=="site"][0]{
     }
   },
   description,
+  focusColors,
   address,
   email,
   phone,

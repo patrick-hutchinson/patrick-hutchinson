@@ -6,6 +6,11 @@ footer.footer {
   width: var(--content-width);
 
   opacity: var(--opacity);
+
+  position: absolute;
+  bottom: var(--margin);
+  left: var(--margin);
+  z-index: 2;
 }
 
 .copyright {
@@ -17,7 +22,7 @@ footer.footer {
 }
 
 .copyrightNotice {
-  width: 180px;
+  width: clamp(180px, calc(122.3px + 3.817vw), 220px);
 }
 
 .legalNotice {

@@ -99,7 +99,7 @@ const DescriptionReveal = ({ className, text }) => {
   let wordIndex = 0;
 
   return (
-    <div className={`${className} ${styles.description}`} ref={containerRef} typo="longcopy">
+    <div className={`${className} ${styles.description}`} ref={containerRef} typo="body-large">
       {paragraphs.map((words, paragraphIndex) => (
         <p className={styles.paragraph} key={paragraphIndex}>
           {words.map((word) => {

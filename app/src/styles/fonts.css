@@ -48,27 +48,28 @@
   --letter-spacing-2: -0.2rem;
   --paragraph-spacing-2: 0rem;
 
-  --font-size-longcopy: 3.2rem;
-  --line-height-longcopy: 3.2rem;
-  --letter-spacing-longcopy: 0.01rem;
-  --paragraph-spacing-longcopy: 0rem;
+  --font-size-body-large: 3.2rem;
+  --line-height-body-large: 3.2rem;
+  --letter-spacing-body-large: 0.01rem;
+  --paragraph-spacing-body-large: 0rem;
 
-  --font-size-4: 1.75rem;
-  --line-height-4: 1.75rem;
-  --letter-spacing-4: -0.02rem;
-  --paragraph-spacing-4: 0.75rem;
+  --font-size-body-small: clamp(1.75rem, calc(0.8122rem + 0.6202vw), 2.4rem);
+  --line-height-body-small: 1;
+  --letter-spacing-body-small: -0.02rem;
+  --paragraph-spacing-body-small: 0.75rem;
 
-  --font-size-fineprint: 1.25rem;
-  --line-height-fineprint: 1.35rem;
+  --font-size-caption: clamp(1.25rem, calc(0.5284rem + 0.4771vw), 1.75rem);
+  --line-height-caption: 1.15;
+  --letter-spacing-caption: 0.01rem;
+  --paragraph-spacing-caption: 0rem;
+
+  --font-size-fineprint: clamp(0.8rem, calc(-0.2107rem + 0.6684vw), 1.5rem);
+  --line-height-fineprint: 1.1;
   --letter-spacing-fineprint: 0.01rem;
   --paragraph-spacing-fineprint: 0rem;
 
-  --font-size-5: 0.8rem;
-  --line-height-5: 0.8rem;
-  --letter-spacing-5: 0.01rem;
-  --paragraph-spacing-5: 0rem;
-
-  --margin-4: 5px;
+  --font-size-microtype: clamp(0.8rem, calc(0.3668rem + 0.2863vw), 1.1rem);
+  --line-height-microtype: 1.1;
 }
 
 h1,
@@ -101,67 +102,76 @@ h2 p,
   margin-bottom: var(--paragraph-spacing-1);
 }
 
-[typo="longcopy"],
-[typo="longcopy"] p,
-p[typo="longcopy"] {
+[typo="body-large"],
+[typo="body-large"] p,
+p[typo="body-large"] {
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
-  font-size: var(--font-size-longcopy);
-  line-height: var(--line-height-longcopy);
-  letter-spacing: var(--letter-spacing-longcopy);
+  font-size: var(--font-size-body-large);
+  line-height: var(--line-height-body-large);
+  letter-spacing: var(--letter-spacing-body-large);
 }
 
-[typo="fineprint"],
-[typo="fineprint"] p {
+[typo="caption"],
+[typo="caption"] p {
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
-  font-size: var(--font-size-fineprint);
-  line-height: var(--line-height-fineprint);
-  letter-spacing: var(--letter-spacing-fineprint);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  letter-spacing: var(--letter-spacing-caption);
 
   max-width: 700px;
 }
 
 h4,
-[typo="h4"] {
+[typo="body-small"] {
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
-  font-size: var(--font-size-4);
-  line-height: var(--line-height-4);
-  letter-spacing: var(--letter-spacing-4);
+  font-size: var(--font-size-body-small);
+  line-height: var(--line-height-body-small);
+  letter-spacing: var(--letter-spacing-body-small);
 }
 h4 p,
-[typo="h4"] p {
+[typo="body-small"] p {
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
-  margin-bottom: var(--paragraph-spacing-4);
+  margin-bottom: var(--paragraph-spacing-body-small);
 }
-
-/* a[typo="h4"],
-[typo="h4"] a,
-a [typo="h4"],
-.link [typo="h4"],
-[typo="h4"] .link {
-  font-weight: bold !important;
-} */
 
 h5,
-[typo="h5"] {
+[typo="fineprint"] {
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
-  font-size: var(--font-size-5);
-  line-height: var(--line-height-5);
-  letter-spacing: var(--letter-spacing-5);
+  font-size: var(--font-size-fineprint);
+  line-height: var(--line-height-fineprint);
+  letter-spacing: var(--letter-spacing-fineprint);
 }
 h5 p,
-[typo="h5"] p {
+[typo="fineprint"] p {
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
-  margin-bottom: var(--paragraph-spacing-5);
+  margin-bottom: var(--paragraph-spacing-fineprint);
+}
+
+h5,
+[typo="microtype"] {
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
+  font-weight: bold;
+
+  font-size: var(--font-size-microtype);
+  line-height: var(--line-height-microtype);
+  letter-spacing: var(--letter-spacing-microtype);
+}
+h5 p,
+[typo="microtype"] p {
+  font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
+  font-weight: bold;
+
+  margin-bottom: var(--paragraph-spacing-microtype);
 }
 
 @media screen and (max-width: 749px) {
@@ -171,14 +181,14 @@ h5 p,
     --letter-spacing-2: -0.2rem;
     --paragraph-spacing-2: 0rem;
 
-    --font-size-longcopy: 1.9rem;
-    --line-height-longcopy: 2rem;
-    --letter-spacing-longcopy: 0.01rem;
-    --paragraph-spacing-longcopy: 0rem;
+    --font-size-body-large: 1.9rem;
+    --line-height-body-large: 2rem;
+    --letter-spacing-body-large: 0.01rem;
+    --paragraph-spacing-body-large: 0rem;
 
-    --font-size-4: 1.6rem;
-    --line-height-4: 1.6rem;
-    --letter-spacing-4: 0.01rem;
-    --paragraph-spacing-4: 0rem;
+    --font-size-body-small: 1.6rem;
+    --line-height-body-small: 1.6rem;
+    --letter-spacing-body-small: 0.01rem;
+    --paragraph-spacing-body-small: 0rem;
   }
 }

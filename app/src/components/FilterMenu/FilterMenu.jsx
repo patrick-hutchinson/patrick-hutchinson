@@ -29,7 +29,7 @@ const FilterMenu = ({ activeFilter, array = [], className, onFilterChange }) => 
   return (
     <nav
       className={[className, styles.filterMenu].filter(Boolean).join(" ")}
-      typo="fineprint"
+      typo="caption"
       aria-label="Filter projects"
       style={{
         "--closed-width": `${widths.closed}px`,

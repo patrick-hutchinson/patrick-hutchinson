@@ -9,7 +9,7 @@ const VideoControls = ({ className, playerState, playerControls }) => {
   const { isMobile } = useContext(DeviceContext);
 
   return (
-    <div className={`${className}`} typo="fineprint">
+    <div className={`${className}`} typo="caption">
       {!isMobile && (
         <>
           <div className={styles.duration}>

@@ -46,10 +46,10 @@ const Credits = ({ credits }) => {
     <div className={styles.credits}>
       {credits.map((credit, creditIndex) => (
         <div key={credit._id} className={styles.credit}>
-          <div className={styles.creditTitle} typo="h5">
+          <div className={styles.creditTitle} typo="fineprint">
             {credit.role}
           </div>
-          <div className={styles.entries}>
+          <div className={styles.entries} typo="fineprint">
             {credit.entries?.map((entry, index) => (
               <div
                 className={activeEntries.has(getEntryKey(credit, creditIndex, index)) ? styles.entryActive : styles.entry}
@@ -57,7 +57,6 @@ const Credits = ({ credits }) => {
                 ref={(node) => {
                   entryRefs.current[getEntryKey(credit, creditIndex, index)] = node;
                 }}
-                typo="longcopy"
               >
                 {entry}
               </div>

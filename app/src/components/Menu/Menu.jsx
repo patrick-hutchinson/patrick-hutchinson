@@ -104,7 +104,7 @@ const Menu = ({ className, language = "en", socials = [] }) => {
             </li>
           </ul>
           {socialItems.length ? (
-            <ul className={styles.socialList} typo="fineprint">
+            <ul className={styles.socialList} typo="caption">
               {socialItems.map((social) => (
                 <li className={styles.socialItem} key={social.platform}>
                   <a href={social.link} onClick={() => setIsOpen(false)} target="_blank">

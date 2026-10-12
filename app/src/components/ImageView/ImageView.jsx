@@ -208,11 +208,11 @@ function createMetadataTexture(gl, project) {
   const title = project?.title || "";
   const year = getReleaseYear(project);
   const location = project?.scheduling?.location || "";
-  const fineprintSize = getPixelValue(getCssVariable("--font-size-fineprint", "12.5px"), 12.5);
-  const h4Size = getPixelValue(getCssVariable("--font-size-4", "17.5px"), 17.5);
-  const fineprintLineHeight = getLineHeight("--line-height-fineprint", "13.5px", fineprintSize);
-  const h4LineHeight = getLineHeight("--line-height-4", "17.5px", h4Size);
-  const lineHeight = Math.max(fineprintLineHeight, h4LineHeight);
+  const captionSize = getPixelValue(getCssVariable("--font-size-caption", "12.5px"), 12.5);
+  const h4Size = getPixelValue(getCssVariable("--font-size-body-small", "17.5px"), 17.5);
+  const captionLineHeight = getLineHeight("--line-height-caption", "13.5px", captionSize);
+  const h4LineHeight = getLineHeight("--line-height-body-small", "17.5px", h4Size);
+  const lineHeight = Math.max(captionLineHeight, h4LineHeight);
   const family = "NeueHaasGroteskText, Arial, Helvetica, sans-serif";
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -222,9 +222,9 @@ function createMetadataTexture(gl, project) {
   const gap = h4Size * 0.35;
   const padding = 2;
   const parts = [
-    { color: "#9c9c9d", font: `500 ${fineprintSize}px ${family}`, text: year },
+    { color: "#9c9c9d", font: `500 ${captionSize}px ${family}`, text: year },
     { color: getCssVariable("--foreground", "#0a0a0a"), font: `bold ${h4Size}px ${family}`, text: title },
-    { color: "#9c9c9d", font: `500 ${fineprintSize}px ${family}`, text: location },
+    { color: "#9c9c9d", font: `500 ${captionSize}px ${family}`, text: location },
   ].filter((part) => part.text);
 
   if (!parts.length) return null;
@@ -614,7 +614,7 @@ const ImageView = ({ array, language = "en" }) => {
       const imageWidth = rect.width * IMAGE_WIDTH_RATIO * dpr;
       const imageHeight = imageWidth / aspectRatio;
       const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin")) || 0;
-      const fontSize = getPixelValue(getCssVariable("--font-size-4", "17.5px"), 17.5);
+      const fontSize = getPixelValue(getCssVariable("--font-size-body-small", "17.5px"), 17.5);
       const captionGap = margin * 0.4 * dpr;
       const captionHeight = (fontSize + margin * 0.8) * dpr;
       const itemHeight = imageHeight + captionGap + captionHeight;
@@ -1042,13 +1042,13 @@ const ImageView = ({ array, language = "en" }) => {
             <div className={styles.fallbackItem} key={`${item.project._id}-${index}`}>
               <img alt="" className={styles.fallbackImage} draggable={false} src={item.previewUrl} />
               <div className={styles.fallbackMetadata}>
-                <span className={styles.metadataYear} typo="fineprint">
+                <span className={styles.metadataYear} typo="caption">
                   {getReleaseYear(item.project)}
                 </span>
-                <span className={styles.metadataTitle} typo="h4">
+                <span className={styles.metadataTitle} typo="body-small">
                   {item.project.title}
                 </span>
-                <span className={styles.metadataLocation} typo="fineprint">
+                <span className={styles.metadataLocation} typo="caption">
                   {item.project.scheduling?.location}
                 </span>
               </div>

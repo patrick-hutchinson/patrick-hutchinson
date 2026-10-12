@@ -26,11 +26,11 @@ const FullscreenMedium = ({ block, fallbackSubcaption, isMobile = false }) => {
         <div className={styles.mediaFrame}>
           <Media className={styles.medium} medium={medium} />
         </div>
-        <div typo="fineprint" className={styles.caption}>
+        <div typo="caption" className={styles.caption}>
           {caption || "Here's a placeholder caption for the media piece."}
         </div>
 
-        <div typo="h5" className={styles.subcaptionWrapper}>
+        <div typo="fineprint" className={styles.subcaptionWrapper}>
           <div className={styles.subcaptionInner}>
             {subcaption ? (
               <div className={styles.subcaption}>{subcaption}</div>

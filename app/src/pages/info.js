@@ -47,7 +47,7 @@ const infoLabels = {
 const infoPortableTextComponents = {
   marks: {
     ammendum: ({ children }) => (
-      <span className={`${styles.location} ${styles.ammendum}`} typo="fineprint">
+      <span className={`${styles.location} ${styles.ammendum}`} typo="caption">
         {children}
       </span>
     ),
@@ -63,12 +63,12 @@ function InfoList({ entries, isMobile, labels, onEntryHover, onEntryTap, title }
 
   return (
     <SectionSmall>
-      <h2 typo="fineprint">
+      <h2 typo="caption">
         {labels.selected} {title}
       </h2>
       <ul>
         {entries.map((entry) => (
-          <li key={entry._id} typo="h4" className={styles.listEntry}>
+          <li key={entry._id} typo="body-small" className={styles.listEntry}>
             <div
               className={styles.listEntryButton}
               onBlur={() => {
@@ -91,7 +91,7 @@ function InfoList({ entries, isMobile, labels, onEntryHover, onEntryTap, title }
               }}
               tabIndex={0}
             >
-              <span className={styles.date} typo="fineprint">
+              <span className={styles.date} typo="caption">
                 {getEntryDate(entry) ? `‘${getEntryDate(entry).slice(2)}` : null}
               </span>
 
@@ -100,7 +100,7 @@ function InfoList({ entries, isMobile, labels, onEntryHover, onEntryTap, title }
               </span>
 
               <span className={`${styles.title} link`}>{entry.title}</span>
-              <span className={styles.location} typo="fineprint">
+              <span className={styles.location} typo="caption">
                 {entry.scheduling?.location || entry.location ? `${entry.scheduling?.location || entry.location}` : null}
               </span>
             </div>
@@ -226,7 +226,7 @@ export default function Info({ experience, info, language = "en", publicity }) {
             exit={{ opacity: 0, y: 8 }}
             initial={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            typo="fineprint"
+            typo="caption"
           >
             {labels.scrollNotice}
           </motion.div>
@@ -239,7 +239,7 @@ export default function Info({ experience, info, language = "en", publicity }) {
               <Text
                 components={infoPortableTextComponents}
                 text={info.description}
-                typo="h4"
+                typo="body-small"
                 style={{ fontWeight: "normal" }}
               />
             </SectionSmall>
@@ -263,14 +263,14 @@ export default function Info({ experience, info, language = "en", publicity }) {
             {/* <Section>
               <Text
                 text="Patrick has lived and worked in Germany, Ireland, Switzerland, The Netherlands, Finland, Austria and Italy for extended periods."
-                typo="h4"
+                typo="body-small"
               />
             </Section> */}
 
             <section className={styles.details}>
-              <section typo="fineprint">
-                <h4 typo="fineprint">{labels.contact}</h4>
-                <a typo="fineprint" href="mailto:hutchinsonpatrick@icloud.com">
+              <section typo="caption">
+                <h4 typo="caption">{labels.contact}</h4>
+                <a typo="caption" href="mailto:hutchinsonpatrick@icloud.com">
                   hutchinsonpatrick@icloud.com
                 </a>{" "}
                 <br />
@@ -278,8 +278,8 @@ export default function Info({ experience, info, language = "en", publicity }) {
               </section>
 
               {info.socials && (
-                <section typo="fineprint">
-                  <h4 typo="fineprint">{labels.socials}</h4>
+                <section typo="caption">
+                  <h4 typo="caption">{labels.socials}</h4>
                   {info.socials.map((social) => (
                     <>
                       <a href={social.link} target="_blank">
@@ -291,8 +291,8 @@ export default function Info({ experience, info, language = "en", publicity }) {
                 </section>
               )}
 
-              <section typo="fineprint">
-                <h4 typo="fineprint">{labels.downloads}</h4>
+              <section typo="caption">
+                <h4 typo="caption">{labels.downloads}</h4>
                 {info.CV?.asset?.url ? (
                   <div>
                     <a href={info.CV.asset.url} download={info.CV.asset.originalFilename || undefined}>
@@ -310,8 +310,8 @@ export default function Info({ experience, info, language = "en", publicity }) {
                 ) : null}
               </section>
 
-              <section typo="fineprint">
-                <h4 typo="fineprint">{labels.currentlyIn}</h4>
+              <section typo="caption">
+                <h4 typo="caption">{labels.currentlyIn}</h4>
                 <a
                   href="https://www.google.com/maps/place/Freiburg+im+Breisgau/@47.9873966,7.7140196,12z/data=!3m1!4b1!4m6!3m5!1s0x47911b26560bd665:0x41f6bb7a5df57b0!8m2!3d47.9990077!4d7.8421043!16zL20vMHB0ajI?entry=ttu&g_ep=EgoyMDI2MDcyOC4wIKXMDSoASAFQAw%3D%3D"
                   target="_blank"
@@ -323,7 +323,6 @@ export default function Info({ experience, info, language = "en", publicity }) {
           </div>
         </div>
       </main>
-
     </div>
   );
 }

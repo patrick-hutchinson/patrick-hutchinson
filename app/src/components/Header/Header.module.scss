@@ -1,4 +1,4 @@
-.controls {
+.header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -12,6 +12,7 @@
   z-index: 1004;
   mix-blend-mode: difference;
   width: calc(100vw - 2 * var(--margin));
+  max-width: unset;
 
   .leftControls,
   .rightControls {
@@ -29,9 +30,13 @@
     background: var(--foreground);
     border-radius: 25px;
     color: var(--background);
-    // opacity: var(--opacity);
+
     padding: 4px 8px;
-    // transition: opacity 0.4s ease-in-out;
+
+    &:hover {
+      background: var(--inverted-focus);
+      color: var(--inverted-focus-foreground);
+    }
   }
 
   .cylinderModeToggle {
@@ -40,15 +45,11 @@
     border-radius: 25px;
     color: var(--background);
     display: flex;
-    gap: 12px;
-    // opacity: var(--opacity);
-    padding: 4px 8px;
-    // transition: opacity 0.4s ease-in-out;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
 
-    // &:hover,
-    // &:focus-within {
-    //   opacity: 1;
-    // }
+    transition: 0.3s ease-in-out;
 
     .cylinderModeToggleButton,
     .cylinderModeToggleButtonActive {
@@ -59,13 +60,31 @@
       cursor: pointer;
       font: inherit;
       line-height: 1;
-      // opacity: var(--opacity);
-      padding: 0;
+      padding: 4px 12px;
+      position: relative;
+      z-index: 0;
     }
 
-    // .cylinderModeToggleButtonActive {
-    //   opacity: 1;
-    // }
+    .cylinderModeToggleButtonActive {
+      color: var(--fixed-inverted-focus-foreground);
+    }
+
+    .cylinderModeToggleHighlight {
+      background: var(--fixed-inverted-focus);
+      border-radius: 25px;
+      inset: 0;
+      position: absolute;
+      z-index: -1;
+    }
+
+    .cylinderModeToggleLabel {
+      position: relative;
+      z-index: 1;
+    }
+  }
+
+  a:hover {
+    opacity: 1 !important;
   }
 }
 

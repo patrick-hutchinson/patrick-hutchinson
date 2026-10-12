@@ -106,3 +106,11 @@ article.project {
     width: 100%;
   }
 }
+
+@media screen and (min-width: 1780px) {
+  /* large screens */
+
+  .descriptionContainer {
+    width: 50%;
+  }
+}

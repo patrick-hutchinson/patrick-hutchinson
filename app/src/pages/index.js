@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { getHomeStaticProps } from "@/lib/sanity/fetch";
 import { preloadMedium } from "@/lib/media/projectThumbnails";
 
-import ImageView from "@/components/ImageView/ImageView";
+import Footer from "@/components/Footer/Footer";
 
 import styles from "@/styles/Index.module.css";
 
@@ -59,6 +59,7 @@ export default function Home({ activeFilter, cylinderMode, home, indexView = "li
           </motion.div>
         </AnimatePresence>
       </main>
+      <Footer />
     </div>
   );
 }
