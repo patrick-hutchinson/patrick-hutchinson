@@ -11,7 +11,7 @@ import styles from "@/styles/Index.module.css";
 
 const CylinderView = dynamic(() => import("@/components/CylinderView/CylinderView"), { ssr: false });
 
-export default function Home({ activeFilter, cylinderMode, home, indexView = "list", language = "en" }) {
+export default function Home({ activeFilter, cylinderMode, home, indexView = "list", language = "en", site }) {
   const preloadedMedia = useRef([]);
   const selection = home?.selection || [];
   const filteredSelection = useMemo(
@@ -55,11 +55,11 @@ export default function Home({ activeFilter, cylinderMode, home, indexView = "li
             key={indexView}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            <CylinderView array={imageViewSelection} language={language} mode={cylinderMode} />
+            <CylinderView array={imageViewSelection} focusColors={site?.focusColors} language={language} mode={cylinderMode} />
           </motion.div>
         </AnimatePresence>
       </main>
-      <Footer />
+      <Footer className={styles.indexFooter} />
     </div>
   );
 }

@@ -21,3 +21,9 @@
 .cylinderView {
   padding: 0;
 }
+
+@media screen and (max-width: 748px) {
+  .indexFooter {
+    display: none !important;
+  }
+}

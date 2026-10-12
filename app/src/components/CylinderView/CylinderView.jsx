@@ -54,6 +54,7 @@ const TITLE_TEXTURE_FONT_FAMILY = `${TITLE_TEXTURE_FONT_NAME}, Arial, Helvetica,
 const META_TEXTURE_FONT_FAMILY = `${META_TEXTURE_FONT_NAME}, Arial, Helvetica, sans-serif`;
 const TITLE_HOVER_EASE = 0.14;
 const TITLE_HOVER_COLOR = new THREE.Color(META_TEXTURE_COLOR);
+const FOCUS_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const TITLE_HOVER_MIN_FRONTNESS = 0.54;
 const TITLE_HOVER_SWITCH_MARGIN = 0.08;
 const HIT_HEIGHT_MULTIPLIER = 0.72;
@@ -707,6 +708,25 @@ function wrapUnit(value) {
   return ((value % 1) + 1) % 1;
 }
 
+function getFocusFontColors(focusColors) {
+  const colors = Array.isArray(focusColors) ? focusColors : [];
+  const fontColors = colors
+    .map((entry) => {
+      if (typeof entry === "string") return entry;
+      return entry?.foreground;
+    })
+    .filter((color) => typeof color === "string" && FOCUS_COLOR_PATTERN.test(color));
+
+  return fontColors.length ? fontColors : [META_TEXTURE_COLOR];
+}
+
+function getRandomHoverColor(colors, currentColor) {
+  if (colors.length <= 1) return colors[0];
+
+  const nextColors = colors.filter((color) => color.toLowerCase() !== currentColor?.toLowerCase());
+  return nextColors[Math.floor(Math.random() * nextColors.length)];
+}
+
 function getModeMetrics(mode, layout) {
   const height = TEXT_HEIGHT;
   const lineHeight = mode === CYLINDER_MODES.IMAGES ? 1 : layout.lineHeight;
@@ -818,6 +838,7 @@ function updateRowMesh({
   mesh.userData.project = project;
   mesh.userData.virtualIndex = virtualIndex;
   mesh.userData.mode = mode;
+  mesh.userData.hoverColor = null;
 
   if (hitMesh) {
     const hitGeometry = makeCurvedTextGeometry(Math.min(width + HIT_WIDTH_PADDING, CYLINDER_WIDTH), hitHeight, {
@@ -967,7 +988,13 @@ function getEntryScrollAnimation(animation, now) {
   return animation.startScroll + (animation.targetScroll - animation.startScroll) * easedProgress;
 }
 
-export default function CylinderView({ array = [], language = "en", mode = CYLINDER_MODES.TITLES }) {
+function getTitleHoverKey(mesh) {
+  if (!mesh?.userData?.project?.slug || mesh.userData.virtualIndex == null) return null;
+
+  return `${mesh.userData.virtualIndex}:${mesh.userData.project.slug}`;
+}
+
+export default function CylinderView({ array = [], focusColors = [], language = "en", mode = CYLINDER_MODES.TITLES }) {
   const router = useRouter();
   const { isMobile } = useContext(DeviceContext);
   const containerRef = useRef(null);
@@ -976,9 +1003,12 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
   const meshesRef = useRef([]);
   const hitMeshesRef = useRef([]);
   const hoveredMeshRef = useRef(null);
+  const previousHoveredMeshRef = useRef(null);
+  const previousHoveredKeyRef = useRef(null);
   const pointerClientRef = useRef(null);
   const sceneStateRef = useRef(null);
   const isMobileRef = useRef(false);
+  const lastTitleHoverColorRef = useRef(null);
   const pointerRef = useRef({
     dragging: false,
     moved: false,
@@ -1018,6 +1048,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
   const [orientationPermission, setOrientationPermission] = useState("unknown");
   const [paletteMode, setPaletteMode] = useState("light");
   const palette = CYLINDER_PALETTES[paletteMode];
+  const focusFontColors = useMemo(() => getFocusFontColors(focusColors), [focusColors]);
 
   const projects = useMemo(
     () =>
@@ -1054,6 +1085,8 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         targetScroll: startScroll + MODE_TRANSITION_SCROLL_DISTANCE,
       };
       hoveredMeshRef.current = null;
+      previousHoveredMeshRef.current = null;
+      previousHoveredKeyRef.current = null;
       setIsClickable(false);
     },
     [cylinderMode],
@@ -1338,6 +1371,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         const hitMesh = new THREE.Mesh(hitGeometry, hitMaterial);
 
         mesh.userData = {
+          hoverColor: null,
           index,
           mode: cylinderMode,
           project,
@@ -1413,6 +1447,9 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           setTitleRowRotation(mesh, angle, cylinderMode);
           if (!isMobile && mesh.material?.uniforms?.hoverAmount) {
             const targetHover = mesh === hoveredMeshRef.current ? 1 : 0;
+            if (mesh.userData.hoverColor) {
+              mesh.material.uniforms.hoverColor.value.set(mesh.userData.hoverColor);
+            }
             mesh.material.uniforms.hoverAmount.value +=
               (targetHover - mesh.material.uniforms.hoverAmount.value) * TITLE_HOVER_EASE;
           }
@@ -1495,7 +1532,25 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
           raycaster.setFromCamera(pointer, camera);
 
           const hits = raycaster.intersectObjects(hitMeshes, false);
-          hoveredMeshRef.current = getStableTitleHit(hits, hoveredMeshRef.current);
+          const nextHoveredMesh = getStableTitleHit(hits, hoveredMeshRef.current);
+          const nextHoveredKey = getTitleHoverKey(nextHoveredMesh);
+          if (
+            nextHoveredMesh !== previousHoveredMeshRef.current ||
+            nextHoveredKey !== previousHoveredKeyRef.current ||
+            !nextHoveredMesh?.userData?.hoverColor
+          ) {
+            if (nextHoveredMesh) {
+              nextHoveredMesh.userData.hoverColor = getRandomHoverColor(
+                focusFontColors,
+                lastTitleHoverColorRef.current,
+              );
+              lastTitleHoverColorRef.current = nextHoveredMesh.userData.hoverColor;
+              nextHoveredMesh.material?.uniforms?.hoverColor?.value.set(nextHoveredMesh.userData.hoverColor);
+            }
+            previousHoveredMeshRef.current = nextHoveredMesh;
+            previousHoveredKeyRef.current = nextHoveredKey;
+          }
+          hoveredMeshRef.current = nextHoveredMesh;
         }
 
         renderer.render(scene, camera);
@@ -1530,7 +1585,7 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
       cancelled = true;
       cleanupScene();
     };
-  }, [cylinderMode, isMobile, projects, layout.letterSpacing, layout.lineHeight, palette]);
+  }, [cylinderMode, focusFontColors, isMobile, projects, layout.letterSpacing, layout.lineHeight, palette]);
 
   const getIntersectedMesh = useCallback((clientX, clientY) => {
     const sceneState = sceneStateRef.current;
@@ -1628,12 +1683,16 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
         entryScrollAnimationRef.current.active = false;
         rotationRef.current.velocity += deltaY * dragDirection * DRAG_SPEED * DRAG_RESISTANCE;
         hoveredMeshRef.current = null;
+        previousHoveredMeshRef.current = null;
+        previousHoveredKeyRef.current = null;
         setIsClickable(false);
         return;
       }
 
       if (isMobileRef.current) {
         hoveredMeshRef.current = null;
+        previousHoveredMeshRef.current = null;
+        previousHoveredKeyRef.current = null;
         setIsClickable(false);
         return;
       }
@@ -1672,6 +1731,8 @@ export default function CylinderView({ array = [], language = "en", mode = CYLIN
 
   const handlePointerLeave = useCallback(() => {
     hoveredMeshRef.current = null;
+    previousHoveredMeshRef.current = null;
+    previousHoveredKeyRef.current = null;
     if (!pointerRef.current.dragging) setIsClickable(false);
   }, []);
 

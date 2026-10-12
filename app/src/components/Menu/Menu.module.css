@@ -86,7 +86,7 @@
   position: absolute;
   top: var(--margin);
   z-index: 1;
-  font-size: 10vw !important;
+  font-size: clamp(152px, calc(2.8571px + 10.4167vw), 256px) !important;
 }
 
 .languageList {
@@ -97,7 +97,7 @@
   list-style: none;
   position: absolute;
   z-index: 1;
-  font-size: 10vw !important;
+  font-size: clamp(152px, calc(2.8571px + 10.4167vw), 256px) !important;
 }
 
 .menuItem {
@@ -150,15 +150,46 @@
 }
 
 @media screen and (max-width: 748px) {
+  .menuOverlay {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding: var(--margin);
+  }
+
   .menuList {
-    bottom: calc(var(--margin) * 4);
+    left: auto;
+    order: 1;
+    padding-top: 0;
+    position: relative;
     top: auto;
+    padding-top: 0;
+  }
+
+  .languageList {
+    padding-bottom: var(--header-height);
+  }
+
+  .menuList,
+  .languageList {
+    font-size: 110px !important;
+  }
+
+  .languageList {
+    bottom: auto;
+    left: auto;
+    margin-top: auto;
+    order: 3;
+    position: relative;
   }
 
   .socialList {
     flex-direction: column;
     gap: 0;
-    left: var(--margin);
+    left: auto;
+    order: 2;
+    position: relative;
     right: auto;
+    bottom: auto;
   }
 }

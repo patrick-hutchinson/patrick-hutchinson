@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { ThemeProvider } from "next-themes";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { DeviceProvider } from "@/context/DeviceContext";
 import LenisProvider from "@/context/LenisContext";
@@ -93,10 +93,16 @@ function applyFixedFocusColorPair(root, colorPair) {
   root.style.setProperty("--fixed-focus-foreground", colorPair.foreground);
 }
 
+function applySelectionFocusColorPair(root, colorPair) {
+  root.style.setProperty("--selection-focus", colorPair.background);
+  root.style.setProperty("--selection-focus-foreground", colorPair.foreground);
+}
+
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   const site = pageProps.site || fallbackSiteData;
   const language = pageProps.language || "en";
+  const hasActiveSelectionRef = useRef(false);
   const [exitingScrollY, setExitingScrollY] = useState(0);
   const [indexView, setIndexView] = useState("list");
   const [cylinderMode, setCylinderMode] = useState(CYLINDER_MODES.TITLES);
@@ -120,6 +126,7 @@ export default function App({ Component, pageProps }) {
 
     applyFocusColorPair(root, focusColorPairs[0]);
     applyFixedFocusColorPair(root, getRandomFocusColorPair(focusColorPairs));
+    applySelectionFocusColorPair(root, getRandomFocusColorPair(focusColorPairs));
 
     const handleInteractivePointerOver = (event) => {
       if (!(event.target instanceof Element)) return;
@@ -135,10 +142,27 @@ export default function App({ Component, pageProps }) {
       );
     };
 
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      const hasSelection = Boolean(selection && !selection.isCollapsed && selection.toString().length > 0);
+
+      if (hasSelection && !hasActiveSelectionRef.current) {
+        applySelectionFocusColorPair(
+          root,
+          getRandomFocusColorPair(focusColorPairs, root.style.getPropertyValue("--selection-focus")),
+        );
+      }
+
+      hasActiveSelectionRef.current = hasSelection;
+    };
+
     document.addEventListener("pointerover", handleInteractivePointerOver, true);
+    document.addEventListener("selectionchange", handleSelectionChange);
 
     return () => {
       document.removeEventListener("pointerover", handleInteractivePointerOver, true);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      hasActiveSelectionRef.current = false;
     };
   }, [site]);
 

@@ -89,8 +89,19 @@
 }
 
 @media screen and (max-width: 748px) {
-  .controls {
+  .header {
+    align-items: flex-end;
     bottom: var(--margin);
     top: auto;
+
+    .leftControls,
+    .rightControls {
+      align-items: flex-end;
+    }
+
+    .homeButton {
+      background: var(--inverted-focus);
+      color: var(--inverted-focus-foreground);
+    }
   }
 }
