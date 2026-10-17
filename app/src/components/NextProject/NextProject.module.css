@@ -6,7 +6,7 @@
   position: relative;
   left: calc(var(--margin) * -1);
   /* bottom: calc(var(--margin) * -1); */
-  background-color: var(--background);
+  background-color: var(--background-90);
   background-image: radial-gradient(circle, var(--accent) 1px, transparent 1px);
   background-size: 50px 50px;
   cursor: none;

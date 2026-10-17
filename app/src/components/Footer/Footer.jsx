@@ -27,15 +27,6 @@ const Footer = ({ className, lastUpdatedAt }) => {
         >
           © {currentYear}, Patrick Hutchinson. All rights reserved.
         </div>
-        <div typo="microtype" className={styles.legalNotice}>
-          This website and all of its content, including all text, graphics, video, and photos, are the copyrighted works of
-          Patrick Hutchinson.
-        </div>
-
-        <div typo="microtype" className={styles.legalNotice}>
-          Font in Use: Neue Haas Grotesk, via CommercialType. <br />
-          Hosted via Vercel.
-        </div>
       </div>
 
       <div className={styles.lastUpdated} typo="microtype">

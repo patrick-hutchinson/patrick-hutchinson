@@ -46,10 +46,10 @@ const Credits = ({ credits }) => {
     <div className={styles.credits}>
       {credits.map((credit, creditIndex) => (
         <div key={credit._id} className={styles.credit}>
-          <div className={styles.creditTitle} typo="fineprint">
+          <div className={styles.creditTitle} typo="caption">
             {credit.role}
           </div>
-          <div className={styles.entries} typo="fineprint">
+          <div className={styles.entries} typo="caption">
             {credit.entries?.map((entry, index) => (
               <div
                 className={activeEntries.has(getEntryKey(credit, creditIndex, index)) ? styles.entryActive : styles.entry}
