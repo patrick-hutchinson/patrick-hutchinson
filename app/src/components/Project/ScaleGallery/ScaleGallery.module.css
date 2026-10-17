@@ -40,6 +40,35 @@
   transform: translateY(calc((var(--media-height) - var(--media-hover-height)) / 2));
 }
 
+.container:not(.mobileContainer) .media {
+  width: calc(var(--media-height) * 0.8);
+}
+
+.container:not(.mobileContainer):hover .media {
+  aspect-ratio: var(--media-natural-ratio);
+  width: calc(var(--media-hover-height) * var(--media-natural-ratio));
+}
+
+.container:not(.mobileContainer) {
+  width: var(--item-width, 320px);
+  min-width: 0;
+  transition: width 0.3s;
+}
+
+.container:not(.mobileContainer) .media,
+.container:not(.mobileContainer):hover .media {
+  width: 100%;
+  height: var(--item-height, var(--media-height));
+  margin-bottom: calc((var(--item-resting-height, var(--media-height)) - var(--item-height, var(--media-height))) / 2);
+  transform: translateY(calc((var(--item-resting-height, var(--media-height)) - var(--item-height, var(--media-height))) / 2));
+}
+
+.container:not(.mobileContainer) .caption,
+.container:not(.mobileContainer) .subcaption {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .mobileScaleGallery {
   display: flex;
   align-items: flex-start;

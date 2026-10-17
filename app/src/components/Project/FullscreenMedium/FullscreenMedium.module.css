@@ -84,6 +84,7 @@ figure.figure {
 
     width: 100%;
     will-change: auto;
+    padding: var(--margin) 0;
   }
 
   .mobileFigure .mediaFrame {

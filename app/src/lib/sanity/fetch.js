@@ -99,6 +99,7 @@ export async function getHomeStaticProps(context = {}) {
       site,
       home,
       language,
+      lastUpdatedAt: getLastUpdatedAt(),
     },
     revalidate,
   };

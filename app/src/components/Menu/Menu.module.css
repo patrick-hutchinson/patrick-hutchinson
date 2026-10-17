@@ -197,11 +197,12 @@
     right: auto;
     align-items: flex-start;
     z-index: 1;
+
+    padding-bottom: 30px;
   }
 
   .themeList {
     display: flex;
-    font-size: 90px !important;
     line-height: 0.9;
     order: 2;
   }
@@ -246,7 +247,6 @@
 
   .menuList,
   .languageList {
-    font-size: 90px !important;
   }
 
   .languageList {

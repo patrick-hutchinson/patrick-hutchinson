@@ -13,7 +13,7 @@ import styles from "@/styles/Index.module.css";
 const CylinderView = dynamic(() => import("@/components/CylinderView/CylinderView"), { ssr: false });
 const ImageView = dynamic(() => import("@/components/ImageView/ImageView"), { ssr: false });
 
-export default function Home({ activeFilter, cylinderMode, home, language = "en", site }) {
+export default function Home({ activeFilter, cylinderMode, home, language = "en", lastUpdatedAt, site }) {
   const preloadedMedia = useRef([]);
   const selection = home?.selection || [];
   const filteredSelection = useMemo(
@@ -70,7 +70,7 @@ export default function Home({ activeFilter, cylinderMode, home, language = "en"
           </motion.div>
         </AnimatePresence>
       </main>
-      <Footer className={styles.indexFooter} />
+      <Footer className={styles.indexFooter} lastUpdatedAt={lastUpdatedAt} />
     </div>
   );
 }

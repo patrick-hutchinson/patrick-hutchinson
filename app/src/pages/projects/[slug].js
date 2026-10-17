@@ -113,7 +113,7 @@ export default function Project({ language = "en", lastUpdatedAt, nextProject, p
 
             {projectLink ? (
               <Section>
-                <div typo="fineprint">Link</div>
+                <div typo="caption">Link</div>
                 <a href={projectLink} target="_blank" rel="noreferrer">
                   <Marquee canDrag={false} reliableLoop string={projectLink} typo="h1" />
                 </a>
