@@ -120,7 +120,7 @@ li.scaleListItem {
   color: #9c9c9d;
 }
 
-@media screen and (max-width: 749px) {
+@media screen and (max-width: 768px) {
   ul.scaleList {
     --glyph-top-overshoot-compensation: 0px;
   }

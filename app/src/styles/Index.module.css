@@ -22,7 +22,7 @@
   padding: 0;
 }
 
-@media screen and (max-width: 748px) {
+@media screen and (max-width: 768px) {
   .indexFooter {
     display: none !important;
   }

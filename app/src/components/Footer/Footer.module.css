@@ -28,3 +28,15 @@ footer.footer {
 .legalNotice {
   width: 250px;
 }
+
+@media (max-width: 768px) {
+  .legalNotice {
+    display: none;
+  }
+}
+
+@media (max-width: 955px) {
+  .legalNotice {
+    display: none;
+  }
+}

@@ -15,7 +15,6 @@ import styles from "./ImageView.module.css";
 const ASPECT_DESKTOP = 1920 / 1080;
 const ASPECT_MOBILE = 1080 / 1920;
 const DPR_CAP = 1.5;
-const IMAGE_WIDTH_RATIO = 0.66;
 const INERTIA = 0.08;
 const ITEM_GAP_RATIO = 0.04;
 const ENTRY_SCROLL_OFFSET_ITEMS = 13;
@@ -610,10 +609,10 @@ const ImageView = ({ array, language = "en" }) => {
         gl.viewport(0, 0, width, height);
       }
 
-      const aspectRatio = isMobile ? ASPECT_MOBILE : ASPECT_DESKTOP;
-      const imageWidth = rect.width * IMAGE_WIDTH_RATIO * dpr;
-      const imageHeight = imageWidth / aspectRatio;
       const margin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--margin")) || 0;
+      const aspectRatio = isMobile ? ASPECT_MOBILE : ASPECT_DESKTOP;
+      const imageWidth = Math.max(1, (rect.width - margin * 2) * dpr);
+      const imageHeight = imageWidth / aspectRatio;
       const fontSize = getPixelValue(getCssVariable("--font-size-body-small", "17.5px"), 17.5);
       const captionGap = margin * 0.4 * dpr;
       const captionHeight = (fontSize + margin * 0.8) * dpr;
@@ -685,7 +684,7 @@ const ImageView = ({ array, language = "en" }) => {
           const itemScale = SCREEN_EDGE_SCALE + (1 - SCREEN_EDGE_SCALE) * scaleProgress;
           const scaledImageWidth = imageWidth * itemScale;
           const scaledImageHeight = imageHeight * itemScale;
-          const scaledX = isMobile ? (width - scaledImageWidth) / 2 : 0;
+          const scaledX = (width - scaledImageWidth) / 2;
           const scaledY = y + (imageHeight - scaledImageHeight) / 2;
 
           if (!textureEntry?.texture) continue;
@@ -917,12 +916,6 @@ const ImageView = ({ array, language = "en" }) => {
     };
   };
 
-  const handleIndicatorClick = (event, index) => {
-    event.preventDefault();
-    event.stopPropagation();
-    scrollToIndex(index);
-  };
-
   useEffect(() => {
     const handleWindowKeyDown = (event) => {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !projects.length) return;
@@ -1011,31 +1004,6 @@ const ImageView = ({ array, language = "en" }) => {
       <div className={styles.canvasFrame} ref={frameRef}>
         <canvas aria-hidden="true" className={styles.canvas} ref={canvasRef} />
       </div>
-      {!isMobile ? (
-        <div aria-label="Project position" className={styles.positionIndicator}>
-          {items.map((item, index) => (
-            <button
-              aria-label={`Scroll to ${item.project.title}`}
-              className={[styles.positionThumbnailButton, index === activeIndex ? styles.positionThumbnailActive : null]
-                .filter(Boolean)
-                .join(" ")}
-              key={item.project._id}
-              onClick={(event) => handleIndicatorClick(event, index)}
-              onMouseLeave={(event) => event.currentTarget.blur()}
-              type="button"
-            >
-              <img
-                alt=""
-                className={[styles.positionThumbnail, index === activeIndex ? styles.positionThumbnailActive : null]
-                  .filter(Boolean)
-                  .join(" ")}
-                draggable={false}
-                src={item.previewUrl}
-              />
-            </button>
-          ))}
-        </div>
-      ) : null}
       {!hasWebGl ? (
         <div className={styles.fallback}>
           {[...items, ...items, ...items].map((item, index) => (

@@ -63,7 +63,7 @@ function InfoList({ entries, isMobile, labels, onEntryHover, onEntryTap, title }
 
   return (
     <SectionSmall>
-      <h2 typo="caption">
+      <h2 typo="caption" className={styles.sectionHeadline}>
         {labels.selected} {title}
       </h2>
       <ul>
@@ -259,13 +259,6 @@ export default function Info({ experience, info, language = "en", publicity }) {
               onEntryTap={handleEntryTap}
               title={labels.publicity}
             />
-
-            {/* <Section>
-              <Text
-                text="Patrick has lived and worked in Germany, Ireland, Switzerland, The Netherlands, Finland, Austria and Italy for extended periods."
-                typo="body-small"
-              />
-            </Section> */}
 
             <section className={styles.details}>
               <section typo="caption">

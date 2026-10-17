@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 
 import { getLocalizedPath, SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import styles from "./Menu.module.css";
-const Menu = ({ className, language = "en", socials = [] }) => {
+const Menu = ({ activeTheme, onThemeChange, className, language = "en", socials = [] }) => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [portalElement, setPortalElement] = useState(null);
@@ -104,6 +104,12 @@ const Menu = ({ className, language = "en", socials = [] }) => {
               </a>
             </li>
           </ul>
+          <div className={styles.menuOptions}>
+          <div className={styles.themeList} typo="h2" aria-label="Theme options">
+            <button type="button" className={activeTheme === "light" ? styles.languageItemActive : undefined} aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}>Light</button>
+            <span aria-hidden="true">/</span>
+            <button type="button" className={activeTheme === "dark" ? styles.languageItemActive : undefined} aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}>Dark</button>
+          </div>
           <ul className={styles.languageList} typo="h2" aria-label="Language options">
             <li className={styles.languageItem}>
               <Link
@@ -127,6 +133,7 @@ const Menu = ({ className, language = "en", socials = [] }) => {
               </Link>
             </li>
           </ul>
+          </div>
           {socialItems.length ? (
             <ul className={styles.socialList} typo="caption">
               {socialItems.map((social) => (

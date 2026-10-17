@@ -26,37 +26,27 @@
     justify-content: flex-end;
   }
 
-  .homeButton {
-    background: var(--foreground);
-    border-radius: var(--border-radius);
-    color: var(--background);
-
-    padding: 4px 8px;
-
-    &:hover {
-      background: var(--inverted-focus);
-      color: var(--inverted-focus-foreground);
-    }
-  }
-
   .cylinderModeToggle {
     align-items: center;
-    background: var(--foreground);
-    border-radius: var(--border-radius);
-    color: var(--background);
+
     display: flex;
     gap: 0;
     overflow: hidden;
     padding: 0;
 
-    transition: 0.3s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
 
+    .cylinderModeToggleButton {
+      opacity: var(--opacity);
+      transition: opacity 0.4s ease-in-out;
+    }
     .cylinderModeToggleButton,
     .cylinderModeToggleButtonActive {
+      color: var(--foreground);
       appearance: none;
       background: transparent;
       border: 0;
-      color: currentColor;
+
       cursor: pointer;
       font: inherit;
       line-height: 1;
@@ -65,13 +55,15 @@
       z-index: 0;
     }
 
+    .cylinderModeToggleButton:hover {
+      opacity: 1 !important;
+    }
+
     .cylinderModeToggleButtonActive {
-      color: var(--fixed-inverted-focus-foreground);
+      opacity: 1 !important;
     }
 
     .cylinderModeToggleHighlight {
-      background: var(--fixed-inverted-focus);
-      border-radius: var(--border-radius);
       inset: 0;
       position: absolute;
       z-index: -1;
@@ -88,7 +80,7 @@
   }
 }
 
-@media screen and (max-width: 748px) {
+@media screen and (max-width: 768px) {
   .header {
     bottom: 0;
     left: 0;
@@ -97,9 +89,10 @@
     width: auto;
 
     .leftControls {
-      left: var(--margin);
-      position: fixed;
-      top: var(--margin);
+      display: none;
+      // left: var(--margin);
+      // position: fixed;
+      // top: var(--margin);
     }
 
     .rightControls {
@@ -110,11 +103,6 @@
       left: var(--margin);
       position: fixed;
       right: var(--margin);
-    }
-
-    .homeButton {
-      background: var(--inverted-focus);
-      color: var(--inverted-focus-foreground);
     }
 
     .menuControl {

@@ -205,7 +205,7 @@ const ProjectCursor = ({
   return (
     <motion.div
       ref={ref}
-      typo="h2"
+      typo="h2-static"
       style={{
         "--project-cursor-title-width": titleWidth,
         position: "fixed",

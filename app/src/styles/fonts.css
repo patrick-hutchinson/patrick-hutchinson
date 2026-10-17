@@ -43,10 +43,14 @@
   --letter-spacing-1: 0rem;
   --paragraph-spacing-1: 0rem;
 
-  --font-size-2: 58px;
+  --font-size-2: clamp(90px, calc(2.8571px + 10.4167vw), 256px) !important;
   --line-height-2: 0.9;
   --letter-spacing-2: -0.2rem;
   --paragraph-spacing-2: 0rem;
+
+  --font-size-2-static: 72px;
+  --line-height-2-static: 0.9;
+  --letter-spacing-2-static: -0.2rem;
 
   --font-size-body-large: 3.2rem;
   --line-height-body-large: 3.2rem;
@@ -99,7 +103,16 @@ h2 p,
   font-family: "NeueHaasGroteskText", Arial, Helvetica, sans-serif;
   font-weight: bold;
 
-  margin-bottom: var(--paragraph-spacing-1);
+  margin-bottom: var(--paragraph-spacing-2);
+}
+
+[typo="h2-static"] {
+  font-family: "NeueHaasGroteskDisplay", Arial, Helvetica, sans-serif;
+  font-weight: bold;
+
+  font-size: var(--font-size-2-static);
+  line-height: var(--line-height-2-static);
+  letter-spacing: var(--letter-spacing-2-static);
 }
 
 [typo="body-large"],
@@ -174,7 +187,7 @@ h5 p,
   margin-bottom: var(--paragraph-spacing-microtype);
 }
 
-@media screen and (max-width: 749px) {
+@media screen and (max-width: 768px) {
   :root {
     --font-size-2: 78px;
     --line-height-2: 0.9;

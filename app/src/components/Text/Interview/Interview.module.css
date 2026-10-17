@@ -20,7 +20,7 @@
 
 .interviewer {
   grid-column: 4 / 13;
-  color: var(--accent);
+  opacity: var(--opacity);
 }
 
 .interviewee {
@@ -43,5 +43,5 @@
 }
 
 .interviewerInitials {
-  color: var(--accent);
+  opacity: var(--opacity);
 }

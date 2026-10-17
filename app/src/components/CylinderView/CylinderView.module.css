@@ -154,7 +154,7 @@
   width: 1px;
 }
 
-@media screen and (max-width: 748px) {
+@media screen and (max-width: 768px) {
   .control {
     grid-template-columns: 76px minmax(100px, 1fr) 44px;
   }

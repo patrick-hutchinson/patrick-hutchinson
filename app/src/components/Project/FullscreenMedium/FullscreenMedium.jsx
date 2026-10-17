@@ -19,9 +19,12 @@ const FullscreenMedium = ({ block, fallbackSubcaption, isMobile = false }) => {
   return (
     <div className={styles.container} ref={containerRef}>
       <motion.figure
-        animate={{ "--media-scale": isMobile ? 1 : isInView ? 0.9 : 0.8 }}
+        initial={isMobile ? { scale: 0.8 } : false}
+        whileInView={isMobile ? { scale: 1 } : undefined}
+        viewport={{ once: false, amount: 0.4 }}
+        animate={isMobile ? { scale: 0.8, "--media-scale": 1 } : { "--media-scale": isInView ? 0.9 : 0.8 }}
         className={figureClassName}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
+        transition={isMobile ? { duration: 0.5, ease: [0.22, 1, 0.36, 1] } : { duration: 0.3, ease: "easeInOut" }}
       >
         <div className={styles.mediaFrame}>
           <Media className={styles.medium} medium={medium} />

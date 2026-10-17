@@ -48,7 +48,7 @@
   width: min(70vw, 360px);
 }
 
-@media screen and (max-width: 749px) {
+@media screen and (max-width: 768px) {
   .title {
     max-width: 90vw;
   }

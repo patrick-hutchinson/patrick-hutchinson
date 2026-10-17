@@ -95,7 +95,7 @@ article.project {
   opacity: 0.1;
 }
 
-@media screen and (max-width: 749px) {
+@media screen and (max-width: 768px) {
   .descriptionContainer .subcaption {
     width: 100%;
   }

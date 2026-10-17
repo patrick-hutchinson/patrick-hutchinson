@@ -73,7 +73,7 @@ figure.figure {
   /* width: 100%; */
 }
 
-@media screen and (max-width: 749px) {
+@media screen and (max-width: 768px) {
   .container {
     align-items: flex-start;
     min-height: auto;

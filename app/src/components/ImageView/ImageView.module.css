@@ -21,7 +21,7 @@
 
 .canvasFrame {
   height: 100%;
-  left: calc(var(--margin) + 40px + var(--margin));
+  left: 0;
   overflow: hidden;
   position: absolute;
   right: 0;
@@ -69,44 +69,8 @@
   flex: 0 0 auto;
 }
 
-.positionIndicator {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  pointer-events: auto;
-  position: fixed;
-  left: var(--margin);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  z-index: 2;
-}
-
-.positionThumbnailButton {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  display: block;
-  padding: 0;
-  width: 40px;
-}
-
-.positionThumbnail {
-  aspect-ratio: 1920 / 1080;
-  display: block;
-  object-fit: cover;
-  opacity: 0.3;
-  transition: opacity 0.25s ease-in-out;
-  width: 40px;
-}
-
-.positionThumbnailActive {
-  opacity: 1;
-}
-
 .fallback {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
   flex-direction: column;
   gap: 15vh;
@@ -138,18 +102,10 @@
   width: 100%;
 }
 
-@media screen and (max-width: 749px) {
-  .canvasFrame {
-    left: 0;
-  }
-
+@media screen and (max-width: 768px) {
   .metadata {
     justify-content: center;
     text-align: center;
-  }
-
-  .fallback {
-    align-items: center;
   }
 
   .fallbackImage {

@@ -5,13 +5,15 @@ import { useEffect, useMemo, useRef } from "react";
 import { getHomeStaticProps } from "@/lib/sanity/fetch";
 import { preloadMedium } from "@/lib/media/projectThumbnails";
 
+import { CYLINDER_MODES } from "@/components/CylinderView/cylinderModes";
 import Footer from "@/components/Footer/Footer";
 
 import styles from "@/styles/Index.module.css";
 
 const CylinderView = dynamic(() => import("@/components/CylinderView/CylinderView"), { ssr: false });
+const ImageView = dynamic(() => import("@/components/ImageView/ImageView"), { ssr: false });
 
-export default function Home({ activeFilter, cylinderMode, home, indexView = "list", language = "en", site }) {
+export default function Home({ activeFilter, cylinderMode, home, language = "en", site }) {
   const preloadedMedia = useRef([]);
   const selection = home?.selection || [];
   const filteredSelection = useMemo(
@@ -52,10 +54,19 @@ export default function Home({ activeFilter, cylinderMode, home, indexView = "li
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             initial={{ opacity: 0 }}
-            key={indexView}
+            key={cylinderMode}
             transition={{ duration: 0.6, ease: "easeInOut" }}
           >
-            <CylinderView array={imageViewSelection} focusColors={site?.focusColors} language={language} mode={cylinderMode} />
+            {cylinderMode === CYLINDER_MODES.IMAGES ? (
+              <ImageView array={imageViewSelection} language={language} />
+            ) : (
+              <CylinderView
+                array={imageViewSelection}
+                focusColors={site?.focusColors}
+                language={language}
+                mode={CYLINDER_MODES.TITLES}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

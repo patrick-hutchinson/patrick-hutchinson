@@ -4,6 +4,10 @@
   padding-top: var(--header-height);
 }
 
+h2.sectionHeadline {
+  margin-bottom: 5px;
+}
+
 .thumbnailSlot {
   align-items: center;
   aspect-ratio: 16 / 9;
@@ -34,7 +38,7 @@
   width: 100%;
 }
 
-.details section {
+.details section:not(:last-child) {
   margin-bottom: 20px;
 }
 
@@ -59,7 +63,7 @@
 }
 
 .location {
-  color: var(--accent);
+  opacity: var(--opacity);
 }
 
 .ammendum {
@@ -125,6 +129,10 @@
 } */
 
 @media (max-width: 768px) {
+  .page {
+    padding-top: 0px;
+  }
+
   .infoContainer {
     display: flex;
     flex-direction: column;
@@ -161,6 +169,6 @@
   }
 
   .listEntry {
-    margin-bottom: calc(var(--margin-2) / 4);
+    margin-bottom: calc(var(--margin-2) / 7);
   }
 }

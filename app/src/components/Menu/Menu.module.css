@@ -86,18 +86,53 @@
   position: absolute;
   top: var(--margin);
   z-index: 1;
-  font-size: clamp(152px, calc(2.8571px + 10.4167vw), 256px) !important;
+}
+
+.menuOptions {
+  position: absolute;
+  bottom: var(--margin);
+  left: var(--margin);
+  right: var(--margin);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  z-index: 1;
+}
+
+.themeList {
+  display: flex;
+  order: 2;
+  line-height: 0.9;
+}
+
+.themeList button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 1px;
+  opacity: var(--opacity);
+  transition: opacity 0.4s ease-in-out;
+}
+
+.themeList button:hover {
+  opacity: 1;
 }
 
 .languageList {
-  bottom: var(--margin);
+  bottom: auto;
   display: flex;
-  gap: var(--margin);
-  left: var(--margin);
+  /* gap: var(--margin); */
+  left: auto;
   list-style: none;
-  position: absolute;
+  position: relative;
   z-index: 1;
-  font-size: clamp(152px, calc(2.8571px + 10.4167vw), 256px) !important;
 }
 
 .menuItem {
@@ -128,15 +163,15 @@
 .menuItem a:hover,
 .languageItem a:hover,
 .socialItem a:hover {
-  color: var(--accent);
+  opacity: 1;
 }
 
 .languageItemActive {
-  color: var(--accent) !important;
+  opacity: 1 !important;
 }
 
 .socialList {
-  bottom: var(--margin);
+  bottom: calc(var(--margin) + clamp(152px, calc(2.8571px + 10.4167vw), 256px));
   display: flex;
   gap: var(--margin);
   list-style: none;
@@ -149,7 +184,46 @@
   color: #fff;
 }
 
-@media screen and (max-width: 748px) {
+@media screen and (max-width: 768px) {
+  .menuOptions {
+    display: flex;
+    flex-direction: column;
+    margin-top: auto;
+    order: 3;
+    /* padding-bottom: var(--header-height); */
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    align-items: flex-start;
+    z-index: 1;
+  }
+
+  .themeList {
+    display: flex;
+    font-size: 90px !important;
+    line-height: 0.9;
+    order: 2;
+  }
+
+  .themeList button {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    letter-spacing: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 8px;
+    text-decoration-thickness: 1px;
+  }
+
+  .themeList button:hover {
+    opacity: 1;
+  }
+
   .menuOverlay {
     display: flex;
     flex-direction: column;
@@ -167,7 +241,7 @@
   }
 
   .languageList {
-    padding-bottom: var(--header-height);
+    padding-bottom: 0;
   }
 
   .menuList,
@@ -178,7 +252,7 @@
   .languageList {
     bottom: auto;
     left: auto;
-    margin-top: auto;
+    margin-top: 0;
     order: 3;
     position: relative;
   }

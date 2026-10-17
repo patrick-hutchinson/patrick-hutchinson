@@ -104,7 +104,6 @@ export default function App({ Component, pageProps }) {
   const language = pageProps.language || "en";
   const hasActiveSelectionRef = useRef(false);
   const [exitingScrollY, setExitingScrollY] = useState(0);
-  const [indexView, setIndexView] = useState("list");
   const [cylinderMode, setCylinderMode] = useState(CYLINDER_MODES.TITLES);
   const isIndexPage = router.pathname === "/" || router.pathname === "/[language]";
 
@@ -200,9 +199,7 @@ export default function App({ Component, pageProps }) {
                     <Component
                       {...pageProps}
                       cylinderMode={cylinderMode}
-                      indexView={indexView}
                       language={language}
-                      setIndexView={setIndexView}
                       // activeFilter={activeFilter}
                     />
                   </motion.div>

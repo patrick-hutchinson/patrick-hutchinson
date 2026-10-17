@@ -89,44 +89,8 @@ const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggl
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <motion.div
-          aria-label="Theme options"
-          className={styles.cylinderModeToggle}
-          data-focus-static="true"
-          layout
-          transition={{ duration: 0.35, ease: "easeInOut" }}
-        >
-          <button
-            className={activeTheme === "light" ? styles.cylinderModeToggleButtonActive : styles.cylinderModeToggleButton}
-            onClick={() => handleThemeChange("light")}
-            type="button"
-          >
-            {activeTheme === "light" ? (
-              <motion.span
-                className={styles.cylinderModeToggleHighlight}
-                layoutId="theme-toggle-highlight"
-                transition={{ duration: 0.35, ease: "easeInOut" }}
-              />
-            ) : null}
-            <span className={styles.cylinderModeToggleLabel}>Light</span>
-          </button>
-          <button
-            className={activeTheme === "dark" ? styles.cylinderModeToggleButtonActive : styles.cylinderModeToggleButton}
-            onClick={() => handleThemeChange("dark")}
-            type="button"
-          >
-            {activeTheme === "dark" ? (
-              <motion.span
-                className={styles.cylinderModeToggleHighlight}
-                layoutId="theme-toggle-highlight"
-                transition={{ duration: 0.35, ease: "easeInOut" }}
-              />
-            ) : null}
-            <span className={styles.cylinderModeToggleLabel}>Dark</span>
-          </button>
-        </motion.div>
         <motion.div className={styles.menuControl} layout transition={{ duration: 0.35, ease: "easeInOut" }}>
-          <Menu language={language} socials={site.socials} />
+          <Menu activeTheme={activeTheme} onThemeChange={handleThemeChange} language={language} socials={site.socials} />
         </motion.div>
       </motion.div>
     </div>
