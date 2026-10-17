@@ -1,4 +1,5 @@
 import {defineType, defineField} from 'sanity'
+import {createElement} from 'react'
 
 export const videoAsset = defineType({
   name: 'videoAsset',
@@ -30,13 +31,18 @@ export const videoAsset = defineType({
   ],
   preview: {
     select: {
-      video: 'video',
-      subtitle: 'copyright',
+      playbackId: 'file.asset.playbackId',
     },
-    prepare({video, subtitle}) {
+    prepare({playbackId}) {
       return {
-        media: video,
-        subtitle: subtitle,
+        title: 'MUX Video',
+        media: playbackId
+          ? createElement('img', {
+              src: `https://image.mux.com/${encodeURIComponent(playbackId)}/thumbnail.jpg?time=0&width=160&fit_mode=preserve`,
+              alt: 'MUX Video thumbnail',
+              style: {width: '100%', height: '100%', objectFit: 'cover'},
+            })
+          : undefined,
       }
     },
   },

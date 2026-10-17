@@ -7,7 +7,7 @@ export const localizedString = (fieldName) => `coalesce(
   ${fieldName}[_key == "en"][0].value,
   ${fieldName}[_key == "de"][0].value,
   ${fieldName}[0].value,
-  ${fieldName}
+  string(${fieldName})
 )`;
 
 export const mediaAssetFragment = `{

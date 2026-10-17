@@ -18,7 +18,7 @@ const ENTRY_SCROLL_THRESHOLD = 80;
 const infoLabels = {
   en: {
     contact: "Contact",
-    currentLocation: "Freiburg im Breisgau, Germany",
+    currentLocation: "Basel, Switzerland",
     currentlyIn: "Currently in",
     downloadCV: "Download CV",
     downloadRecommendations: "Download Recommendations",
@@ -31,7 +31,7 @@ const infoLabels = {
   },
   de: {
     contact: "Kontakt",
-    currentLocation: "Freiburg im Breisgau, Deutschland",
+    currentLocation: "Basel, Schweiz",
     currentlyIn: "Aktuell in",
     downloadCV: "CV herunterladen",
     downloadRecommendations: "Empfehlungen herunterladen",
@@ -306,7 +306,7 @@ export default function Info({ experience, info, language = "en", publicity }) {
               <section typo="caption">
                 <h4 typo="caption">{labels.currentlyIn}</h4>
                 <a
-                  href="https://www.google.com/maps/place/Freiburg+im+Breisgau/@47.9873966,7.7140196,12z/data=!3m1!4b1!4m6!3m5!1s0x47911b26560bd665:0x41f6bb7a5df57b0!8m2!3d47.9990077!4d7.8421043!16zL20vMHB0ajI?entry=ttu&g_ep=EgoyMDI2MDcyOC4wIKXMDSoASAFQAw%3D%3D"
+                  href="https://www.google.com/maps/@47.5540216,7.5824834,277a,75y,263.39h,90.24t/data=!3m7!1e1!3m5!1s5f0zpKRYscyDHEILJ_W7aQ!2e0!6shttps:%2F%2Fstreetviewpixels-pa.clients6.google.com%2Fv1%2Fthumbnail%3Fcb_client%3Dmaps_sv.tactile%26w%3D900%26h%3D600%26pitch%3D-0.24051115385469757%26panoid%3D5f0zpKRYscyDHEILJ_W7aQ%26yaw%3D263.3919012677985!7i16384!8i8192?entry=ttu&g_ep=EgoyMDI2MTAxMy4wIKXMDSoASAFQAw%3D%3D"
                   target="_blank"
                 >
                   {labels.currentLocation}

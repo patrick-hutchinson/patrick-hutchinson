@@ -129,8 +129,11 @@ const ProjectCursor = ({
     const handleMouseMove = (e) => {
       if (!ref.current) return;
 
-      const menu = document.querySelector("[data-menu-control]");
-      const nextIsNearMenu = menu ? isPointNearRect(e.clientX, e.clientY, menu.getBoundingClientRect(), 100) : false;
+      const controls = document.querySelectorAll("[data-menu-control], [data-project-cursor-buffer]");
+      const nextIsNearMenu = Array.from(controls).some((control) => {
+        const rect = control.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && isPointNearRect(e.clientX, e.clientY, rect, 100);
+      });
       const bounds = boundsRef?.current?.getBoundingClientRect();
 
       setIsNearMenu((currentIsNearMenu) => (currentIsNearMenu === nextIsNearMenu ? currentIsNearMenu : nextIsNearMenu));

@@ -30,7 +30,7 @@ const Header = ({ cylinderMode, language, setCylinderMode, showCylinderModeToggl
 
   return (
     <div className={styles.header} typo="caption">
-      <motion.div className={styles.leftControls} layout transition={{ duration: 0.35, ease: "easeInOut" }}>
+      <motion.div className={styles.leftControls} data-project-cursor-buffer layout transition={{ duration: 0.35, ease: "easeInOut" }}>
         <Link href="/" className={styles.homeButton}>
           Patrick Hutchinson
         </Link>

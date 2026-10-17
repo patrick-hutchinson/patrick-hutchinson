@@ -78,6 +78,27 @@ export const project = defineType({
               of: [{type: 'string', name: 'entry'}],
             }),
           ],
+          preview: {
+            select: {
+              role: 'role',
+              entries: 'entries',
+            },
+            prepare({role, entries}) {
+              const roleEntries = Array.isArray(role) ? role : []
+              const title = typeof role === 'string'
+                ? role
+                : roleEntries.find((entry) => (entry.language === 'en' || entry._key === 'en') && entry.value)?.value
+                  || roleEntries.find((entry) => entry.value)?.value
+              const names = Array.isArray(entries)
+                ? entries.filter((entry) => typeof entry === 'string' && entry.trim())
+                : []
+
+              return {
+                title: title || 'Credit',
+                subtitle: names.length ? names.join(', ') : 'No entries yet',
+              }
+            },
+          },
         },
       ],
     }),
