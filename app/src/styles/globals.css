@@ -59,12 +59,12 @@ html[data-theme-switching="true"] *::after {
   -ms-overflow-style: none;
 }
 
-::selection[data-theme="dark"] {
+[data-theme="dark"]::selection {
   background: var(--foreground);
   color: var(--background);
 }
 
-::selection[data-theme="light"] {
+[data-theme="light"]::selection {
   background: var(--background);
   color: var(--foreground);
 }

@@ -1598,11 +1598,19 @@ export default function CylinderView({ array = [], focusColors = [], language = 
   }, []);
 
   const handleWheel = useCallback((event) => {
-    event.preventDefault();
+    if (event.cancelable) event.preventDefault();
     entryScrollAnimationRef.current.active = false;
     const wheelDirection = isMobileRef.current ? 1 : -1;
     rotationRef.current.velocity += event.deltaY * wheelDirection * SCROLL_SPEED * SCROLL_RESISTANCE;
   }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
 
   const requestMobileOrientationPermission = useCallback(async () => {
     if (!isMobileRef.current || mobileOrientationPermissionRef.current === "pending") return;
@@ -1758,7 +1766,6 @@ export default function CylinderView({ array = [], focusColors = [], language = 
       onPointerLeave={handlePointerLeave}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onWheel={handleWheel}
       ref={containerRef}
     >
       <canvas className={styles.canvas} ref={canvasRef} />
